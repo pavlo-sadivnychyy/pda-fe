@@ -1,48 +1,42 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
-export type ChatSessionStatus = 'ACTIVE' | 'ARCHIVED';
+export type ChatSessionStatus = "ACTIVE" | "ARCHIVED";
 
 export type ChatSession = {
-    id: string;
-    organizationId: string;
-    createdById: string;
-    title: string;
-    status: ChatSessionStatus;
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  organizationId: string;
+  createdById: string;
+  title: string;
+  status: ChatSessionStatus;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type ChatSessionsResponse = {
-    items: ChatSession[];
+  items: ChatSession[];
 };
 
-export function useChatSessions(
-    organizationId?: string,
-    userId?: string,
-) {
-    return useQuery<ChatSessionsResponse>({
-        queryKey: ['chat-sessions', organizationId, userId],
-        enabled: !!organizationId && !!userId,
-        queryFn: async () => {
-            const params = new URLSearchParams({
-                organizationId: organizationId as string,
-                userId: userId as string,
-            });
+export function useChatSessions(organizationId?: string, userId?: string) {
+  return useQuery<ChatSessionsResponse>({
+    queryKey: ["chat-sessions", organizationId, userId],
+    enabled: !!organizationId && !!userId,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        organizationId: organizationId as string,
+        userId: userId as string,
+      });
 
-            const res = await fetch(
-                `${API_BASE_URL}/chat/sessions?${params.toString()}`,
-            );
+      const res = await fetch(
+        `${API_BASE_URL}/chat/sessions?${params.toString()}`,
+      );
 
-            if (!res.ok) {
-                throw new Error(
-                    `Failed to load chat sessions: ${res.status}`,
-                );
-            }
+      if (!res.ok) {
+        throw new Error(`Failed to load chat sessions: ${res.status}`);
+      }
 
-            return res.json();
-        },
-    });
+      return res.json();
+    },
+  });
 }
