@@ -66,6 +66,7 @@ type Invoice = {
   total: string | number;
   status: InvoiceStatus;
   notes?: string | null;
+  pdfDocumentId?: string | null;
   createdAt: string;
   updatedAt: string;
   client?: Client | null;
@@ -108,6 +109,7 @@ const InvoicesPage: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success",
   );
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [formStatus, setFormStatus] = useState<InvoiceStatus>("DRAFT");
 
@@ -243,6 +245,49 @@ const InvoicesPage: React.FC = () => {
     return { subtotal, taxAmount, total };
   }, [invoiceForm.items]);
 
+  const handleInvoiceAction = async (
+    id: string,
+    action: "send" | "mark-paid" | "cancel",
+  ) => {
+    try {
+      setActionLoadingId(id);
+
+      const url = `${API_BASE_URL}/invoices/${id}/${action}`;
+      let body: any = undefined;
+
+      // для mark-paid можна передати дату, але поки просто now
+      if (action === "mark-paid") {
+        body = JSON.stringify({});
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body,
+      });
+
+      if (!res.ok) {
+        console.error(await res.text());
+        throw new Error(`Failed to ${action} invoice`);
+      }
+
+      if (action === "send") {
+        showSnackbar("Інвойс відправлено (позначено як SENT)", "success");
+      } else if (action === "mark-paid") {
+        showSnackbar("Інвойс позначено як оплачений", "success");
+      } else if (action === "cancel") {
+        showSnackbar("Інвойс скасовано", "success");
+      }
+
+      await fetchInvoices();
+    } catch (e) {
+      console.error(e);
+      showSnackbar("Помилка оновлення статусу інвойсу", "error");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       if (!organizationId || !currentUserId) {
@@ -343,6 +388,7 @@ const InvoicesPage: React.FC = () => {
     total: `${formatMoney(inv.total)} ${inv.currency}`,
     rawTotal: inv.total,
     status: inv.status,
+    hasPdf: Boolean(inv.pdfDocumentId),
   }));
 
   const columns: GridColDef[] = [
@@ -395,6 +441,89 @@ const InvoicesPage: React.FC = () => {
               borderRadius: "999px",
             }}
           />
+        );
+      },
+    },
+    {
+      field: "pdf",
+      headerName: "PDF",
+      sortable: false,
+      filterable: false,
+      width: 140,
+      renderCell: (params) => {
+        const id = params.row.id as string;
+        const hasPdf = params.row.hasPdf as boolean;
+
+        const handleOpenPdf = () => {
+          window.open(
+            `${API_BASE_URL}/invoices/${id}/pdf`,
+            "_blank",
+            "noopener,noreferrer",
+          );
+        };
+
+        return (
+          <Button
+            size="small"
+            variant={hasPdf ? "outlined" : "contained"}
+            onClick={handleOpenPdf}
+            sx={{ textTransform: "none", fontSize: 12, borderRadius: 999 }}
+          >
+            {hasPdf ? "Відкрити PDF" : "Згенерувати PDF"}
+          </Button>
+        );
+      },
+    },
+    {
+      field: "actions",
+      headerName: "",
+      sortable: false,
+      filterable: false,
+      width: 260,
+      renderCell: (params) => {
+        const rowStatus = params.row.status as InvoiceStatus;
+        const id = params.row.id as string;
+        const busy = actionLoadingId === id;
+
+        const canSend = rowStatus === "DRAFT" || rowStatus === "OVERDUE";
+        const canMarkPaid = rowStatus === "SENT" || rowStatus === "OVERDUE";
+        const canCancel = rowStatus === "DRAFT" || rowStatus === "SENT";
+
+        return (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              justifyContent: "flex-end",
+              width: "100%",
+            }}
+          >
+            <Button
+              size="small"
+              variant="text"
+              disabled={!canSend || busy}
+              onClick={() => handleInvoiceAction(id, "send")}
+            >
+              Відправити
+            </Button>
+            <Button
+              size="small"
+              variant="text"
+              disabled={!canMarkPaid || busy}
+              onClick={() => handleInvoiceAction(id, "mark-paid")}
+            >
+              Оплачено
+            </Button>
+            <Button
+              size="small"
+              variant="text"
+              color="error"
+              disabled={!canCancel || busy}
+              onClick={() => handleInvoiceAction(id, "cancel")}
+            >
+              Скасувати
+            </Button>
+          </Box>
         );
       },
     },
