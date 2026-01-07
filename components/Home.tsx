@@ -16,6 +16,7 @@ import {
   Stack,
   Typography,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -25,6 +26,10 @@ import HistoryIcon from "@mui/icons-material/History";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import axios from "axios";
+import dayjs from "dayjs";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
@@ -96,15 +101,182 @@ const calculateProfileCompletion = (form: FormValues | null): number => {
   return Math.round((filled / keys.length) * 100);
 };
 
+// ---- Todo types + api ----
+
+type TodoStatus = "PENDING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+type TodoPriority = "LOW" | "MEDIUM" | "HIGH";
+
+type TodoTask = {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  startAt: string; // ISO
+  status: TodoStatus;
+  priority: TodoPriority;
+};
+
+type TasksResponse = {
+  items: TodoTask[];
+};
+
+// AI план
+
+type AiPlanTimelineItem = {
+  time: string; // "09:00"
+  task: string;
+  status: TodoStatus;
+};
+
+type AiPlan = {
+  date: string; // "YYYY-MM-DD"
+  summary: string;
+  suggestions: string[];
+  timeline: AiPlanTimelineItem[];
+};
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+});
+
+const formatTime = (iso: string) => dayjs(iso).format("HH:mm");
+
+const priorityLabel = (p: TodoPriority) => {
+  switch (p) {
+    case "HIGH":
+      return "Високий пріоритет";
+    case "LOW":
+      return "Низький пріоритет";
+    default:
+      return "Середній пріоритет";
+  }
+};
+
+const statusLabel = (s: TodoStatus) => {
+  switch (s) {
+    case "DONE":
+      return "Виконано";
+    case "IN_PROGRESS":
+      return "В процесі";
+    case "CANCELLED":
+      return "Скасовано";
+    default:
+      return "Заплановано";
+  }
+};
+
 export default function Home() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: userData } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
+  const todayDateString = dayjs().format("YYYY-MM-DD");
+
   const { data: orgData, isLoading: isOrgLoading } = useOrganization(
     currentUserId || undefined,
   );
+
+  // --- Today tasks for widget ---
+  const {
+    data: todayTasksResponse,
+    isLoading: isTodayTasksLoading,
+    isFetching: isTodayTasksFetching,
+  } = useQuery<TasksResponse>({
+    queryKey: ["todo", "today", currentUserId],
+    queryFn: async () => {
+      const res = await api.get<TasksResponse>("/todo/tasks/today", {
+        params: { userId: currentUserId },
+      });
+      return res.data;
+    },
+    enabled: !!currentUserId,
+  });
+
+  const todayTasksRaw = todayTasksResponse?.items ?? [];
+  const todayTasks = useMemo(
+    () =>
+      [...todayTasksRaw].sort(
+        (a, b) => dayjs(a.startAt).valueOf() - dayjs(b.startAt).valueOf(),
+      ),
+    [todayTasksRaw],
+  );
+  const todayCount = todayTasks.length;
+
+  // --- AI plan from backend (persisted) ---
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const {
+    data: aiPlan,
+    isLoading: isAiPlanLoading,
+    isFetching: isAiPlanFetching,
+  } = useQuery<AiPlan | null>({
+    queryKey: ["aiPlan", currentUserId, todayDateString],
+    queryFn: async () => {
+      const res = await api.get<{ plan: any | null }>("/todo/tasks/ai-plan", {
+        params: {
+          userId: currentUserId,
+          date: todayDateString,
+        },
+      });
+
+      const rawPlan = res.data.plan;
+      if (!rawPlan) return null;
+
+      const normalized: AiPlan = {
+        date: todayDateString,
+        summary: rawPlan.summary ?? "AI-план на сьогодні готовий.",
+        suggestions: rawPlan.suggestions ?? [],
+        timeline: rawPlan.timeline ?? [],
+      };
+
+      return normalized;
+    },
+    enabled: !!currentUserId,
+  });
+
+  const generatePlanMutation = useMutation<AiPlan, Error, void>({
+    mutationFn: async () => {
+      const res = await api.post<{ plan: any }>("/todo/tasks/ai-plan", {
+        userId: currentUserId,
+        date: todayDateString,
+      });
+
+      const rawPlan = res.data.plan || {};
+      const normalized: AiPlan = {
+        date: todayDateString,
+        summary: rawPlan.summary ?? "AI-план на сьогодні готовий.",
+        suggestions: rawPlan.suggestions ?? [],
+        timeline: rawPlan.timeline ?? [],
+      };
+
+      return normalized;
+    },
+    onSuccess: (normalized) => {
+      setAiError(null);
+      queryClient.setQueryData<AiPlan | null>(
+        ["aiPlan", currentUserId, todayDateString],
+        normalized,
+      );
+    },
+    onError: () => {
+      setAiError("Не вдалось згенерувати план. Спробуй пізніше.");
+    },
+  });
+
+  const isAiGenerating = generatePlanMutation.isLoading;
+
+  const handleGeneratePlan = () => {
+    if (!currentUserId) return;
+    if (aiPlan) return;
+    if (!todayCount) return;
+    if (isAiGenerating) return;
+
+    generatePlanMutation.mutate();
+  };
+
+  // ---- Org / profile ----
 
   let organization: Organization | null = null;
   let form: FormValues | null = null;
@@ -131,15 +303,18 @@ export default function Home() {
   })();
 
   const handleProfileClick = () => {
-    // 👇 тут постав потрібний шлях до сторінки профілю організації
     router.push("/organization/profile");
+  };
+
+  const handleOpenTodo = () => {
+    router.push("/todo");
   };
 
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: "#f3f4f6", // світлий фон як у Clerk
+        bgcolor: "#f3f4f6",
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
@@ -483,6 +658,411 @@ export default function Home() {
 
           {/* Права колонка */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+            {/* Віджет: задачі на сьогодні */}
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                mb: 3,
+              }}
+            >
+              <CardHeader
+                avatar={<CheckCircleIcon sx={{ color: "#16a34a" }} />}
+                title={
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Задачі на сьогодні
+                  </Typography>
+                }
+                subheader={
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Короткий огляд запланованих справ на поточний день.
+                  </Typography>
+                }
+                sx={{ pb: 0 }}
+              />
+              <CardContent sx={{ pt: 1.5 }}>
+                <Stack spacing={1.5}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    spacing={1}
+                  >
+                    {isTodayTasksLoading || isTodayTasksFetching ? (
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <CircularProgress size={18} />
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "text.secondary" }}
+                        >
+                          Завантажуємо задачі...
+                        </Typography>
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2">
+                        {todayCount === 0
+                          ? "На сьогодні задач ще немає."
+                          : `На сьогодні заплановано ${todayCount} задач(і).`}
+                      </Typography>
+                    )}
+
+                    <Chip
+                      label={
+                        todayCount > 0 ? `${todayCount} задач(і)` : "0 задач"
+                      }
+                      size="small"
+                      sx={{
+                        bgcolor: "#eef2ff",
+                        color: "#4338ca",
+                        fontWeight: 500,
+                      }}
+                    />
+                  </Stack>
+
+                  <Divider />
+
+                  {todayCount > 0 && (
+                    <List dense sx={{ py: 0 }}>
+                      {todayTasks.map((task) => {
+                        const isPast = dayjs(task.startAt).isBefore(dayjs());
+                        const showDoneIcon = task.status === "DONE" || isPast;
+
+                        return (
+                          <ListItem
+                            key={task.id}
+                            disableGutters
+                            sx={{ mb: 0.5 }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 32 }}>
+                              {showDoneIcon ? (
+                                <CheckCircleIcon
+                                  sx={{ fontSize: 18, color: "#16a34a" }}
+                                />
+                              ) : (
+                                <RadioButtonUncheckedIcon
+                                  sx={{ fontSize: 18, color: "#9ca3af" }}
+                                />
+                              )}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Stack
+                                  direction="row"
+                                  alignItems="center"
+                                  spacing={1}
+                                >
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ fontWeight: 600 }}
+                                  >
+                                    {formatTime(task.startAt)}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {task.title}
+                                  </Typography>
+                                </Stack>
+                              }
+                              secondary={
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  sx={{ mt: 0.5 }}
+                                >
+                                  <Chip
+                                    size="small"
+                                    label={priorityLabel(task.priority)}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 10,
+                                      bgcolor: "#f3f4f6",
+                                    }}
+                                  />
+                                  <Chip
+                                    size="small"
+                                    label={statusLabel(task.status)}
+                                    sx={{
+                                      height: 20,
+                                      fontSize: 10,
+                                      bgcolor: "#ecfeff",
+                                    }}
+                                  />
+                                </Stack>
+                              }
+                            />
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  )}
+
+                  {todayCount === 0 &&
+                    !isTodayTasksLoading &&
+                    !isTodayTasksFetching && (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Додай першу задачу в планувальнику, щоб не забути
+                        важливі справи.
+                      </Typography>
+                    )}
+
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={handleOpenTodo}
+                    sx={{
+                      mt: 1,
+                      textTransform: "none",
+                      borderRadius: 999,
+                      borderColor: "#202124",
+                      color: "#202124",
+                      "&:hover": {
+                        borderColor: "#020617",
+                        bgcolor: "#f3f4f6",
+                      },
+                    }}
+                  >
+                    Відкрити планувальник
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* AI-план дня */}
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                mb: 3,
+              }}
+            >
+              <CardHeader
+                avatar={<FlashOnIcon sx={{ color: "#f97316" }} />}
+                title={
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    AI-план на сьогодні
+                  </Typography>
+                }
+                subheader={
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Асистент формує структурований план на основі твоїх задач.
+                  </Typography>
+                }
+                sx={{ pb: 0 }}
+              />
+              <CardContent sx={{ pt: 1.5 }}>
+                <Stack spacing={1.5}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      План генерується один раз на день і зберігається до
+                      завтра.
+                    </Typography>
+
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={handleGeneratePlan}
+                      disabled={
+                        isAiGenerating ||
+                        !!aiPlan ||
+                        !todayCount ||
+                        isAiPlanLoading ||
+                        isAiPlanFetching
+                      }
+                      sx={{
+                        textTransform: "none",
+                        borderRadius: 999,
+                        bgcolor: "#202124",
+                        "&:hover": { bgcolor: "#111827" },
+                        fontSize: 12,
+                        px: 2,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {isAiGenerating || isAiPlanLoading || isAiPlanFetching
+                        ? "Генеруємо..."
+                        : aiPlan
+                          ? "План готовий"
+                          : todayCount === 0
+                            ? "Немає задач"
+                            : "Згенерувати план"}
+                    </Button>
+                  </Stack>
+
+                  {aiError && (
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#b91c1c", mt: 0.5 }}
+                    >
+                      {aiError}
+                    </Typography>
+                  )}
+
+                  {(isAiGenerating || isAiPlanLoading || isAiPlanFetching) &&
+                    !aiPlan && (
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        sx={{ mt: 1 }}
+                      >
+                        <CircularProgress size={18} />
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "text.secondary" }}
+                        >
+                          Асистент аналізує задачі та складає план...
+                        </Typography>
+                      </Stack>
+                    )}
+
+                  {aiPlan && !isAiGenerating && (
+                    <Stack spacing={1.5} sx={{ mt: 1 }}>
+                      {/* Summary */}
+                      <Box
+                        sx={{
+                          bgcolor: "#fefce8",
+                          borderRadius: 2,
+                          p: 1.5,
+                          border: "1px solid #facc15",
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 600, mb: 0.5 }}
+                        >
+                          Підсумок дня
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "#4b5563", whiteSpace: "pre-line" }}
+                        >
+                          {aiPlan.summary}
+                        </Typography>
+                      </Box>
+
+                      {/* Suggestions */}
+                      {aiPlan.suggestions && aiPlan.suggestions.length > 0 && (
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 600, mb: 0.5 }}
+                          >
+                            Рекомендації асистента
+                          </Typography>
+                          <List dense sx={{ py: 0 }}>
+                            {aiPlan.suggestions.map((s, idx) => (
+                              <ListItem
+                                key={idx}
+                                disableGutters
+                                sx={{ py: 0.25 }}
+                              >
+                                <ListItemText
+                                  primary={
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ color: "#4b5563" }}
+                                    >
+                                      • {s}
+                                    </Typography>
+                                  }
+                                />
+                              </ListItem>
+                            ))}
+                          </List>
+                        </Box>
+                      )}
+
+                      {/* Timeline */}
+                      {aiPlan.timeline && aiPlan.timeline.length > 0 && (
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 600, mb: 0.5 }}
+                          >
+                            Поминутний план
+                          </Typography>
+                          <List dense sx={{ py: 0 }}>
+                            {aiPlan.timeline.map((item, idx) => {
+                              const isDone = item.status === "DONE";
+                              const statusText = statusLabel(item.status);
+
+                              return (
+                                <ListItem
+                                  key={idx}
+                                  disableGutters
+                                  sx={{ mb: 0.25 }}
+                                >
+                                  <ListItemIcon sx={{ minWidth: 32 }}>
+                                    {isDone ? (
+                                      <CheckCircleIcon
+                                        sx={{
+                                          fontSize: 18,
+                                          color: "#16a34a",
+                                        }}
+                                      />
+                                    ) : (
+                                      <RadioButtonUncheckedIcon
+                                        sx={{
+                                          fontSize: 18,
+                                          color: "#9ca3af",
+                                        }}
+                                      />
+                                    )}
+                                  </ListItemIcon>
+                                  <ListItemText
+                                    primary={
+                                      <Stack
+                                        direction="row"
+                                        alignItems="center"
+                                        spacing={1}
+                                      >
+                                        <Typography
+                                          variant="body2"
+                                          sx={{ fontWeight: 600 }}
+                                        >
+                                          {item.time}
+                                        </Typography>
+                                        <Typography variant="body2">
+                                          {item.task}
+                                        </Typography>
+                                      </Stack>
+                                    }
+                                    secondary={
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "#6b7280",
+                                          mt: 0.25,
+                                        }}
+                                      >
+                                        Статус: {statusText}
+                                      </Typography>
+                                    }
+                                  />
+                                </ListItem>
+                              );
+                            })}
+                          </List>
+                        </Box>
+                      )}
+                    </Stack>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+
             {/* Швидкі сценарії */}
             <Card
               elevation={3}
