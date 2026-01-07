@@ -16,9 +16,7 @@ import {
   MenuItem,
   IconButton,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs, { Dayjs } from "dayjs";
@@ -803,46 +801,94 @@ export default function TodoPage() {
         </Paper>
       </Container>
 
-      {/* Модалка додавання задачі */}
+      {/* Модалка додавання задачі у стилі інших форм */}
       <Dialog
         open={isDialogOpen}
         onClose={handleCloseDialog}
         fullWidth
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            p: 0,
+          },
+        }}
       >
-        <DialogTitle
-          sx={{ fontSize: { xs: 18, md: 20 }, pb: { xs: 1, md: 2 } }}
+        <DialogContent
+          sx={{
+            padding: "24px",
+          }}
         >
-          Нова задача на {formatDateHuman(selectedDate)}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Stack spacing={2}>
+          {/* Чіп зверху */}
+          <Box
+            sx={{
+              display: "inline-flex",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: "#f3f4f6",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                letterSpacing: 0.8,
+                fontWeight: 600,
+                color: "#6b7280",
+              }}
+            >
+              TASKS
+            </Typography>
+          </Box>
+
+          {/* Заголовок + опис */}
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
+          >
+            Нова задача
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "#6b7280", mb: 3, maxWidth: 520 }}
+          >
+            Створи задачу для{" "}
+            <Box component="span" sx={{ fontWeight: 600, color: "#111827" }}>
+              {formatDateHuman(selectedDate)}
+            </Box>
+            : задай назву, час, пріоритет та короткий опис — асистент
+            використовуватиме ці дані під час планування дня.
+          </Typography>
+
+          {/* Поля форми */}
+          <Stack spacing={2.5}>
             <TextField
-              label="Назва задачі"
+              label="Назва задачі *"
+              placeholder="Наприклад: Розібрати пошту та відповісти на листи"
               fullWidth
-              size="small"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
                 label="Час"
-                size="small"
                 type="time"
                 value={newTime}
                 onChange={(e) => setNewTime(e.target.value)}
-                sx={{ width: { xs: "100%", sm: 160 } }}
+                sx={{ width: { xs: "100%", sm: 180 } }}
                 InputLabelProps={{ shrink: true }}
               />
 
               <TextField
                 label="Пріоритет"
-                size="small"
                 select
                 value={newPriority}
                 onChange={(e) => setNewPriority(e.target.value as TodoPriority)}
-                sx={{ width: { xs: "100%", sm: 200 } }}
+                sx={{ width: { xs: "100%", sm: 220 } }}
+                InputLabelProps={{ shrink: true }}
               >
                 <MenuItem value="LOW">Низький</MenuItem>
                 <MenuItem value="MEDIUM">Середній</MenuItem>
@@ -852,40 +898,51 @@ export default function TodoPage() {
 
             <TextField
               label="Опис (опціонально)"
-              size="small"
+              placeholder="Додаткові деталі, чекліст або контекст задачі"
               fullWidth
               multiline
               minRows={3}
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
           </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: { xs: 2, md: 2.5 } }}>
-          <Button
-            onClick={handleCloseDialog}
-            disabled={isCreating}
-            sx={{ textTransform: "none", fontSize: { xs: 12, md: 13 } }}
-          >
-            Скасувати
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateTask}
-            disabled={!newTitle.trim() || isCreating}
+
+          {/* Кнопки внизу */}
+          <Box
             sx={{
-              textTransform: "none",
-              borderRadius: 999,
-              px: { xs: 2.5, md: 3 },
-              bgcolor: "#020617",
-              "&:hover": { bgcolor: "#02091b" },
-              fontSize: { xs: 12, md: 13 },
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 4,
+              gap: 2,
             }}
           >
-            {isCreating ? "Збереження..." : "Додати задачу"}
-          </Button>
-        </DialogActions>
+            <Button
+              onClick={handleCloseDialog}
+              disabled={isCreating}
+              sx={{ textTransform: "none", color: "#6b7280" }}
+            >
+              Скасувати
+            </Button>
+
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateTask}
+              disabled={!newTitle.trim() || isCreating}
+              sx={{
+                textTransform: "none",
+                borderRadius: 999,
+                px: { xs: 2.5, md: 3 },
+                bgcolor: "#111827",
+                "&:hover": { bgcolor: "#020617" },
+              }}
+            >
+              {isCreating ? "Збереження..." : "Додати задачу"}
+            </Button>
+          </Box>
+        </DialogContent>
       </Dialog>
     </Box>
   );

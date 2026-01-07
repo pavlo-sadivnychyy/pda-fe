@@ -6,9 +6,7 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogTitle,
   FormControl,
   IconButton,
   InputLabel,
@@ -19,10 +17,12 @@ import {
   TextField,
   Typography,
   Chip,
+  Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
 
@@ -89,8 +89,13 @@ const defaultItem: InvoiceItemForm = {
   taxRate: "0",
 };
 
+const statuses = {
+  SENT: "Відправлено",
+  PAID: "Оплачено",
+  CANCELLED: "Скасовано",
+};
+
 const InvoicesPage: React.FC = () => {
-  // TODO: підстав зі свого auth / контексту
   const { data: userData } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
@@ -255,7 +260,6 @@ const InvoicesPage: React.FC = () => {
       const url = `${API_BASE_URL}/invoices/${id}/${action}`;
       let body: any = undefined;
 
-      // для mark-paid можна передати дату, але поки просто now
       if (action === "mark-paid") {
         body = JSON.stringify({});
       }
@@ -430,17 +434,24 @@ const InvoicesPage: React.FC = () => {
       renderCell: (params: GridRenderCellParams<InvoiceStatus>) => {
         const { color, bg } = statusChipColor(params.value as InvoiceStatus);
         return (
-          <Chip
-            size="small"
-            label={params.value}
-            sx={{
-              fontSize: 12,
-              fontWeight: 500,
-              color,
-              backgroundColor: bg,
-              borderRadius: "999px",
-            }}
-          />
+          <Stack
+            direction="row"
+            spacing={1}
+            height={"100%"}
+            alignItems={"center"}
+          >
+            <Chip
+              size="small"
+              label={statuses[params.value]}
+              sx={{
+                fontSize: 12,
+                fontWeight: 500,
+                color,
+                backgroundColor: bg,
+                borderRadius: "999px",
+              }}
+            />
+          </Stack>
         );
       },
     },
@@ -449,7 +460,7 @@ const InvoicesPage: React.FC = () => {
       headerName: "PDF",
       sortable: false,
       filterable: false,
-      width: 140,
+      width: 160,
       renderCell: (params) => {
         const id = params.row.id as string;
         const hasPdf = params.row.hasPdf as boolean;
@@ -462,15 +473,38 @@ const InvoicesPage: React.FC = () => {
           );
         };
 
+        const isPrimary = !hasPdf;
+
         return (
-          <Button
-            size="small"
-            variant={hasPdf ? "outlined" : "contained"}
-            onClick={handleOpenPdf}
-            sx={{ textTransform: "none", fontSize: 12, borderRadius: 999 }}
+          <Stack
+            direction="row"
+            spacing={1}
+            height={"100%"}
+            alignItems={"center"}
           >
-            {hasPdf ? "Відкрити PDF" : "Згенерувати PDF"}
-          </Button>
+            <Button
+              size="small"
+              onClick={handleOpenPdf}
+              variant={isPrimary ? "contained" : "outlined"}
+              sx={{
+                textTransform: "none",
+                fontSize: 12,
+                borderRadius: 999,
+                px: 2,
+                py: 0.5,
+                minWidth: 0,
+                bgcolor: isPrimary ? "#111827" : "transparent",
+                color: isPrimary ? "#f9fafb" : "#111827",
+                borderColor: "#111827",
+                "&:hover": {
+                  bgcolor: isPrimary ? "#020617" : "rgba(15,23,42,0.04)",
+                  borderColor: "#020617",
+                },
+              }}
+            >
+              {hasPdf ? "Відкрити PDF" : "Згенерувати PDF"}
+            </Button>
+          </Stack>
         );
       },
     },
@@ -479,7 +513,7 @@ const InvoicesPage: React.FC = () => {
       headerName: "",
       sortable: false,
       filterable: false,
-      width: 260,
+      width: 300,
       renderCell: (params) => {
         const rowStatus = params.row.status as InvoiceStatus;
         const id = params.row.id as string;
@@ -495,31 +529,85 @@ const InvoicesPage: React.FC = () => {
               display: "flex",
               gap: 1,
               justifyContent: "flex-end",
+              alignItems: "center",
+              height: "100%",
               width: "100%",
             }}
           >
             <Button
               size="small"
-              variant="text"
+              variant="outlined"
               disabled={!canSend || busy}
               onClick={() => handleInvoiceAction(id, "send")}
+              sx={{
+                textTransform: "none",
+                fontSize: 12,
+                borderRadius: 999,
+                px: 1.8,
+                py: 0.4,
+                borderColor: "#111827",
+                color: "#111827",
+                "&:hover": {
+                  borderColor: "#020617",
+                  bgcolor: "rgba(15,23,42,0.04)",
+                },
+                "&.Mui-disabled": {
+                  borderColor: "#e5e7eb",
+                  color: "#9ca3af",
+                },
+              }}
             >
-              Відправити
+              Відправлено
             </Button>
+
             <Button
               size="small"
-              variant="text"
+              variant="outlined"
               disabled={!canMarkPaid || busy}
               onClick={() => handleInvoiceAction(id, "mark-paid")}
+              sx={{
+                textTransform: "none",
+                fontSize: 12,
+                borderRadius: 999,
+                px: 1.8,
+                py: 0.4,
+                borderColor: "#16a34a",
+                color: "#166534",
+                "&:hover": {
+                  borderColor: "#15803d",
+                  bgcolor: "rgba(22,163,74,0.06)",
+                },
+                "&.Mui-disabled": {
+                  borderColor: "#e5e7eb",
+                  color: "#9ca3af",
+                },
+              }}
             >
               Оплачено
             </Button>
+
             <Button
               size="small"
-              variant="text"
-              color="error"
+              variant="outlined"
               disabled={!canCancel || busy}
               onClick={() => handleInvoiceAction(id, "cancel")}
+              sx={{
+                textTransform: "none",
+                fontSize: 12,
+                borderRadius: 999,
+                px: 1.8,
+                py: 0.4,
+                borderColor: "#dc2626",
+                color: "#b91c1c",
+                "&:hover": {
+                  borderColor: "#b91c1c",
+                  bgcolor: "rgba(220,38,38,0.06)",
+                },
+                "&.Mui-disabled": {
+                  borderColor: "#fee2e2",
+                  color: "#fecaca",
+                },
+              }}
             >
               Скасувати
             </Button>
@@ -540,28 +628,11 @@ const InvoicesPage: React.FC = () => {
     >
       <Box
         sx={{
-          maxWidth: 1200,
+          maxWidth: 1500,
           mx: "auto",
         }}
       >
-        {/* Чіп секції як "BUSINESS PROFILE" */}
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 2,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#e5e7eb",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            INVOICES
-          </Typography>
-        </Box>
+        {/* Чіп секції */}
 
         {/* Основна картка */}
         <Box
@@ -641,7 +712,7 @@ const InvoicesPage: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Легка лінія як на макеті */}
+          {/* Легкий розділювач */}
           <Box
             sx={{
               borderBottom: "1px solid rgba(148,163,184,0.4)",
@@ -649,7 +720,7 @@ const InvoicesPage: React.FC = () => {
             }}
           />
 
-          {/* DataGrid у стилі картки */}
+          {/* DataGrid */}
           <Box
             sx={{
               "& .MuiDataGrid-root": {
@@ -685,7 +756,7 @@ const InvoicesPage: React.FC = () => {
             />
           </Box>
 
-          {/* Низ картки з кнопкою, як "Редагувати профіль" на макеті */}
+          {/* Низ картки з кнопкою */}
           <Box
             sx={{
               mt: 3,
@@ -727,33 +798,87 @@ const InvoicesPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Діалог створення інвойсу */}
+      {/* Діалог створення інвойсу у стилі "knowledge base" */}
       <Dialog
         open={createDialogOpen}
         onClose={handleCloseCreateDialog}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            p: 0,
+          },
+        }}
       >
-        <DialogTitle>Створення інвойсу</DialogTitle>
-        <DialogContent dividers>
+        <DialogContent
+          sx={{
+            padding: "24px",
+          }}
+        >
+          {/* Чіп зверху */}
+          <Box
+            sx={{
+              display: "inline-flex",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: "#f3f4f6",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                letterSpacing: 0.8,
+                fontWeight: 600,
+                color: "#6b7280",
+              }}
+            >
+              INVOICES
+            </Typography>
+          </Box>
+
+          {/* Заголовок + опис */}
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
+          >
+            Створити інвойс
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "#6b7280", mb: 3, maxWidth: 620 }}
+          >
+            Обери клієнта, заповни реквізити рахунку, додай позиції та суми —
+            система автоматично підрахує загальну суму до оплати.
+          </Typography>
+
+          {/* Верхній блок полів: клієнт, статус, дати, валюта, нотатки */}
           <Box
             sx={{
               display: "grid",
               gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: 2,
+              gap: 2.5,
               mb: 3,
             }}
           >
             {/* Клієнт */}
-            <FormControl fullWidth size="small">
-              <InputLabel id="client-select-label">Клієнт</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel shrink id="client-select-label">
+                Клієнт
+              </InputLabel>
               <Select
                 labelId="client-select-label"
                 label="Клієнт"
                 value={invoiceForm.clientId}
                 onChange={(e) => handleFormChange("clientId", e.target.value)}
                 disabled={loadingClients}
+                displayEmpty
               >
+                <MenuItem value="">
+                  <em>Без клієнта</em>
+                </MenuItem>
                 {clients.map((client) => (
                   <MenuItem key={client.id} value={client.id}>
                     {client.name}
@@ -764,19 +889,21 @@ const InvoicesPage: React.FC = () => {
             </FormControl>
 
             {/* Статус */}
-            <FormControl fullWidth size="small">
-              <InputLabel id="status-select-label">Статус</InputLabel>
+            <FormControl fullWidth>
+              <InputLabel shrink id="status-select-label">
+                Статус
+              </InputLabel>
               <Select
                 labelId="status-select-label"
                 label="Статус"
                 value={formStatus}
                 onChange={(e) => setFormStatus(e.target.value as InvoiceStatus)}
               >
-                <MenuItem value="DRAFT">DRAFT</MenuItem>
-                <MenuItem value="SENT">SENT</MenuItem>
-                <MenuItem value="PAID">PAID</MenuItem>
-                <MenuItem value="OVERDUE">OVERDUE</MenuItem>
-                <MenuItem value="CANCELLED">CANCELLED</MenuItem>
+                <MenuItem value="DRAFT">Чернетка</MenuItem>
+                <MenuItem value="SENT">Надіслано</MenuItem>
+                <MenuItem value="PAID">Оплачено</MenuItem>
+                <MenuItem value="OVERDUE">Прострочено</MenuItem>
+                <MenuItem value="CANCELLED">Скасовано</MenuItem>
               </Select>
             </FormControl>
 
@@ -784,7 +911,6 @@ const InvoicesPage: React.FC = () => {
             <TextField
               label="Дата виставлення"
               type="date"
-              size="small"
               fullWidth
               InputLabelProps={{ shrink: true }}
               value={invoiceForm.issueDate}
@@ -795,7 +921,6 @@ const InvoicesPage: React.FC = () => {
             <TextField
               label="Кінцевий термін оплати"
               type="date"
-              size="small"
               fullWidth
               InputLabelProps={{ shrink: true }}
               value={invoiceForm.dueDate}
@@ -805,27 +930,30 @@ const InvoicesPage: React.FC = () => {
             {/* Currency */}
             <TextField
               label="Валюта"
-              size="small"
               fullWidth
+              InputLabelProps={{ shrink: true }}
               value={invoiceForm.currency}
               onChange={(e) => handleFormChange("currency", e.target.value)}
             />
 
             {/* Notes */}
             <TextField
-              label="Нотатки"
-              size="small"
+              label="Нотатки (опціонально)"
               fullWidth
               multiline
               minRows={2}
-              maxRows={4}
+              InputLabelProps={{ shrink: true }}
               value={invoiceForm.notes}
               onChange={(e) => handleFormChange("notes", e.target.value)}
             />
           </Box>
 
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-            Позиції
+          {/* Позиції інвойсу */}
+          <Typography
+            variant="subtitle1"
+            sx={{ mb: 1, fontWeight: 600, color: "#020617" }}
+          >
+            Позиції інвойсу
           </Typography>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -843,12 +971,13 @@ const InvoicesPage: React.FC = () => {
                   },
                   gap: 1.5,
                   alignItems: "flex-start",
+                  bgcolor: "#f9fafb",
                 }}
               >
                 <TextField
                   label="Назва"
-                  size="small"
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   value={item.name}
                   onChange={(e) =>
                     handleItemChange(index, "name", e.target.value)
@@ -856,33 +985,33 @@ const InvoicesPage: React.FC = () => {
                 />
                 <TextField
                   label="Кількість"
-                  size="small"
                   type="number"
                   fullWidth
-                  value={item.quantity}
                   inputProps={{ min: 0, step: "0.01" }}
+                  InputLabelProps={{ shrink: true }}
+                  value={item.quantity}
                   onChange={(e) =>
                     handleItemChange(index, "quantity", e.target.value)
                   }
                 />
                 <TextField
                   label="Ціна за одиницю"
-                  size="small"
                   type="number"
                   fullWidth
-                  value={item.unitPrice}
                   inputProps={{ min: 0, step: "0.01" }}
+                  InputLabelProps={{ shrink: true }}
+                  value={item.unitPrice}
                   onChange={(e) =>
                     handleItemChange(index, "unitPrice", e.target.value)
                   }
                 />
                 <TextField
                   label="ПДВ, %"
-                  size="small"
                   type="number"
                   fullWidth
-                  value={item.taxRate}
                   inputProps={{ min: 0, step: "0.01" }}
+                  InputLabelProps={{ shrink: true }}
+                  value={item.taxRate}
                   onChange={(e) =>
                     handleItemChange(index, "taxRate", e.target.value)
                   }
@@ -917,11 +1046,10 @@ const InvoicesPage: React.FC = () => {
 
                 <TextField
                   label="Опис"
-                  size="small"
                   fullWidth
                   multiline
                   minRows={2}
-                  maxRows={4}
+                  InputLabelProps={{ shrink: true }}
                   sx={{ gridColumn: { xs: "1 / -1", md: "1 / -1" } }}
                   value={item.description}
                   onChange={(e) =>
@@ -937,42 +1065,97 @@ const InvoicesPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 onClick={handleAddItem}
+                sx={{
+                  borderRadius: 999,
+                  textTransform: "none",
+                }}
               >
                 Додати позицію
               </Button>
             </Box>
           </Box>
 
+          {/* Підсумки */}
           <Box
             sx={{
               mt: 3,
               display: "flex",
-              justifyContent: "flex-end",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 0.5,
+              justifyContent: "space-between",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: { xs: "flex-start", md: "center" },
+              gap: 2,
             }}
           >
-            <Typography variant="body2">
-              Сума без ПДВ: {formatMoney(computedTotals.subtotal)}{" "}
-              {invoiceForm.currency}
-            </Typography>
-            <Typography variant="body2">
-              ПДВ: {formatMoney(computedTotals.taxAmount)}{" "}
-              {invoiceForm.currency}
-            </Typography>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              До оплати: {formatMoney(computedTotals.total)}{" "}
-              {invoiceForm.currency}
-            </Typography>
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{ color: "#9ca3af", textTransform: "uppercase" }}
+              >
+                Підсумок
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                Система автоматично рахує суму без ПДВ, податок та суму до
+                оплати.
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 0.5,
+              }}
+            >
+              <Typography variant="body2">
+                Сума без ПДВ: {formatMoney(computedTotals.subtotal)}{" "}
+                {invoiceForm.currency}
+              </Typography>
+              <Typography variant="body2">
+                ПДВ: {formatMoney(computedTotals.taxAmount)}{" "}
+                {invoiceForm.currency}
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                До оплати: {formatMoney(computedTotals.total)}{" "}
+                {invoiceForm.currency}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Кнопки знизу, як у формі актів/клієнтів */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 4,
+              gap: 2,
+            }}
+          >
+            <Button
+              onClick={handleCloseCreateDialog}
+              sx={{ textTransform: "none", color: "#6b7280" }}
+            >
+              Скасувати
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              sx={{
+                textTransform: "none",
+                borderRadius: 999,
+                px: 3,
+                bgcolor: "#111827",
+                "&:hover": {
+                  bgcolor: "#020617",
+                },
+              }}
+            >
+              Зберегти інвойс
+            </Button>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreateDialog}>Скасувати</Button>
-          <Button variant="contained" onClick={handleSubmit}>
-            Зберегти
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

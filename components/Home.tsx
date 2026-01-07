@@ -314,7 +314,7 @@ export default function Home() {
   };
 
   const handleOpenClients = () => {
-    router.push("/invoices/clients");
+    router.push("/clients");
   };
 
   const handleOpenInvoices = () => {
@@ -322,7 +322,11 @@ export default function Home() {
   };
 
   const handleOpenAnalytics = () => {
-    router.push("/invoices/analytics");
+    router.push("/analytics");
+  };
+
+  const handleOpenActs = () => {
+    router.push("/acts");
   };
 
   return (
@@ -366,7 +370,7 @@ export default function Home() {
             >
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                  Привіт, Павле 👋
+                  Привіт, {userData?.firstName} 👋
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
                   Чим сьогодні допомогти? Обери одну з популярних дій нижче або
@@ -610,6 +614,339 @@ export default function Home() {
                   >
                     {buttonLabel}
                   </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                mb: 3,
+              }}
+            >
+              <CardHeader
+                avatar={<DescriptionIcon sx={{ color: "#6b7280" }} />}
+                title={
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Документи
+                  </Typography>
+                }
+                subheader={
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Завантажуйте договори, описи, регламенти.
+                  </Typography>
+                }
+              />
+              <CardContent sx={{ pt: 1 }}>
+                <Button
+                  onClick={() => router.push("/knowledge-base")}
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{
+                    mb: 1.5,
+                    textTransform: "none",
+                    borderRadius: 999,
+                    borderColor: "#dadce0",
+                    color: "#374151",
+                    bgcolor: "#ffffff",
+                    "&:hover": {
+                      borderColor: "#c4c6cb",
+                      bgcolor: "#fafafa",
+                    },
+                  }}
+                >
+                  Завантажити документ
+                </Button>
+
+                <Divider sx={{ my: 1.5 }} />
+
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", mb: 0.5 }}
+                >
+                  Останні документи
+                </Typography>
+                <Stack spacing={0.5}>
+                  <Typography variant="body2">
+                    • Договір надання послуг.docx
+                  </Typography>
+                  <Typography variant="body2">
+                    • Політика повернення коштів.pdf
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    • Опис пакету “Premium”.txt
+                  </Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                mb: 3,
+              }}
+            >
+              <CardHeader
+                avatar={<ReceiptLongIcon sx={{ color: "#6b7280" }} />}
+                title={
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Клієнти та фінанси
+                  </Typography>
+                }
+                subheader={
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Керуйте клієнтами, інвойсами та дивіться фінансову картину.
+                  </Typography>
+                }
+              />
+              <CardContent sx={{ pt: 1.5 }}>
+                <Stack spacing={1.5}>
+                  {/* Клієнти */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#eff6ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <GroupIcon sx={{ fontSize: 20, color: "#1d4ed8" }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Клієнти
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Список усіх клієнтів: контакти, компанії, реквізити —
+                        все в одному місці.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenClients}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Перейти до клієнтів
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Інвойси */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#fef3c7",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ReceiptLongIcon
+                        sx={{ fontSize: 20, color: "#b45309" }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Інвойси
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Створюй та керуй рахунками: статуси, суми, PDF-версії
+                        для відправки та друку.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenInvoices}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Відкрити інвойси
+                      </Button>
+                    </Box>
+                  </Box>
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#ecfeff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <DescriptionIcon
+                        sx={{ fontSize: 20, color: "#0e7490" }}
+                      />
+                    </Box>
+
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Акти
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Створюй акти виконаних робіт, завантажуй PDF, підписуй
+                        та передавай клієнтам або в бухгалтерію.
+                      </Typography>
+
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenActs}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Перейти до актів
+                      </Button>
+                    </Box>
+                  </Box>
+                  {/* Аналітика */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#eef2ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <InsightsIcon sx={{ fontSize: 20, color: "#4f46e5" }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Аналітика
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Фінансовий дашборд: отримано, очікується, прострочено +
+                        візуалізація у вигляді кругової діаграми.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenAnalytics}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Перейти до аналітики
+                      </Button>
+                    </Box>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -1078,214 +1415,6 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Новий блок: Клієнти / Інвойси / Аналітика */}
-            <Card
-              elevation={3}
-              sx={{
-                borderRadius: 3,
-                mb: 3,
-              }}
-            >
-              <CardHeader
-                avatar={<ReceiptLongIcon sx={{ color: "#6b7280" }} />}
-                title={
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    Клієнти та фінанси
-                  </Typography>
-                }
-                subheader={
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Керуйте клієнтами, інвойсами та дивіться фінансову картину.
-                  </Typography>
-                }
-              />
-              <CardContent sx={{ pt: 1.5 }}>
-                <Stack spacing={1.5}>
-                  {/* Клієнти */}
-                  <Box
-                    sx={{
-                      borderRadius: 2,
-                      border: "1px solid #e5e7eb",
-                      p: 1.5,
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 1.5,
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "999px",
-                        bgcolor: "#eff6ff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <GroupIcon sx={{ fontSize: 20, color: "#1d4ed8" }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 600, mb: 0.3 }}
-                      >
-                        Клієнти
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "text.secondary", mb: 1 }}
-                      >
-                        Список усіх клієнтів: контакти, компанії, реквізити —
-                        все в одному місці.
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleOpenClients}
-                        sx={{
-                          textTransform: "none",
-                          borderRadius: 999,
-                          borderColor: "#d1d5db",
-                          color: "#111827",
-                          "&:hover": {
-                            borderColor: "#9ca3af",
-                            bgcolor: "#f9fafb",
-                          },
-                        }}
-                      >
-                        Перейти до клієнтів
-                      </Button>
-                    </Box>
-                  </Box>
-
-                  {/* Інвойси */}
-                  <Box
-                    sx={{
-                      borderRadius: 2,
-                      border: "1px solid #e5e7eb",
-                      p: 1.5,
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 1.5,
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "999px",
-                        bgcolor: "#fef3c7",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <ReceiptLongIcon
-                        sx={{ fontSize: 20, color: "#b45309" }}
-                      />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 600, mb: 0.3 }}
-                      >
-                        Інвойси
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "text.secondary", mb: 1 }}
-                      >
-                        Створюй та керуй рахунками: статуси, суми, PDF-версії
-                        для відправки та друку.
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleOpenInvoices}
-                        sx={{
-                          textTransform: "none",
-                          borderRadius: 999,
-                          borderColor: "#d1d5db",
-                          color: "#111827",
-                          "&:hover": {
-                            borderColor: "#9ca3af",
-                            bgcolor: "#f9fafb",
-                          },
-                        }}
-                      >
-                        Відкрити інвойси
-                      </Button>
-                    </Box>
-                  </Box>
-
-                  {/* Аналітика */}
-                  <Box
-                    sx={{
-                      borderRadius: 2,
-                      border: "1px solid #e5e7eb",
-                      p: 1.5,
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 1.5,
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "999px",
-                        bgcolor: "#eef2ff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <InsightsIcon sx={{ fontSize: 20, color: "#4f46e5" }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ fontWeight: 600, mb: 0.3 }}
-                      >
-                        Аналітика
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "text.secondary", mb: 1 }}
-                      >
-                        Фінансовий дашборд: отримано, очікується, прострочено +
-                        візуалізація у вигляді кругової діаграми.
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleOpenAnalytics}
-                        sx={{
-                          textTransform: "none",
-                          borderRadius: 999,
-                          borderColor: "#d1d5db",
-                          color: "#111827",
-                          "&:hover": {
-                            borderColor: "#9ca3af",
-                            bgcolor: "#f9fafb",
-                          },
-                        }}
-                      >
-                        Перейти до аналітики
-                      </Button>
-                    </Box>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
-
             {/* Швидкі сценарії */}
             <Card
               elevation={3}
@@ -1333,71 +1462,6 @@ export default function Home() {
                       {label}
                     </Button>
                   ))}
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Документи */}
-            <Card
-              elevation={3}
-              sx={{
-                borderRadius: 3,
-                mb: 3,
-              }}
-            >
-              <CardHeader
-                avatar={<DescriptionIcon sx={{ color: "#6b7280" }} />}
-                title={
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    Документи
-                  </Typography>
-                }
-                subheader={
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Завантажуйте договори, описи, регламенти.
-                  </Typography>
-                }
-              />
-              <CardContent sx={{ pt: 1 }}>
-                <Button
-                  onClick={() => router.push("/knowledge-base")}
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{
-                    mb: 1.5,
-                    textTransform: "none",
-                    borderRadius: 999,
-                    borderColor: "#dadce0",
-                    color: "#374151",
-                    bgcolor: "#ffffff",
-                    "&:hover": {
-                      borderColor: "#c4c6cb",
-                      bgcolor: "#fafafa",
-                    },
-                  }}
-                >
-                  Завантажити документ
-                </Button>
-
-                <Divider sx={{ my: 1.5 }} />
-
-                <Typography
-                  variant="body2"
-                  sx={{ color: "text.secondary", mb: 0.5 }}
-                >
-                  Останні документи
-                </Typography>
-                <Stack spacing={0.5}>
-                  <Typography variant="body2">
-                    • Договір надання послуг.docx
-                  </Typography>
-                  <Typography variant="body2">
-                    • Політика повернення коштів.pdf
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    • Опис пакету “Premium”.txt
-                  </Typography>
                 </Stack>
               </CardContent>
             </Card>

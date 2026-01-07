@@ -159,23 +159,6 @@ const FinancialAnalyticsPage: React.FC = () => {
     >
       <Box sx={{ maxWidth: 1200, mx: "auto" }}>
         {/* Чіп секції */}
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 2,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#e5e7eb",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            FINANCE
-          </Typography>
-        </Box>
 
         {/* Основна картка */}
         <Box

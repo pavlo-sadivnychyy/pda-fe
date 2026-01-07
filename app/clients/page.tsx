@@ -6,15 +6,14 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogTitle,
   Snackbar,
   TextField,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
+
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
 
@@ -270,6 +269,8 @@ const ClientsPage: React.FC = () => {
     },
   ];
 
+  const isEditing = Boolean(editingClient);
+
   return (
     <Box
       sx={{
@@ -281,23 +282,6 @@ const ClientsPage: React.FC = () => {
     >
       <Box sx={{ maxWidth: 1200, mx: "auto" }}>
         {/* Чіп секції */}
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 2,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#e5e7eb",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            CLIENTS
-          </Typography>
-        </Box>
 
         {/* Основна картка */}
         <Box
@@ -444,78 +428,165 @@ const ClientsPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Діалог створення / редагування клієнта */}
+      {/* Діалог створення / редагування клієнта у стилі "knowledge base" */}
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            p: 0,
+          },
+        }}
       >
-        <DialogTitle>
-          {editingClient ? "Редагувати клієнта" : "Новий клієнт"}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+        <DialogContent
+          sx={{
+            padding: "24px",
+          }}
+        >
+          {/* Чіп зверху */}
+          <Box
+            sx={{
+              display: "inline-flex",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: "#f3f4f6",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                letterSpacing: 0.8,
+                fontWeight: 600,
+                color: "#6b7280",
+              }}
+            >
+              CLIENTS
+            </Typography>
+          </Box>
+
+          {/* Заголовок + опис */}
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
+          >
+            {isEditing ? "Редагувати клієнта" : "Додати клієнта"}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "#6b7280", mb: 3, maxWidth: 520 }}
+          >
+            Заповни основні дані клієнта — назву компанії, контактну особу,
+            реквізити та нотатки. Надалі ці дані можна буде швидко підставляти в
+            інвойси й акти.
+          </Typography>
+
+          {/* Поля форми */}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
             <TextField
               label="Назва клієнта *"
-              size="small"
+              placeholder="Наприклад: ТОВ «Агро Світ»"
               fullWidth
               value={form.name}
               onChange={(e) => handleFormChange("name", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
               label="Контактна особа"
-              size="small"
+              placeholder="Імʼя та прізвище основного контакту"
               fullWidth
               value={form.contactName}
               onChange={(e) => handleFormChange("contactName", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
               label="Email"
-              size="small"
+              placeholder="work@example.com"
               fullWidth
               value={form.email}
               onChange={(e) => handleFormChange("email", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
               label="Телефон"
-              size="small"
+              placeholder="+38 (0XX) XXX-XX-XX"
               fullWidth
               value={form.phone}
               onChange={(e) => handleFormChange("phone", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
               label="Податковий номер / ЄДРПОУ"
-              size="small"
+              placeholder="Наприклад: 1234567890"
               fullWidth
               value={form.taxNumber}
               onChange={(e) => handleFormChange("taxNumber", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
               label="Адреса"
-              size="small"
+              placeholder="Місто, вулиця, будинок"
               fullWidth
               value={form.address}
               onChange={(e) => handleFormChange("address", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
+
             <TextField
-              label="Нотатки"
-              size="small"
+              label="Нотатки (опціонально)"
+              placeholder="Додаткові деталі про умови співпраці, знижки, контакти тощо"
               fullWidth
               multiline
-              minRows={2}
-              maxRows={4}
+              minRows={3}
               value={form.notes}
               onChange={(e) => handleFormChange("notes", e.target.value)}
+              InputLabelProps={{ shrink: true }}
             />
           </Box>
+
+          {/* Кнопки внизу */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 4,
+              gap: 2,
+            }}
+          >
+            <Button
+              onClick={handleCloseDialog}
+              sx={{ textTransform: "none", color: "#6b7280" }}
+            >
+              Скасувати
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              sx={{
+                textTransform: "none",
+                borderRadius: 999,
+                px: 3,
+                bgcolor: "#111827",
+                "&:hover": {
+                  bgcolor: "#020617",
+                },
+              }}
+            >
+              Зберегти клієнта
+            </Button>
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Скасувати</Button>
-          <Button variant="contained" onClick={handleSubmit}>
-            Зберегти
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <Snackbar

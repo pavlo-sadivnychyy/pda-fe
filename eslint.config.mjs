@@ -50,11 +50,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
 
-      // 🔥 авто-видалення неюзнутих імпортів
       'unused-imports/no-unused-imports': 'error',
 
-      // підсвітка неюзнутих змінних (але не auto-fix!)
       'unused-imports/no-unused-vars': [
         'warn',
         {
