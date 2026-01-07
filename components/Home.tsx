@@ -25,6 +25,9 @@ import FlashOnIcon from "@mui/icons-material/FlashOn";
 import HistoryIcon from "@mui/icons-material/History";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import GroupIcon from "@mui/icons-material/Group";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import InsightsIcon from "@mui/icons-material/Insights";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import axios from "axios";
@@ -308,6 +311,18 @@ export default function Home() {
 
   const handleOpenTodo = () => {
     router.push("/todo");
+  };
+
+  const handleOpenClients = () => {
+    router.push("/invoices/clients");
+  };
+
+  const handleOpenInvoices = () => {
+    router.push("/invoices");
+  };
+
+  const handleOpenAnalytics = () => {
+    router.push("/invoices/analytics");
   };
 
   return (
@@ -1059,6 +1074,214 @@ export default function Home() {
                       )}
                     </Stack>
                   )}
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* Новий блок: Клієнти / Інвойси / Аналітика */}
+            <Card
+              elevation={3}
+              sx={{
+                borderRadius: 3,
+                mb: 3,
+              }}
+            >
+              <CardHeader
+                avatar={<ReceiptLongIcon sx={{ color: "#6b7280" }} />}
+                title={
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Клієнти та фінанси
+                  </Typography>
+                }
+                subheader={
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Керуйте клієнтами, інвойсами та дивіться фінансову картину.
+                  </Typography>
+                }
+              />
+              <CardContent sx={{ pt: 1.5 }}>
+                <Stack spacing={1.5}>
+                  {/* Клієнти */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#eff6ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <GroupIcon sx={{ fontSize: 20, color: "#1d4ed8" }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Клієнти
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Список усіх клієнтів: контакти, компанії, реквізити —
+                        все в одному місці.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenClients}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Перейти до клієнтів
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Інвойси */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#fef3c7",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <ReceiptLongIcon
+                        sx={{ fontSize: 20, color: "#b45309" }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Інвойси
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Створюй та керуй рахунками: статуси, суми, PDF-версії
+                        для відправки та друку.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenInvoices}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Відкрити інвойси
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Аналітика */}
+                  <Box
+                    sx={{
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      p: 1.5,
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "999px",
+                        bgcolor: "#eef2ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <InsightsIcon sx={{ fontSize: 20, color: "#4f46e5" }} />
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 600, mb: 0.3 }}
+                      >
+                        Аналітика
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary", mb: 1 }}
+                      >
+                        Фінансовий дашборд: отримано, очікується, прострочено +
+                        візуалізація у вигляді кругової діаграми.
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleOpenAnalytics}
+                        sx={{
+                          textTransform: "none",
+                          borderRadius: 999,
+                          borderColor: "#d1d5db",
+                          color: "#111827",
+                          "&:hover": {
+                            borderColor: "#9ca3af",
+                            bgcolor: "#f9fafb",
+                          },
+                        }}
+                      >
+                        Перейти до аналітики
+                      </Button>
+                    </Box>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
