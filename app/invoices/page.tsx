@@ -93,6 +93,8 @@ const statuses = {
   SENT: "Відправлено",
   PAID: "Оплачено",
   CANCELLED: "Скасовано",
+  OVERDUE: "Протерміновано",
+  DRAFT: "Чернетка",
 };
 
 const InvoicesPage: React.FC = () => {
