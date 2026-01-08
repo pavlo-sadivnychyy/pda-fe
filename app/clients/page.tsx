@@ -1,7 +1,16 @@
 "use client";
 
 import axios from "axios";
-import { Alert, Box, Snackbar } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Chip,
+  Container,
+  Snackbar,
+  Stack,
+  Typography,
+} from "@mui/material";
+import GroupIcon from "@mui/icons-material/Group";
 import { useMemo, useState } from "react";
 
 import { useOrganizationContext } from "./hooks/useOrganizationContext";
@@ -20,7 +29,6 @@ import { toCreatePayload, toUpdatePayload } from "./utils";
 const getErrorMessage = (e: unknown) => {
   if (axios.isAxiosError(e)) {
     const data: any = e.response?.data;
-    // Nest може віддавати message як string або array
     const msg =
       (Array.isArray(data?.message)
         ? data.message.join(", ")
@@ -45,10 +53,8 @@ export default function ClientsPage() {
   const clients = clientsQuery.data ?? [];
   const loading = clientsQuery.isLoading || clientsQuery.isFetching;
 
-  // delete confirm state
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // row-level busy id
   const deleteBusyId = useMemo(() => {
     if (!deleteClient.isPending) return null;
     return (deleteClient.variables as string | undefined) ?? null;
@@ -111,25 +117,69 @@ export default function ClientsPage() {
   const submitting = createClient.isPending || updateClient.isPending;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "#f3f4f6",
-        py: 4,
-        px: { xs: 2, md: 4 },
-      }}
-    >
-      <Box sx={{ maxWidth: 1200, mx: "auto" }}>
-        <ClientsCard count={clients.length} onCreate={formState.openCreate}>
-          <ClientsGrid
-            clients={clients}
-            loading={loading}
-            onEdit={formState.openEdit}
-            onDelete={requestDelete}
-            deleteBusyId={deleteBusyId}
-          />
-        </ClientsCard>
-      </Box>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* ✅ Уніфікований хедер як на інших сторінках */}
+        <Box sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <GroupIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Клієнти
+              </Typography>
+            </Stack>
+
+            <Chip
+              label={`Всього: ${clients.length}`}
+              size="small"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            />
+          </Stack>
+
+          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+            Контакти, компанії та реквізити в одному місці. Якщо клієнт має
+            привʼязані акти/інвойси — бекенд може заборонити видалення.
+          </Typography>
+        </Box>
+
+        {/* Твій існуючий UI */}
+        <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+          <ClientsCard count={clients.length} onCreate={formState.openCreate}>
+            <ClientsGrid
+              clients={clients}
+              loading={loading}
+              onEdit={formState.openEdit}
+              onDelete={requestDelete}
+              deleteBusyId={deleteBusyId}
+            />
+          </ClientsCard>
+        </Box>
+      </Container>
 
       <ClientDialog
         open={formState.dialogOpen}

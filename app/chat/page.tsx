@@ -5,11 +5,9 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   Chip,
   CircularProgress,
+  Container,
   IconButton,
   List,
   ListItemButton,
@@ -21,6 +19,7 @@ import {
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 
 import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -63,7 +62,6 @@ export default function ChatPage() {
     string | undefined
   >(undefined);
 
-  // як тільки підтягнули сесії — вибираємо першу, якщо нічого не вибрано
   useEffect(() => {
     if (!selectedSessionId && sessions.length > 0) {
       setSelectedSessionId(sessions[0].id);
@@ -105,9 +103,8 @@ export default function ChatPage() {
       !selectedSessionId ||
       !apiUser ||
       sendMessageMutation.isPending
-    ) {
+    )
       return;
-    }
 
     const content = draft.trim();
     setDraft("");
@@ -136,100 +133,79 @@ export default function ChatPage() {
     return s?.title ?? "";
   }, [sessions, selectedSessionId]);
 
-  if (!hasMounted) {
-    return null;
-  }
+  if (!hasMounted) return null;
 
   return (
-    <Box
-      sx={{
-        height: "100vh",
-        bgcolor: "#f3f4f6",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        px: 2,
-        py: 2,
-        overflow: "hidden", // сторінка не скролиться
-      }}
-    >
-      <Card
-        elevation={4}
-        sx={{
-          width: "100%",
-          maxWidth: 1400,
-          borderRadius: 4,
-          boxShadow: "0 18px 45px rgba(15, 23, 42, 0.18)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "100%",
-        }}
-      >
-        {/* Header в стилі інших сторінок */}
-        <CardHeader
-          sx={{
-            px: { xs: 3, md: 4 },
-            pt: { xs: 3, md: 4 },
-            pb: 1,
-          }}
-          title={
-            <Stack spacing={1}>
-              <Chip
-                label="AI assistant"
-                size="small"
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* ✅ Уніфікований page header */}
+        <Box sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
                 sx={{
-                  alignSelf: "flex-start",
-                  borderRadius: 999,
-                  bgcolor: "#f3f4f6",
-                  color: "#6b7280",
-                  fontWeight: 500,
-                  fontSize: 11,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
                 }}
-              />
+              >
+                <SmartToyIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
               <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: "#111827",
-                }}
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
               >
                 AI-асистент
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "#6b7280",
-                  maxWidth: "100%",
-                }}
-              >
-                Асистент, який знає твій бізнес-профіль та документи з бази
-                знань, щоб відповідати в контексті саме твого бізнесу.
-              </Typography>
             </Stack>
-          }
-        />
 
-        <CardContent
+            <Chip
+              label="AI assistant"
+              size="small"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            />
+          </Stack>
+
+          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+            Асистент знає твій бізнес-профіль і документи з бази знань, щоб
+            відповідати в контексті саме твого бізнесу.
+          </Typography>
+        </Box>
+
+        <Paper
+          elevation={0}
           sx={{
-            px: { xs: 3, md: 4 },
-            pb: 3,
-            pt: 0,
-            flex: 1,
+            borderRadius: 4,
+            p: { xs: 2, md: 4 },
+            boxShadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
+            bgcolor: "#ffffff",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden", // контролюємо скрол всередині
+            overflow: "hidden",
+            minHeight: { xs: "calc(100vh - 220px)", md: "72vh" },
           }}
         >
           <SignedOut>
             <Box
               sx={{
                 flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display: "grid",
+                placeItems: "center",
+                px: 2,
               }}
             >
               <Typography color="#6b7280">
@@ -247,16 +223,14 @@ export default function ChatPage() {
                 overflow: "hidden",
               }}
             >
-              {/* Весь скрол чату всередині цього бокса */}
+              {/* Скрол всередині */}
               <Box
                 sx={{
                   flex: 1,
                   overflowY: "auto",
                   pr: 1,
                   pb: 1,
-                  "&::-webkit-scrollbar": {
-                    width: 6,
-                  },
+                  "&::-webkit-scrollbar": { width: 6 },
                   "&::-webkit-scrollbar-thumb": {
                     borderRadius: 999,
                     backgroundColor: "#d1d5db",
@@ -301,10 +275,7 @@ export default function ChatPage() {
                         borderRadius: 999,
                         bgcolor: "#111827",
                         boxShadow: "none",
-                        "&:hover": {
-                          bgcolor: "#000000",
-                          boxShadow: "none",
-                        },
+                        "&:hover": { bgcolor: "#000000", boxShadow: "none" },
                       }}
                     >
                       Новий діалог
@@ -349,10 +320,7 @@ export default function ChatPage() {
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: {
-                        xs: "1fr",
-                        md: "280px 1fr",
-                      },
+                      gridTemplateColumns: { xs: "1fr", md: "280px 1fr" },
                       gap: 2,
                       minHeight: "480px",
                     }}
@@ -422,9 +390,7 @@ export default function ChatPage() {
                                 mb: 0.5,
                                 "&.Mui-selected": {
                                   bgcolor: "#eef2ff",
-                                  "&:hover": {
-                                    bgcolor: "#e0e7ff",
-                                  },
+                                  "&:hover": { bgcolor: "#e0e7ff" },
                                 },
                               }}
                             >
@@ -481,6 +447,7 @@ export default function ChatPage() {
                         >
                           {selectedSessionTitle || "Діалог"}
                         </Typography>
+
                         {clerkUser?.emailAddresses?.[0]?.emailAddress && (
                           <Typography
                             variant="caption"
@@ -542,10 +509,7 @@ export default function ChatPage() {
                             return (
                               <Box
                                 key={m.id}
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: align,
-                                }}
+                                sx={{ display: "flex", justifyContent: align }}
                               >
                                 <Box
                                   sx={{
@@ -584,12 +548,7 @@ export default function ChatPage() {
                       </Box>
 
                       {/* Поле вводу */}
-                      <Box
-                        sx={{
-                          borderTop: "1px solid #e5e7eb",
-                          pt: 1,
-                        }}
-                      >
+                      <Box sx={{ borderTop: "1px solid #e5e7eb", pt: 1 }}>
                         <Stack direction="row" alignItems="flex-end" gap={1}>
                           <TextField
                             fullWidth
@@ -602,14 +561,10 @@ export default function ChatPage() {
                             onKeyDown={handleKeyDown}
                             size="small"
                             InputProps={{
-                              sx: {
-                                bgcolor: "#f9fafb",
-                                color: "#111827",
-                              },
+                              sx: { bgcolor: "#f9fafb", color: "#111827" },
                             }}
                           />
                           <IconButton
-                            color="primary"
                             onClick={handleSend}
                             disabled={
                               !selectedSessionId ||
@@ -620,9 +575,7 @@ export default function ChatPage() {
                             sx={{
                               bgcolor: "#111827",
                               color: "#f9fafb",
-                              "&:hover": {
-                                bgcolor: "#000000",
-                              },
+                              "&:hover": { bgcolor: "#000000" },
                             }}
                           >
                             {isSending ? (
@@ -639,8 +592,8 @@ export default function ChatPage() {
               </Box>
             </Box>
           </SignedIn>
-        </CardContent>
-      </Card>
+        </Paper>
+      </Container>
     </Box>
   );
 }

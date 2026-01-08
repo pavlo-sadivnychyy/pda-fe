@@ -1,12 +1,15 @@
 "use client";
 
-import { Box, Chip, Container, Paper, Typography } from "@mui/material";
+import { Box, Chip, Container, Paper, Stack, Typography } from "@mui/material";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import { InfinitySpin } from "react-loader-spinner";
+
 import { useTodoPage } from "@/app/todo/hooks/useTodoPage";
 import { TodoHeader } from "@/app/todo/components/TodoHeader";
-import { DateStrip } from "./components/DateStrip";
+import { DateStrip } from "@/app/todo/components/DateStrip";
 import { TasksList } from "@/app/todo/components/TasksList";
 import { CreateTaskDialog } from "@/app/todo/components/CreateTaskDialog";
+import { MoveTaskDialog } from "@/app/todo/components/MoveTaskDialog";
 
 export default function TodoPage() {
   const {
@@ -20,6 +23,7 @@ export default function TodoPage() {
     shiftStrip,
     resetToToday,
 
+    // create
     isDialogOpen,
     openCreateDialog,
     closeCreateDialog,
@@ -28,10 +32,21 @@ export default function TodoPage() {
     setNewTitle,
     newDescription,
     setNewDescription,
-    newTime,
-    setNewTime,
+    startTime,
+    setStartTime,
+    endTime,
+    setEndTime,
     newPriority,
     setNewPriority,
+
+    // move
+    isMoveOpen,
+    moveTask,
+    moveDate,
+    setMoveDate,
+    openMoveDialog,
+    closeMoveDialog,
+    submitMoveTask,
 
     todayTasksCount,
     todayQuery,
@@ -41,6 +56,7 @@ export default function TodoPage() {
 
     createTaskMutation,
     deleteTaskMutation,
+    moveTaskMutation,
 
     handleToggleStatus,
     submitCreateTask,
@@ -65,19 +81,53 @@ export default function TodoPage() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f4f5f7", py: { xs: 3, md: 8 } }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Chip
-          label="TASK PLANNER"
-          size="small"
-          sx={{
-            mb: 2,
-            bgcolor: "#e5e7eb",
-            color: "#4b5563",
-            fontWeight: 500,
-            borderRadius: "999px",
-            fontSize: { xs: 10, sm: 12 },
-            height: { xs: 22, sm: 24 },
-          }}
-        />
+        {/* ✅ Хедер як на OrganizationProfilePage */}
+        <Box sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <EventNoteIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Планувальник задач
+              </Typography>
+            </Stack>
+
+            <Chip
+              label={selectedDate ? `Дата: ${selectedDate}` : "Task planner"}
+              size="small"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            />
+          </Stack>
+
+          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+            Додавай задачі, змінюй статуси одним кліком і перенось на інші дні.
+            Асистент може використовувати ці дані для побудови плану дня.
+          </Typography>
+        </Box>
 
         <Paper
           elevation={0}
@@ -107,9 +157,11 @@ export default function TodoPage() {
             isLoading={dayQuery.isLoading}
             isFetching={dayQuery.isFetching}
             isDeleting={deleteTaskMutation.isLoading}
+            isMoving={moveTaskMutation.isLoading}
             onAdd={openCreateDialog}
             onDelete={(id) => deleteTaskMutation.mutate(id)}
             onToggleStatus={handleToggleStatus}
+            onOpenMove={openMoveDialog}
           />
 
           <Box
@@ -130,7 +182,8 @@ export default function TodoPage() {
               їх, щоб планувати твій день.
             </Typography>
             <Typography fontSize={{ xs: 11, md: 13 }}>
-              Ви також можете змінювати статус задачі, по кліку на статус
+              Статус змінюється по кліку на чіп статусу. Перенесення — через
+              іконку “перенести”.
             </Typography>
           </Box>
         </Paper>
@@ -145,11 +198,23 @@ export default function TodoPage() {
         setTitle={setNewTitle}
         description={newDescription}
         setDescription={setNewDescription}
-        time={newTime}
-        setTime={setNewTime}
+        startTime={startTime}
+        setStartTime={setStartTime}
+        endTime={endTime}
+        setEndTime={setEndTime}
         priority={newPriority}
         setPriority={setNewPriority}
         isCreating={createTaskMutation.isLoading}
+      />
+
+      <MoveTaskDialog
+        open={isMoveOpen}
+        task={moveTask}
+        date={moveDate}
+        setDate={setMoveDate}
+        onClose={closeMoveDialog}
+        onMove={submitMoveTask}
+        isMoving={moveTaskMutation.isLoading}
       />
     </Box>
   );

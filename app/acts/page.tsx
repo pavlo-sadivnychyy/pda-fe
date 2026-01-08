@@ -2,11 +2,14 @@
 
 import {
   Box,
+  Button,
+  Chip,
   CircularProgress,
+  Container,
   Stack,
   Typography,
-  Button,
 } from "@mui/material";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { useMemo, useState } from "react";
 
 import { useOrganizationContext } from "../invoices/hooks/useOrganizationContext";
@@ -24,7 +27,6 @@ export default function ActsPage() {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // ✅ NEW
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { actsQuery, invoicesQuery } = useActsQueries(
@@ -67,7 +69,6 @@ export default function ActsPage() {
     setCreateDialogOpen(false);
   };
 
-  // ✅ NEW: delete handlers
   const requestDelete = (id: string) => setDeleteId(id);
 
   const confirmDelete = async () => {
@@ -85,113 +86,156 @@ export default function ActsPage() {
   const isTableLoading = actsQuery.isLoading || actsQuery.isFetching;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "#f3f4f6",
-        py: 4,
-        px: { xs: 2, md: 4 },
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      <Box sx={{ width: "100%", maxWidth: 1200 }}>
-        <ActsCard
-          organizationId={organizationId}
-          count={acts.length}
-          onCreate={openCreate}
-        >
-          <Box sx={{ height: 520, width: "100%" }}>
-            {isTableLoading ? (
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* ✅ Уніфікований хедер */}
+        <Box sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
               <Box
                 sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
                 }}
               >
-                <Stack spacing={1} alignItems="center">
-                  <CircularProgress />
-                  <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                    Завантажуємо акти...
-                  </Typography>
-                </Stack>
+                <DescriptionIcon sx={{ color: "#0f172a" }} />
               </Box>
-            ) : acts.length === 0 ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  textAlign: "center",
-                  color: "#6b7280",
-                  gap: 1.5,
-                }}
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
               >
-                <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                  Акти ще не створювалися
-                </Typography>
-                <Typography variant="body2">
-                  Створи перший акт на основі вже виставленого інвойсу.
-                </Typography>
-                <Button
-                  variant="contained"
-                  disabled={!organizationId}
-                  onClick={openCreate}
+                Акти
+              </Typography>
+            </Stack>
+
+            <Chip
+              label={isTableLoading ? "Оновлюємо..." : `Всього: ${acts.length}`}
+              size="small"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            />
+          </Stack>
+
+          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+            Створюй акти виконаних робіт на основі інвойсів, завантажуй/керуй
+            документами та видаляй при потребі.
+          </Typography>
+        </Box>
+
+        <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+          <ActsCard
+            organizationId={organizationId}
+            count={acts.length}
+            onCreate={openCreate}
+          >
+            <Box sx={{ height: 520, width: "100%" }}>
+              {isTableLoading ? (
+                <Box
                   sx={{
-                    mt: 1,
-                    textTransform: "none",
-                    borderRadius: 999,
-                    bgcolor: "#111827",
-                    "&:hover": { bgcolor: "#020617" },
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "100%",
                   }}
                 >
-                  Створити акт
-                </Button>
-              </Box>
-            ) : (
-              <ActsGrid
-                acts={acts}
-                onDelete={requestDelete}
-                deleteBusyId={deleteAct.isPending ? deleteBusyId : null}
-              />
-            )}
-          </Box>
-        </ActsCard>
+                  <Stack spacing={1} alignItems="center">
+                    <CircularProgress />
+                    <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                      Завантажуємо акти...
+                    </Typography>
+                  </Stack>
+                </Box>
+              ) : acts.length === 0 ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    textAlign: "center",
+                    color: "#6b7280",
+                    gap: 1.5,
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                    Акти ще не створювалися
+                  </Typography>
+                  <Typography variant="body2">
+                    Створи перший акт на основі вже виставленого інвойсу.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    disabled={!organizationId}
+                    onClick={openCreate}
+                    sx={{
+                      mt: 1,
+                      textTransform: "none",
+                      borderRadius: 999,
+                      bgcolor: "#111827",
+                      "&:hover": { bgcolor: "#020617" },
+                    }}
+                  >
+                    Створити акт
+                  </Button>
+                </Box>
+              ) : (
+                <ActsGrid
+                  acts={acts}
+                  onDelete={requestDelete}
+                  deleteBusyId={deleteAct.isPending ? deleteBusyId : null}
+                />
+              )}
+            </Box>
+          </ActsCard>
 
-        <CreateActDialog
-          open={createDialogOpen}
-          onClose={closeCreate}
-          invoices={invoicesQuery.data ?? []}
-          loadingInvoices={invoicesQuery.isLoading || invoicesQuery.isFetching}
-          fields={form.fields}
-          setTitle={form.setters.setActTitle}
-          setNumber={form.setters.setActNumber}
-          setPeriodFrom={form.setters.setPeriodFrom}
-          setPeriodTo={form.setters.setPeriodTo}
-          setNotes={form.setters.setNotes}
-          onSelectInvoice={(id) =>
-            form.selectInvoice(id, invoicesQuery.data ?? [])
-          }
-          onSubmit={submit}
-          submitting={createFromInvoice.isPending}
-          canSubmit={Boolean(currentUserId) && form.isValid}
-        />
+          <CreateActDialog
+            open={createDialogOpen}
+            onClose={closeCreate}
+            invoices={invoicesQuery.data ?? []}
+            loadingInvoices={
+              invoicesQuery.isLoading || invoicesQuery.isFetching
+            }
+            fields={form.fields}
+            setTitle={form.setters.setActTitle}
+            setNumber={form.setters.setActNumber}
+            setPeriodFrom={form.setters.setPeriodFrom}
+            setPeriodTo={form.setters.setPeriodTo}
+            setNotes={form.setters.setNotes}
+            onSelectInvoice={(id) =>
+              form.selectInvoice(id, invoicesQuery.data ?? [])
+            }
+            onSubmit={submit}
+            submitting={createFromInvoice.isPending}
+            canSubmit={Boolean(currentUserId) && form.isValid}
+          />
 
-        <ConfirmDialog
-          open={Boolean(deleteId)}
-          title="Видалити акт?"
-          description="Цю дію неможливо відмінити."
-          confirmText="Видалити"
-          confirmColor="error"
-          loading={deleteAct.isPending}
-          onClose={() => setDeleteId(null)}
-          onConfirm={confirmDelete}
-        />
-      </Box>
+          <ConfirmDialog
+            open={Boolean(deleteId)}
+            title="Видалити акт?"
+            description="Цю дію неможливо відмінити."
+            confirmText="Видалити"
+            confirmColor="error"
+            loading={deleteAct.isPending}
+            onClose={() => setDeleteId(null)}
+            onConfirm={confirmDelete}
+          />
+        </Box>
+      </Container>
     </Box>
   );
 }

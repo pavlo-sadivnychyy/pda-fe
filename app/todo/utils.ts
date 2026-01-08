@@ -1,7 +1,14 @@
 import dayjs, { Dayjs } from "dayjs";
-import type { TodoPriority, TodoStatus } from "./types";
+import type { TodoPriority, TodoStatus, TodoTask } from "./types";
 
 export const formatTime = (iso: string) => dayjs(iso).format("HH:mm");
+
+export const formatTimeRange = (task: Pick<TodoTask, "startAt" | "endAt">) => {
+  const start = formatTime(task.startAt);
+  if (!task.endAt) return start;
+  const end = formatTime(task.endAt);
+  return `${start} — ${end}`;
+};
 
 export const formatDateHuman = (d: Dayjs) => d.format("DD MMMM YYYY");
 

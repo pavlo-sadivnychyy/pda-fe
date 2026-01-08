@@ -9,13 +9,15 @@ import {
   IconButton,
   Stack,
   Typography,
+  Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
 
 import type { TodoTask } from "../types";
 import {
-  formatTime,
+  formatTimeRange,
   priorityColor,
   statusChipStyles,
   statusLabel,
@@ -26,18 +28,24 @@ export const TasksList = (props: {
   isLoading: boolean;
   isFetching: boolean;
   isDeleting: boolean;
+  isMoving: boolean;
+
   onAdd: () => void;
   onDelete: (id: string) => void;
   onToggleStatus: (task: TodoTask) => void;
+
+  onOpenMove: (task: TodoTask) => void;
 }) => {
   const {
     tasks,
     isLoading,
     isFetching,
     isDeleting,
+    isMoving,
     onAdd,
     onDelete,
     onToggleStatus,
+    onOpenMove,
   } = props;
 
   return (
@@ -125,16 +133,16 @@ export const TasksList = (props: {
               border: "1px solid #e5e7eb",
             }}
           >
-            <Box sx={{ minWidth: 48 }}>
+            <Box sx={{ minWidth: 84 }}>
               <Typography
                 variant="body2"
                 sx={{
-                  fontWeight: 600,
+                  fontWeight: 700,
                   color: "#111827",
                   fontSize: { xs: 12, md: 13 },
                 }}
               >
-                {formatTime(task.startAt)}
+                {formatTimeRange(task)}
               </Typography>
             </Box>
 
@@ -185,14 +193,31 @@ export const TasksList = (props: {
               </Box>
             </Box>
 
-            <IconButton
-              size="small"
-              disabled={isDeleting}
-              onClick={() => onDelete(task.id)}
-              sx={{ mt: 0.25 }}
-            >
-              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-            </IconButton>
+            <Box sx={{ display: "flex", gap: 0.5, mt: 0.25 }}>
+              <Tooltip title="Перенести на інший день">
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={isMoving}
+                    onClick={() => onOpenMove(task)}
+                  >
+                    <DriveFileMoveIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              <Tooltip title="Видалити">
+                <span>
+                  <IconButton
+                    size="small"
+                    disabled={isDeleting}
+                    onClick={() => onDelete(task.id)}
+                  >
+                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
           </Box>
         ))}
 

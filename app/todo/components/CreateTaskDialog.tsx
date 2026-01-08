@@ -29,8 +29,11 @@ export const CreateTaskDialog = (props: {
   description: string;
   setDescription: (v: string) => void;
 
-  time: string;
-  setTime: (v: string) => void;
+  startTime: string;
+  setStartTime: (v: string) => void;
+
+  endTime: string; // "" = не задано
+  setEndTime: (v: string) => void;
 
   priority: TodoPriority;
   setPriority: (v: TodoPriority) => void;
@@ -46,8 +49,10 @@ export const CreateTaskDialog = (props: {
     setTitle,
     description,
     setDescription,
-    time,
-    setTime,
+    startTime,
+    setStartTime,
+    endTime,
+    setEndTime,
     priority,
     setPriority,
     isCreating,
@@ -95,8 +100,7 @@ export const CreateTaskDialog = (props: {
           <Box component="span" sx={{ fontWeight: 600, color: "#111827" }}>
             {formatDateHuman(selectedDate)}
           </Box>
-          : задай назву, час, пріоритет та короткий опис — асистент
-          використовуватиме ці дані під час планування дня.
+          : задай назву, час(и), пріоритет та короткий опис.
         </Typography>
 
         <Stack spacing={2.5}>
@@ -111,27 +115,36 @@ export const CreateTaskDialog = (props: {
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField
-              label="Час"
+              label="Початок"
               type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
               sx={{ width: { xs: "100%", sm: 180 } }}
               InputLabelProps={{ shrink: true }}
             />
 
             <TextField
-              label="Пріоритет"
-              select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as TodoPriority)}
-              sx={{ width: { xs: "100%", sm: 220 } }}
+              label="Кінець (опціонально)"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              sx={{ width: { xs: "100%", sm: 180 } }}
               InputLabelProps={{ shrink: true }}
-            >
-              <MenuItem value="LOW">Низький</MenuItem>
-              <MenuItem value="MEDIUM">Середній</MenuItem>
-              <MenuItem value="HIGH">Високий</MenuItem>
-            </TextField>
+              helperText="Можна залишити пустим — тоді буде тільки час початку"
+            />
           </Stack>
+
+          <TextField
+            label="Пріоритет"
+            select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TodoPriority)}
+            InputLabelProps={{ shrink: true }}
+          >
+            <MenuItem value="LOW">Низький</MenuItem>
+            <MenuItem value="MEDIUM">Середній</MenuItem>
+            <MenuItem value="HIGH">Високий</MenuItem>
+          </TextField>
 
           <TextField
             label="Опис (опціонально)"

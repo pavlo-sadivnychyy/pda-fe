@@ -1,4 +1,4 @@
-import { FormValues } from "@/app/organization/profile/page";
+import { FormValues } from "@/app/organization/page";
 import { Organization } from "@/types/organization";
 import {
   Box,
@@ -30,9 +30,8 @@ export const ProfileViewContent = ({
     <>
       <CardContent
         sx={{
-          px: { xs: 3, md: 4 },
-          pb: 3,
-          pt: 0,
+          paddingRight: 3,
+          paddingLeft: 3,
           flex: 1,
           display: "flex",
           flexDirection: "column",

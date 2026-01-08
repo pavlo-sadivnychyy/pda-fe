@@ -1,6 +1,15 @@
 "use client";
 
-import { Alert, Box, Snackbar } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Chip,
+  Container,
+  Snackbar,
+  Stack,
+  Typography,
+} from "@mui/material";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { useMemo, useState } from "react";
 
 import { useOrganizationContext } from "./hooks/useOrganizationContext";
@@ -52,7 +61,6 @@ export default function InvoicesPage() {
     setSnackbarOpen(true);
   };
 
-  // ✅ NEW: confirm delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const onCreateOpen = () => {
@@ -70,6 +78,8 @@ export default function InvoicesPage() {
     () => deleteInvoiceMutation.variables ?? null,
     [deleteInvoiceMutation.variables],
   );
+
+  const invoicesCount = invoicesQuery.data?.length ?? 0;
 
   const handleInvoiceAction = async (id: string, action: InvoiceAction) => {
     try {
@@ -129,7 +139,6 @@ export default function InvoicesPage() {
     }
   };
 
-  // ✅ NEW: delete flow
   const requestDelete = (id: string) => setDeleteId(id);
 
   const confirmDelete = async () => {
@@ -146,30 +155,74 @@ export default function InvoicesPage() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        bgcolor: "#f3f4f6",
-        py: 4,
-        px: { xs: 2, md: 4 },
-      }}
-    >
-      <Box sx={{ maxWidth: 1500, mx: "auto" }}>
-        <InvoicesCard
-          invoicesCount={invoicesQuery.data?.length ?? 0}
-          onCreate={onCreateOpen}
-        >
-          <InvoicesGrid
-            invoices={invoicesQuery.data ?? []}
-            clients={clientsQuery.data ?? []}
-            loading={invoicesQuery.isFetching}
-            onAction={handleInvoiceAction}
-            actionBusyId={invoiceActionMutation.isPending ? actionBusyId : null}
-            onDelete={requestDelete}
-            deleteBusyId={deleteInvoiceMutation.isPending ? deleteBusyId : null}
-          />
-        </InvoicesCard>
-      </Box>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* ✅ Уніфікований хедер як на інших сторінках */}
+        <Box sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <ReceiptLongIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Інвойси
+              </Typography>
+            </Stack>
+
+            <Chip
+              label={`Всього: ${invoicesCount}`}
+              size="small"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            />
+          </Stack>
+
+          <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+            Створюй рахунки, керуй статусами (відправлено/оплачено/скасовано) та
+            видаляй інвойси при потребі.
+          </Typography>
+        </Box>
+
+        <Box sx={{ maxWidth: 1500, mx: "auto" }}>
+          <InvoicesCard invoicesCount={invoicesCount} onCreate={onCreateOpen}>
+            <InvoicesGrid
+              invoices={invoicesQuery.data ?? []}
+              clients={clientsQuery.data ?? []}
+              loading={invoicesQuery.isFetching}
+              onAction={handleInvoiceAction}
+              actionBusyId={
+                invoiceActionMutation.isPending ? actionBusyId : null
+              }
+              onDelete={requestDelete}
+              deleteBusyId={
+                deleteInvoiceMutation.isPending ? deleteBusyId : null
+              }
+            />
+          </InvoicesCard>
+        </Box>
+      </Container>
 
       <CreateInvoiceDialog
         open={createDialogOpen}
@@ -188,7 +241,6 @@ export default function InvoicesPage() {
         submitting={createInvoiceMutation.isPending}
       />
 
-      {/* ✅ NEW confirm modal */}
       <ConfirmDialog
         open={Boolean(deleteId)}
         title="Видалити інвойс?"

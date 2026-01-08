@@ -16,6 +16,11 @@ import type {
 import { getNextStatus } from "../utils";
 import { api } from "@/libs/axios";
 
+const buildDateTimeIso = (baseDay: Dayjs, timeHHmm: string) => {
+  const [h, m] = timeHHmm.split(":").map(Number);
+  return baseDay.hour(h).minute(m).second(0).millisecond(0).toISOString();
+};
+
 export const useTodoPage = () => {
   const queryClient = useQueryClient();
 
@@ -29,11 +34,18 @@ export const useTodoPage = () => {
     dayjs().startOf("day").subtract(3, "day"),
   );
 
+  // create dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newTime, setNewTime] = useState("09:00");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState<string>(""); // "" => no endAt
   const [newPriority, setNewPriority] = useState<TodoPriority>("MEDIUM");
+
+  // move dialog state
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [moveTask, setMoveTask] = useState<TodoTask | null>(null);
+  const [moveDate, setMoveDate] = useState<string>(""); // YYYY-MM-DD
 
   const selectedDateString = useMemo(
     () => selectedDate.format("YYYY-MM-DD"),
@@ -96,19 +108,21 @@ export const useTodoPage = () => {
   const createTaskMutation = useMutation<TodoTask, Error, void>({
     mutationFn: async () => {
       if (!userId) throw new Error("No userId");
-      const [hours, minutes] = newTime.split(":").map(Number);
 
-      const base = selectedDate
-        .hour(hours)
-        .minute(minutes)
-        .second(0)
-        .millisecond(0);
+      const startAt = buildDateTimeIso(selectedDate, startTime);
+
+      let endAt: string | undefined = undefined;
+      if (endTime && endTime.trim()) {
+        // якщо endTime < startTime — не валимо, але краще не давати створювати (валидація нижче)
+        endAt = buildDateTimeIso(selectedDate, endTime);
+      }
 
       const payload: CreateTaskRequest = {
         userId,
         title: newTitle.trim(),
         description: newDescription.trim() || undefined,
-        startAt: base.toISOString(),
+        startAt,
+        endAt,
         priority: newPriority,
       };
 
@@ -118,7 +132,8 @@ export const useTodoPage = () => {
     onSuccess: () => {
       setNewTitle("");
       setNewDescription("");
-      setNewTime("09:00");
+      setStartTime("09:00");
+      setEndTime("");
       setNewPriority("MEDIUM");
       setIsDialogOpen(false);
       invalidateDayAndToday();
@@ -141,13 +156,51 @@ export const useTodoPage = () => {
     mutationFn: async ({ id, status }) => {
       const res = await api.patch<{ task: TodoTask }>(
         `/todo/tasks/${id}/status`,
-        {
-          status,
-        },
+        { status },
       );
       return res.data.task;
     },
     onSuccess: () => invalidateDayAndToday(),
+  });
+
+  const moveTaskMutation = useMutation<
+    TodoTask,
+    Error,
+    { task: TodoTask; newDate: string }
+  >({
+    mutationFn: async ({ task, newDate }) => {
+      const targetDay = dayjs(newDate).startOf("day");
+      const start = dayjs(task.startAt);
+
+      // зберігаємо час
+      const newStart = targetDay
+        .hour(start.hour())
+        .minute(start.minute())
+        .second(0)
+        .millisecond(0);
+
+      // якщо є endAt — зберігаємо тривалість
+      const oldEnd = task.endAt ? dayjs(task.endAt) : null;
+      const durationMs = oldEnd ? oldEnd.diff(start) : null;
+      const newEnd =
+        durationMs !== null ? newStart.add(durationMs, "millisecond") : null;
+
+      const res = await api.patch<{ task: TodoTask }>(
+        `/todo/tasks/${task.id}`,
+        {
+          startAt: newStart.toISOString(),
+          endAt: newEnd ? newEnd.toISOString() : null,
+        },
+      );
+
+      return res.data.task;
+    },
+    onSuccess: () => {
+      setIsMoveOpen(false);
+      setMoveTask(null);
+      setMoveDate("");
+      invalidateDayAndToday();
+    },
   });
 
   const handleToggleStatus = useCallback(
@@ -166,8 +219,42 @@ export const useTodoPage = () => {
 
   const submitCreateTask = useCallback(() => {
     if (!newTitle.trim()) return;
+
+    // проста валідація range: end має бути після start
+    if (endTime && endTime.trim()) {
+      const start = dayjs(buildDateTimeIso(selectedDate, startTime));
+      const end = dayjs(buildDateTimeIso(selectedDate, endTime));
+      if (end.isBefore(start) || end.isSame(start)) return;
+    }
+
     createTaskMutation.mutate();
-  }, [createTaskMutation, newTitle]);
+  }, [
+    createTaskMutation,
+    newTitle,
+    endTime,
+    selectedDate,
+    startTime,
+    endTime,
+    newPriority,
+  ]);
+
+  const openMoveDialog = useCallback((task: TodoTask) => {
+    setMoveTask(task);
+    setMoveDate(dayjs(task.startAt).format("YYYY-MM-DD"));
+    setIsMoveOpen(true);
+  }, []);
+
+  const closeMoveDialog = useCallback(() => {
+    if (moveTaskMutation.isLoading) return;
+    setIsMoveOpen(false);
+    setMoveTask(null);
+    setMoveDate("");
+  }, [moveTaskMutation.isLoading]);
+
+  const submitMoveTask = useCallback(() => {
+    if (!moveTask || !moveDate) return;
+    moveTaskMutation.mutate({ task: moveTask, newDate: moveDate });
+  }, [moveTaskMutation, moveTask, moveDate]);
 
   return {
     userId,
@@ -182,6 +269,7 @@ export const useTodoPage = () => {
     shiftStrip,
     resetToToday,
 
+    // create dialog
     isDialogOpen,
     openCreateDialog,
     closeCreateDialog,
@@ -190,10 +278,21 @@ export const useTodoPage = () => {
     setNewTitle,
     newDescription,
     setNewDescription,
-    newTime,
-    setNewTime,
+    startTime,
+    setStartTime,
+    endTime,
+    setEndTime,
     newPriority,
     setNewPriority,
+
+    // move dialog
+    isMoveOpen,
+    moveTask,
+    moveDate,
+    setMoveDate,
+    openMoveDialog,
+    closeMoveDialog,
+    submitMoveTask,
 
     todayTasksCount,
     todayQuery,
@@ -204,6 +303,7 @@ export const useTodoPage = () => {
     createTaskMutation,
     deleteTaskMutation,
     updateStatusMutation,
+    moveTaskMutation,
 
     handleToggleStatus,
     submitCreateTask,

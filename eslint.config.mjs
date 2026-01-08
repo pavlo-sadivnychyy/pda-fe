@@ -51,6 +51,7 @@ export default tseslint.config(
       '@typescript-eslint/no-redundant-type-constituents': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
 
       'unused-imports/no-unused-imports': 'error',
 

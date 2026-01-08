@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { ChangeEvent, FormEvent } from "react";
 import { SectionTitle } from "../SectionTitle/SectionTitle";
-import { FormValues } from "@/app/organization/profile/page";
+import { FormValues } from "@/app/organization/page";
 
 type ProfileFormContentProps = {
   form: FormValues;
@@ -35,7 +35,8 @@ export const ProfileFormContent = ({
     <>
       <CardContent
         sx={{
-          px: { xs: 3, md: 4 },
+          paddingRight: 3,
+          paddingLeft: 3,
           pb: 3,
           pt: 0,
           flex: 1,
