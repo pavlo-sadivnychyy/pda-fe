@@ -1,275 +1,114 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogContent,
-  Snackbar,
-  TextField,
-  Typography,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
+import axios from "axios";
+import { Alert, Box, Snackbar } from "@mui/material";
+import { useMemo, useState } from "react";
 
-import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
-import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
+import { useOrganizationContext } from "./hooks/useOrganizationContext";
+import { useClientsQueries } from "./hooks/useClientsQueries";
+import { useClientMutations } from "./hooks/useClientMutations";
+import { useClientForm } from "./hooks/useClientForm";
 
-// 👇 Підлаштуй під свій бекенд / env
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { ClientsCard } from "./components/ClientsCard";
+import { ClientsGrid } from "./components/ClientsGrid";
+import { ClientDialog } from "./components/ClientDialog";
+import { ConfirmDialog } from "./components/ConfirmDialog";
+import { useSnackbar } from "./components/useSnackbar";
 
-type Client = {
-  id: string;
-  organizationId: string;
-  createdById: string;
-  name: string;
-  contactName?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  taxNumber?: string | null;
-  address?: string | null;
-  notes?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+import { toCreatePayload, toUpdatePayload } from "./utils";
+
+const getErrorMessage = (e: unknown) => {
+  if (axios.isAxiosError(e)) {
+    const data: any = e.response?.data;
+    // Nest може віддавати message як string або array
+    const msg =
+      (Array.isArray(data?.message)
+        ? data.message.join(", ")
+        : data?.message) ||
+      data?.error ||
+      e.message;
+    return msg || "Помилка";
+  }
+  return "Помилка";
 };
 
-type ClientFormValues = {
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  taxNumber: string;
-  address: string;
-  notes: string;
-};
+export default function ClientsPage() {
+  const { currentUserId, organizationId } = useOrganizationContext();
 
-const defaultForm: ClientFormValues = {
-  name: "",
-  contactName: "",
-  email: "",
-  phone: "",
-  taxNumber: "",
-  address: "",
-  notes: "",
-};
+  const snackbar = useSnackbar();
+  const formState = useClientForm();
 
-const ClientsPage: React.FC = () => {
-  const { data: userData } = useCurrentUser();
-  const currentUserId = (userData as any)?.id ?? null;
+  const { clientsQuery } = useClientsQueries(organizationId);
+  const { createClient, updateClient, deleteClient } =
+    useClientMutations(organizationId);
 
-  const { data: orgData } = useOrganization(currentUserId || undefined);
-  const organizationId = orgData?.items[0]?.organizationId;
+  const clients = clientsQuery.data ?? [];
+  const loading = clientsQuery.isLoading || clientsQuery.isFetching;
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(false);
+  // delete confirm state
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [form, setForm] = useState<ClientFormValues>(defaultForm);
+  // row-level busy id
+  const deleteBusyId = useMemo(() => {
+    if (!deleteClient.isPending) return null;
+    return (deleteClient.variables as string | undefined) ?? null;
+  }, [deleteClient.isPending, deleteClient.variables]);
 
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
-    "success",
-  );
-
-  const showSnackbar = (message: string, severity: "success" | "error") => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
-  };
-
-  const handleCloseSnackbar = () => setSnackbarOpen(false);
-
-  const fetchClients = async () => {
-    try {
-      if (!organizationId) return;
-      setLoading(true);
-      const url = `${API_BASE_URL}/clients?organizationId=${encodeURIComponent(
-        organizationId,
-      )}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch clients");
-      const data = await res.json();
-      setClients(data.clients || []);
-    } catch (e) {
-      console.error(e);
-      showSnackbar("Помилка завантаження клієнтів", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, [organizationId]);
-
-  const openCreateDialog = () => {
-    setEditingClient(null);
-    setForm(defaultForm);
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (client: Client) => {
-    setEditingClient(client);
-    setForm({
-      name: client.name || "",
-      contactName: client.contactName || "",
-      email: client.email || "",
-      phone: client.phone || "",
-      taxNumber: client.taxNumber || "",
-      address: client.address || "",
-      notes: client.notes || "",
-    });
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-  };
-
-  const handleFormChange = (field: keyof ClientFormValues, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
+  const submit = async () => {
     try {
       if (!organizationId || !currentUserId) {
-        showSnackbar("Немає organizationId або currentUserId", "error");
+        snackbar.show("Немає organizationId або currentUserId", "error");
         return;
       }
 
-      if (!form.name.trim()) {
-        showSnackbar("Вкажи назву клієнта", "error");
+      if (!formState.canSubmit) {
+        snackbar.show("Вкажи назву клієнта", "error");
         return;
       }
 
-      const payload = {
-        organizationId,
-        createdById: currentUserId,
-        name: form.name.trim(),
-        contactName: form.contactName.trim() || undefined,
-        email: form.email.trim() || undefined,
-        phone: form.phone.trim() || undefined,
-        taxNumber: form.taxNumber.trim() || undefined,
-        address: form.address.trim() || undefined,
-        notes: form.notes.trim() || undefined,
-      };
-
-      if (editingClient) {
-        // update
-        const res = await fetch(`${API_BASE_URL}/clients/${editingClient.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: payload.name,
-            contactName: payload.contactName ?? null,
-            email: payload.email ?? null,
-            phone: payload.phone ?? null,
-            taxNumber: payload.taxNumber ?? null,
-            address: payload.address ?? null,
-            notes: payload.notes ?? null,
-          }),
+      if (formState.editingClient) {
+        await updateClient.mutateAsync({
+          id: formState.editingClient.id,
+          payload: toUpdatePayload(formState.form),
         });
-
-        if (!res.ok) {
-          console.error(await res.text());
-          throw new Error("Failed to update client");
-        }
-
-        showSnackbar("Клієнта оновлено", "success");
+        snackbar.show("Клієнта оновлено", "success");
       } else {
-        // create
-        const res = await fetch(`${API_BASE_URL}/clients`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          console.error(await res.text());
-          throw new Error("Failed to create client");
-        }
-
-        showSnackbar("Клієнта створено", "success");
+        await createClient.mutateAsync(
+          toCreatePayload({
+            organizationId,
+            createdById: currentUserId,
+            form: formState.form,
+          }),
+        );
+        snackbar.show("Клієнта створено", "success");
       }
 
-      setDialogOpen(false);
-      await fetchClients();
+      formState.close();
     } catch (e) {
       console.error(e);
-      showSnackbar("Помилка збереження клієнта", "error");
+      snackbar.show(
+        getErrorMessage(e) || "Помилка збереження клієнта",
+        "error",
+      );
     }
   };
 
-  const handleRowDoubleClick = (params: GridRowParams) => {
-    const client = clients.find((c) => c.id === params.id);
-    if (client) {
-      openEditDialog(client);
-    }
-  };
+  const requestDelete = (id: string) => setDeleteId(id);
 
-  const formatDate = (value?: string | null) => {
-    if (!value) return "—";
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+
     try {
-      return value.slice(0, 10);
-    } catch {
-      return value;
+      await deleteClient.mutateAsync(deleteId);
+      snackbar.show("Клієнта видалено", "success");
+      setDeleteId(null);
+    } catch (e) {
+      console.error(e);
+      snackbar.show(getErrorMessage(e), "error");
     }
   };
 
-  const rows = clients.map((c) => ({
-    id: c.id,
-    name: c.name,
-    contactName: c.contactName || "",
-    email: c.email || "",
-    phone: c.phone || "",
-    taxNumber: c.taxNumber || "",
-    createdAt: formatDate(c.createdAt ?? null),
-  }));
-
-  const columns: GridColDef[] = [
-    {
-      field: "name",
-      headerName: "Назва клієнта",
-      flex: 1.4,
-      minWidth: 200,
-    },
-    {
-      field: "contactName",
-      headerName: "Контактна особа",
-      flex: 1,
-      minWidth: 180,
-    },
-    {
-      field: "email",
-      headerName: "Email",
-      flex: 1,
-      minWidth: 180,
-    },
-    {
-      field: "phone",
-      headerName: "Телефон",
-      flex: 0.9,
-      minWidth: 140,
-    },
-    {
-      field: "taxNumber",
-      headerName: "Податковий номер",
-      flex: 0.9,
-      minWidth: 160,
-    },
-    {
-      field: "createdAt",
-      headerName: "Створено",
-      flex: 0.7,
-      minWidth: 110,
-    },
-  ];
-
-  const isEditing = Boolean(editingClient);
+  const submitting = createClient.isPending || updateClient.isPending;
 
   return (
     <Box
@@ -281,330 +120,56 @@ const ClientsPage: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: 1200, mx: "auto" }}>
-        {/* Чіп секції */}
-
-        {/* Основна картка */}
-        <Box
-          sx={{
-            borderRadius: 5,
-            bgcolor: "background.paper",
-            boxShadow: "0px 18px 45px rgba(15,23,42,0.11)",
-            p: { xs: 3, md: 4 },
-          }}
-        >
-          {/* Header */}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", md: "row" },
-              justifyContent: "space-between",
-              gap: 2,
-              mb: 3,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 600, mb: 0.5, color: "#020617" }}
-              >
-                Клієнти вашого бізнесу
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "#6b7280", maxWidth: 560 }}
-              >
-                Зберігай дані клієнтів, щоб швидко підставляти їх в інвойси та
-                комунікацію.
-              </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                minWidth: 220,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 0.5,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{ color: "#6b7280", textTransform: "uppercase" }}
-              >
-                Усього клієнтів
-              </Typography>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 600, color: "#020617" }}
-              >
-                {clients.length}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              borderBottom: "1px solid rgba(148,163,184,0.4)",
-              mb: 2.5,
-            }}
+        <ClientsCard count={clients.length} onCreate={formState.openCreate}>
+          <ClientsGrid
+            clients={clients}
+            loading={loading}
+            onEdit={formState.openEdit}
+            onDelete={requestDelete}
+            deleteBusyId={deleteBusyId}
           />
-
-          {/* DataGrid */}
-          <Box
-            sx={{
-              "& .MuiDataGrid-root": {
-                border: "none",
-              },
-              "& .MuiDataGrid-columnHeaders": {
-                bgcolor: "#f9fafb",
-                borderBottom: "1px solid #e2e8f0",
-              },
-              "& .MuiDataGrid-row:hover": {
-                bgcolor: "rgba(15,23,42,0.02)",
-              },
-              "& .MuiDataGrid-cell": {
-                borderBottom: "1px solid #f1f5f9",
-              },
-            }}
-          >
-            <DataGrid
-              autoHeight
-              rows={rows}
-              columns={columns}
-              loading={loading}
-              disableRowSelectionOnClick
-              onRowDoubleClick={handleRowDoubleClick}
-              pageSizeOptions={[5, 10, 25]}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 10, page: 0 },
-                },
-              }}
-              localeText={{
-                noRowsLabel: "Клієнтів поки немає",
-              }}
-            />
-          </Box>
-
-          {/* Низ картки з кнопкою */}
-          <Box
-            sx={{
-              mt: 3,
-              pt: 2,
-              borderTop: "1px solid rgba(148,163,184,0.2)",
-            }}
-          >
-            <Button
-              fullWidth
-              onClick={openCreateDialog}
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: 999,
-                py: 1.4,
-                fontWeight: 500,
-                bgcolor: "#020617",
-                color: "#f9fafb",
-                textTransform: "none",
-                "&:hover": {
-                  bgcolor: "#020617",
-                },
-              }}
-            >
-              Додати клієнта
-            </Button>
-
-            <Typography
-              variant="caption"
-              sx={{
-                display: "block",
-                mt: 1.5,
-                textAlign: "center",
-                color: "#9ca3af",
-              }}
-            >
-              Клієнти повʼязані з вашим акаунтом та організацією
-            </Typography>
-          </Box>
-        </Box>
+        </ClientsCard>
       </Box>
 
-      {/* Діалог створення / редагування клієнта у стилі "knowledge base" */}
-      <Dialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            p: 0,
-          },
-        }}
-      >
-        <DialogContent
-          sx={{
-            padding: "24px",
-          }}
-        >
-          {/* Чіп зверху */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 999,
-              bgcolor: "#f3f4f6",
-              mb: 2,
-            }}
-          >
-            <Typography
-              variant="caption"
-              sx={{
-                letterSpacing: 0.8,
-                fontWeight: 600,
-                color: "#6b7280",
-              }}
-            >
-              CLIENTS
-            </Typography>
-          </Box>
+      <ClientDialog
+        open={formState.dialogOpen}
+        onClose={formState.close}
+        isEditing={formState.isEditing}
+        form={formState.form}
+        setField={formState.setField}
+        onSubmit={submit}
+        submitting={submitting}
+        canSubmit={
+          Boolean(organizationId) &&
+          Boolean(currentUserId) &&
+          formState.canSubmit
+        }
+      />
 
-          {/* Заголовок + опис */}
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
-          >
-            {isEditing ? "Редагувати клієнта" : "Додати клієнта"}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ color: "#6b7280", mb: 3, maxWidth: 520 }}
-          >
-            Заповни основні дані клієнта — назву компанії, контактну особу,
-            реквізити та нотатки. Надалі ці дані можна буде швидко підставляти в
-            інвойси й акти.
-          </Typography>
-
-          {/* Поля форми */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-            <TextField
-              label="Назва клієнта *"
-              placeholder="Наприклад: ТОВ «Агро Світ»"
-              fullWidth
-              value={form.name}
-              onChange={(e) => handleFormChange("name", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Контактна особа"
-              placeholder="Імʼя та прізвище основного контакту"
-              fullWidth
-              value={form.contactName}
-              onChange={(e) => handleFormChange("contactName", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Email"
-              placeholder="work@example.com"
-              fullWidth
-              value={form.email}
-              onChange={(e) => handleFormChange("email", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Телефон"
-              placeholder="+38 (0XX) XXX-XX-XX"
-              fullWidth
-              value={form.phone}
-              onChange={(e) => handleFormChange("phone", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Податковий номер / ЄДРПОУ"
-              placeholder="Наприклад: 1234567890"
-              fullWidth
-              value={form.taxNumber}
-              onChange={(e) => handleFormChange("taxNumber", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Адреса"
-              placeholder="Місто, вулиця, будинок"
-              fullWidth
-              value={form.address}
-              onChange={(e) => handleFormChange("address", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              label="Нотатки (опціонально)"
-              placeholder="Додаткові деталі про умови співпраці, знижки, контакти тощо"
-              fullWidth
-              multiline
-              minRows={3}
-              value={form.notes}
-              onChange={(e) => handleFormChange("notes", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Box>
-
-          {/* Кнопки внизу */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mt: 4,
-              gap: 2,
-            }}
-          >
-            <Button
-              onClick={handleCloseDialog}
-              sx={{ textTransform: "none", color: "#6b7280" }}
-            >
-              Скасувати
-            </Button>
-
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              sx={{
-                textTransform: "none",
-                borderRadius: 999,
-                px: 3,
-                bgcolor: "#111827",
-                "&:hover": {
-                  bgcolor: "#020617",
-                },
-              }}
-            >
-              Зберегти клієнта
-            </Button>
-          </Box>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={Boolean(deleteId)}
+        title="Видалити клієнта?"
+        description="Цю дію неможливо відмінити. Якщо клієнт привʼязаний до актів/інвойсів — бекенд не дозволить видалення."
+        confirmText="Видалити"
+        loading={deleteClient.isPending}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+      />
 
       <Snackbar
-        open={snackbarOpen}
+        open={snackbar.open}
         autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
+        onClose={snackbar.close}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
+          onClose={snackbar.close}
+          severity={snackbar.severity}
           sx={{ width: "100%" }}
         >
-          {snackbarMessage}
+          {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>
   );
-};
-
-export default ClientsPage;
+}
