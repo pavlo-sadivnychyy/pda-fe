@@ -36,9 +36,6 @@ export const ClientsCard = ({
             variant="h6"
             sx={{ fontWeight: 600, mb: 0.5, color: "#020617" }}
           >
-            Клієнти вашого бізнесу
-          </Typography>
-          <Typography variant="body2" sx={{ color: "#6b7280", maxWidth: 560 }}>
             Зберігай дані клієнтів, щоб швидко підставляти їх в інвойси та
             комунікацію.
           </Typography>
@@ -49,7 +46,7 @@ export const ClientsCard = ({
             minWidth: 220,
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
+            alignItems: { xs: "flex-start", md: "flex-end" },
             gap: 0.5,
           }}
         >

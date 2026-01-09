@@ -3,6 +3,7 @@
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Container,
   Snackbar,
@@ -24,6 +25,8 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 
 import type { InvoiceAction } from "./types";
 import type { CreateInvoicePayload } from "./types";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 export default function InvoicesPage() {
   const { currentUserId, organizationId } = useOrganizationContext();
@@ -54,6 +57,8 @@ export default function InvoicesPage() {
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error">(
     "success",
   );
+
+  const router = useRouter();
 
   const showSnackbar = (message: string, severity: "success" | "error") => {
     setSnackbarMessage(message);
@@ -155,10 +160,17 @@ export default function InvoicesPage() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Уніфікований хедер як на інших сторінках */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}

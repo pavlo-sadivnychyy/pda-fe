@@ -1,6 +1,14 @@
 "use client";
 
-import { Box, Chip, Container, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Container,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import { InfinitySpin } from "react-loader-spinner";
 
@@ -10,6 +18,8 @@ import { DateStrip } from "@/app/todo/components/DateStrip";
 import { TasksList } from "@/app/todo/components/TasksList";
 import { CreateTaskDialog } from "@/app/todo/components/CreateTaskDialog";
 import { MoveTaskDialog } from "@/app/todo/components/MoveTaskDialog";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 export default function TodoPage() {
   const {
@@ -61,6 +71,7 @@ export default function TodoPage() {
     handleToggleStatus,
     submitCreateTask,
   } = useTodoPage();
+  const router = useRouter();
 
   if (isUserLoading || !userId) {
     return (
@@ -79,10 +90,17 @@ export default function TodoPage() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f4f5f7", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f4f5f7", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Хедер як на OrganizationProfilePage */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}

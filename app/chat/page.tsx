@@ -26,6 +26,8 @@ import { useChatSessions } from "@/hooks/useChatSessions";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -39,6 +41,7 @@ export default function ChatPage() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+  const router = useRouter();
 
   const {
     clerkUser,
@@ -136,10 +139,17 @@ export default function ChatPage() {
   if (!hasMounted) return null;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Уніфікований page header */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -254,10 +264,6 @@ export default function ChatPage() {
                         sx={{ fontWeight: 600, color: "#111827" }}
                       >
                         Діалоги з асистентом
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        Постав питання по документах, процесах або клієнтах —
-                        асистент врахує твій профіль та базу знань.
                       </Typography>
                     </Stack>
 

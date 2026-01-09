@@ -1,7 +1,6 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import {
   Box,
   Button,
@@ -56,11 +55,8 @@ type Props = {
 export function DocumentsCard(props: Props) {
   const {
     organization,
-    apiUser,
     isBootstrapLoading,
-    isUploading,
     onOpenCreate,
-    onOpenQuick,
     documents,
     docsLoading,
     docsError,
@@ -74,9 +70,6 @@ export function DocumentsCard(props: Props) {
     isDeleting,
     apiBaseUrl,
   } = props;
-
-  const canUpload =
-    !!organization && !!apiUser && !isBootstrapLoading && !isUploading;
 
   return (
     <Paper sx={styles.root}>
@@ -98,16 +91,6 @@ export function DocumentsCard(props: Props) {
           </Stack>
 
           <Stack direction="row" gap={1} flexWrap="wrap">
-            <Button
-              variant="outlined"
-              startIcon={<CloudUploadIcon />}
-              onClick={onOpenQuick}
-              disabled={!canUpload}
-              sx={{ textTransform: "none", borderRadius: 999 }}
-            >
-              Швидко завантажити
-            </Button>
-
             <Button
               variant="contained"
               startIcon={<AddIcon />}

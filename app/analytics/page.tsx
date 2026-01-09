@@ -3,6 +3,7 @@
 import React from "react";
 import {
   Box,
+  Button,
   Chip,
   CircularProgress,
   Container,
@@ -15,6 +16,8 @@ import { AnalyticsHeader } from "@/app/analytics/components/AnalyticsHeader";
 import { KpiCards } from "@/app/analytics/components/KpiCards";
 import { DonutCard } from "@/app/analytics/components/DonutCard";
 import { useFinancialAnalytics } from "@/app/analytics/hooks/useFinancialAnalytics";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 const FinancialAnalyticsPage: React.FC = () => {
   const {
@@ -26,12 +29,20 @@ const FinancialAnalyticsPage: React.FC = () => {
     showSpinner,
     errorText,
   } = useFinancialAnalytics();
+  const router = useRouter();
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Уніфікований сторінковий хедер */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}

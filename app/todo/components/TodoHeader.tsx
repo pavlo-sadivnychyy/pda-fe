@@ -20,24 +20,8 @@ export const TodoHeader = (props: {
         mb: { xs: 3, md: 4 },
       }}
     >
-      <Box>
-        <Typography
-          variant="h6"
-          sx={{ fontWeight: 600, mb: 0.5, fontSize: { xs: 18, md: 22 } }}
-        >
-          План задач
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: "#6b7280", fontSize: { xs: 12, md: 14 } }}
-        >
-          Плануй свій день по годинах — асистент зможе краще підбирати тобі
-          завдання.
-        </Typography>
-      </Box>
-
       <Box
-        sx={{ minWidth: { md: 220 }, textAlign: { xs: "left", md: "right" } }}
+        sx={{ minWidth: { md: 220 }, textAlign: { xs: "left", md: "left" } }}
       >
         <Typography
           variant="caption"

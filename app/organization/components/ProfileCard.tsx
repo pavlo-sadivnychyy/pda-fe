@@ -75,11 +75,6 @@ export function ProfileCard({
         }
         title={
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Профіль
-          </Typography>
-        }
-        subheader={
-          <Typography variant="body2" sx={{ color: "#64748B", mt: 0.5 }}>
             Основні дані бізнесу, які асистент буде використовувати у
             відповідях.
           </Typography>

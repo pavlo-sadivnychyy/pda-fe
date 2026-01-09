@@ -1,7 +1,9 @@
 "use client";
 
-import { Box, Chip, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import BusinessIcon from "@mui/icons-material/Business";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 type Props = {
   mode: "view" | "edit" | "create";
@@ -11,6 +13,7 @@ type Props = {
 };
 
 export function PageHeader({ mode, profileCompletion }: Props) {
+  const router = useRouter();
   const label =
     mode === "create"
       ? "Створення профілю"
@@ -20,6 +23,13 @@ export function PageHeader({ mode, profileCompletion }: Props) {
 
   return (
     <Box sx={{ mb: 2.5 }}>
+      <Button
+        onClick={() => router.push("/")}
+        sx={{ color: "black", marginBottom: "20px" }}
+        startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+      >
+        Повернутись назад
+      </Button>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={1}

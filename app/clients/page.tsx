@@ -4,6 +4,7 @@ import axios from "axios";
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Container,
   Snackbar,
@@ -25,6 +26,8 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { useSnackbar } from "./components/useSnackbar";
 
 import { toCreatePayload, toUpdatePayload } from "./utils";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 const getErrorMessage = (e: unknown) => {
   if (axios.isAxiosError(e)) {
@@ -45,6 +48,7 @@ export default function ClientsPage() {
 
   const snackbar = useSnackbar();
   const formState = useClientForm();
+  const router = useRouter();
 
   const { clientsQuery } = useClientsQueries(organizationId);
   const { createClient, updateClient, deleteClient } =
@@ -117,10 +121,17 @@ export default function ClientsPage() {
   const submitting = createClient.isPending || updateClient.isPending;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Уніфікований хедер як на інших сторінках */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -162,8 +173,7 @@ export default function ClientsPage() {
           </Stack>
 
           <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
-            Контакти, компанії та реквізити в одному місці. Якщо клієнт має
-            привʼязані акти/інвойси — бекенд може заборонити видалення.
+            Контакти, компанії та реквізити в одному місці.
           </Typography>
         </Box>
 

@@ -18,9 +18,6 @@ export const AnalyticsHeader = (props: { periodLabel?: string | null }) => {
           variant="h6"
           sx={{ fontWeight: 600, mb: 0.5, color: "#020617" }}
         >
-          Фінансовий огляд
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#6b7280", maxWidth: 560 }}>
           Скільки грошей вже зайшло, скільки ще чекаєш та як зараз розподілений
           дохід.
         </Typography>

@@ -13,17 +13,18 @@ import type { ReactNode } from "react";
 
 export const ActsCard = ({
   organizationId,
-  count,
   onCreate,
   children,
 }: {
   organizationId?: string;
-  count: number;
   onCreate: () => void;
   children: ReactNode;
 }) => {
   return (
-    <Card elevation={4} sx={{ borderRadius: 4, overflow: "hidden" }}>
+    <Card
+      elevation={4}
+      sx={{ borderRadius: 4, overflow: "hidden", padding: "16px" }}
+    >
       <CardHeader
         title={
           <Box
@@ -39,12 +40,6 @@ export const ActsCard = ({
                 variant="h6"
                 sx={{ fontWeight: 600, color: "#020617" }}
               >
-                Акти наданих послуг
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "#6b7280", maxWidth: 520 }}
-              >
                 Тут зберігаються акти, які ти формуєш на основі інвойсів. Звідси
                 можна скачати PDF.
               </Typography>
@@ -55,18 +50,6 @@ export const ActsCard = ({
               spacing={1}
               alignItems={{ xs: "stretch", md: "center" }}
             >
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "#6b7280",
-                  textAlign: { xs: "left", md: "right" },
-                }}
-              >
-                {!organizationId
-                  ? "Спочатку створіть або виберіть організацію."
-                  : `Знайдено актів: ${count}`}
-              </Typography>
-
               <Button
                 variant="contained"
                 disabled={!organizationId}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Chip, Paper, Stack, Typography } from "@mui/material";
+import { Paper, Stack, Typography } from "@mui/material";
 
 type Props = {
   organization: { id: string; name: string; slug?: string | null };
@@ -13,14 +13,12 @@ export function OrgInfoCard({ organization, clerkUser }: Props) {
   return (
     <Paper sx={styles.root}>
       <Stack
+        marginTop={0}
         direction={{ xs: "column", md: "row" }}
         justifyContent="space-between"
         gap={2}
       >
         <Stack gap={0.5}>
-          <Typography variant="overline" sx={styles.overline}>
-            БІЗНЕС
-          </Typography>
           <Typography variant="subtitle1" sx={styles.title}>
             {organization.name}
           </Typography>
@@ -30,14 +28,6 @@ export function OrgInfoCard({ organization, clerkUser }: Props) {
         </Stack>
 
         <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} gap={1}>
-          {organization.slug && (
-            <Chip
-              size="small"
-              label={`slug: ${organization.slug}`}
-              variant="outlined"
-              sx={styles.slug}
-            />
-          )}
           {ownerEmail && (
             <Typography variant="caption" sx={{ color: "#9ca3af" }}>
               Власник: {ownerEmail}

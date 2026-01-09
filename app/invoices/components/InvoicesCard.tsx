@@ -36,9 +36,6 @@ export const InvoicesCard = ({
             variant="h6"
             sx={{ fontWeight: 600, mb: 0.5, color: "#020617" }}
           >
-            Інвойси вашого бізнесу
-          </Typography>
-          <Typography variant="body2" sx={{ color: "#6b7280", maxWidth: 560 }}>
             Виставляйте рахунки клієнтам, слідкуйте за оплатами та тримайте
             фінансовий облік в одному місці.
           </Typography>
@@ -49,7 +46,7 @@ export const InvoicesCard = ({
             minWidth: 220,
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
+            alignItems: { xs: "flex-start", md: "flex-end" },
             gap: 0.5,
           }}
         >

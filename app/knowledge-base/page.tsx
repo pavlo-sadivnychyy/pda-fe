@@ -1,18 +1,35 @@
 "use client";
 
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import { Box, Chip, Container, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Container,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 
-import { KnowledgeBaseHeader } from "@/components/KnowledgeBaseHeader/KnowledgeBaseHeader";
 import { KnowledgeBaseShell } from "@/components/KnowledgeBaseShell/KnowledgeBaseShell";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter } from "next/navigation";
 
 export default function KnowledgeBasePage() {
+  const router = useRouter();
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 3, md: 8 } }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Хедер як на інших сторінках */}
         <Box sx={{ mb: 2.5 }}>
+          <Button
+            onClick={() => router.push("/")}
+            sx={{ color: "black", marginBottom: "20px" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+          >
+            Повернутись назад
+          </Button>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -74,11 +91,11 @@ export default function KnowledgeBasePage() {
           }}
         >
           {/* твій існуючий хедер бази знань */}
-          <KnowledgeBaseHeader />
+          {/*<KnowledgeBaseHeader />*/}
 
           <Box
             sx={{
-              mt: 2,
+              mt: 0,
               flex: 1,
               display: "flex",
               flexDirection: "column",

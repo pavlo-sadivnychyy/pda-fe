@@ -16,7 +16,7 @@ import { ActivityCard } from "@/components/Home/components/ActivityCard";
 import { TodayTasksCard } from "./components/TodayTasksCard";
 import { AiPlanCard } from "./components/AiPlanCard";
 import { PopularTasksCard } from "@/components/Home/components/PopularTasksCard";
-import { PlanCard } from "./components/PlanCard";
+import { PlanCard } from "@/components/Home/components/PlanCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -103,7 +103,7 @@ export default function HomePage() {
             />
 
             <PopularTasksCard />
-            <PlanCard />
+            <PlanCard currentPlan="FREE" />
           </Grid>
         </Grid>
       </Box>

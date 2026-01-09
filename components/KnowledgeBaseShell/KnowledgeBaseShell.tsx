@@ -131,7 +131,7 @@ const styles = {
   scroll: {
     flex: 1,
     overflowY: "auto",
-    pr: 1,
+    pr: 0,
     pb: 1,
     "&::-webkit-scrollbar": { width: 6 },
     "&::-webkit-scrollbar-thumb": {
