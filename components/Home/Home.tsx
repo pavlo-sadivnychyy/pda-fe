@@ -18,6 +18,8 @@ import { AiPlanCard } from "./components/AiPlanCard";
 import { PopularTasksCard } from "@/components/Home/components/PopularTasksCard";
 import { PlanCard } from "@/components/Home/components/PlanCard";
 
+type PlanId = "FREE" | "BASIC" | "PRO";
+
 export default function HomePage() {
   const router = useRouter();
 
@@ -29,6 +31,10 @@ export default function HomePage() {
   const profile = useHomeProfile(currentUserId);
   const today = useTodayTasks(currentUserId);
   const ai = useAiPlan(currentUserId, todayDateString);
+
+  // ✅ беремо план з бекенду
+  const currentPlanFromApi: PlanId =
+    ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
   const disabledReason: "HAS_PLAN" | "NO_TASKS" | "LOADING" | "IDLE" = (() => {
     if (ai.isLoading || ai.isFetching) return "LOADING";
@@ -56,7 +62,7 @@ export default function HomePage() {
       }}
     >
       <Box sx={{ width: "100%", maxWidth: 1120 }}>
-        <HomeHeader firstName={userData?.firstName} />
+        <HomeHeader firstName={(userData as any)?.firstName} />
 
         <Grid container spacing={3}>
           {/* Left */}
@@ -103,7 +109,9 @@ export default function HomePage() {
             />
 
             <PopularTasksCard />
-            <PlanCard currentPlan="FREE" />
+
+            {/* ✅ тут більше нема хардкоду */}
+            <PlanCard currentPlan={currentPlanFromApi} />
           </Grid>
         </Grid>
       </Box>

@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import StarIcon from "@mui/icons-material/Star";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import {
   Box,
   Button,
@@ -20,25 +20,81 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { PLANS, type PlanId } from "./plans";
-import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
-import { useRouter } from "next/navigation";
+import { api } from "@/libs/axios";
+import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
+import { InfinitySpin } from "react-loader-spinner";
 
 function formatPrice(price: number) {
   return price === 0 ? "0" : String(price);
 }
 
+// мінімальний тип відповіді з бекенду
+type UserResponse = {
+  user: {
+    id: string;
+    subscription?: {
+      planId: PlanId;
+    } | null;
+  };
+};
+
 type Props = {
+  // якщо ти прокидаєш його з сервера — ок як fallback
   currentPlanId?: PlanId;
 };
 
 export default function PricingPage({ currentPlanId = "FREE" }: Props) {
-  const handleChoosePlan = async (planId: PlanId) => {
-    console.log("Choose plan:", planId);
-    alert(`Обрано план: ${planId}. Пізніше підключимо Stripe checkout.`);
-  };
   const router = useRouter();
+  const qc = useQueryClient();
+  const { data: userData, isLoading } = useCurrentUser();
+
+  const userId = userData?.id ?? null;
+
+  const currentPlanFromApi: PlanId =
+    userData?.subscription?.planId ?? currentPlanId;
+
+  const setPlanMutation = useMutation({
+    mutationFn: async (planId: PlanId) => {
+      if (!userId) throw new Error("No userId");
+      const { data } = await api.patch<UserResponse>(`/users/${userId}/plan`, {
+        planId,
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      // ✅ одразу оновлюємо кеш, щоб UI миттєво перерендився
+      qc.setQueryData(["app-bootstrap"], data);
+      // ✅ і на всяк випадок підтягнемо ще раз
+      qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+    },
+  });
+
+  const handleChoosePlan = (planId: PlanId) => {
+    if (!userId) return;
+    if (planId === currentPlanFromApi) return;
+    setPlanMutation.mutate(planId);
+  };
+
+  const isBusy = isLoading || setPlanMutation.isPending;
+
+  if (isBusy) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          bgcolor: "#f3f4f6",
+        }}
+      >
+        <InfinitySpin width="200" color="#202124" />
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ padding: "32px 0" }}>
@@ -50,24 +106,32 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       >
         Повернутись назад
       </Button>
+
       <Stack spacing={1} sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Плани та підписка
         </Typography>
+
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Обери план під свої потреби. Почни з FREE і апгрейднись, коли захочеш
           аналітику, експорт і автоматизації.
         </Typography>
 
-        <Box sx={{ mt: 0.5 }}>
+        <Box sx={{ mt: 0.5, display: "flex", gap: 1, alignItems: "center" }}>
           <Chip
-            label={`Поточний план: ${currentPlanId}`}
+            label={`Поточний план: ${currentPlanFromApi}`}
             sx={{
               bgcolor: "#fefce8",
               border: "1px solid #facc15",
               fontWeight: 600,
             }}
           />
+
+          {setPlanMutation.isError && (
+            <Typography variant="caption" sx={{ color: "#dc2626" }}>
+              Не вдалося змінити план
+            </Typography>
+          )}
         </Box>
       </Stack>
 
@@ -78,9 +142,12 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         alignItems="stretch"
       >
         {PLANS.map((plan) => {
-          const isCurrent = plan.id === currentPlanId;
+          const isCurrent = plan.id === currentPlanFromApi;
           const isPopular = Boolean(plan.highlight);
           const headerIconColor = isPopular ? "#f97316" : "#111827";
+
+          const isThisPending =
+            setPlanMutation.isPending && setPlanMutation.variables === plan.id;
 
           return (
             <Card
@@ -92,6 +159,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 display: "flex",
                 flexDirection: "column",
                 position: "relative",
+                opacity: isLoading ? 0.85 : 1,
               }}
             >
               <CardHeader
@@ -108,19 +176,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       {plan.title}
                     </Typography>
-
-                    {isPopular && (
-                      <Chip
-                        icon={<StarIcon sx={{ fontSize: 18 }} />}
-                        label="Найпопулярніший"
-                        size="small"
-                        sx={{
-                          bgcolor: "#fefce8",
-                          border: "1px solid #facc15",
-                          fontWeight: 700,
-                        }}
-                      />
-                    )}
 
                     {isCurrent && (
                       <Chip
@@ -250,7 +305,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                     size="small"
                     variant={isPopular ? "contained" : "outlined"}
                     onClick={() => handleChoosePlan(plan.id)}
-                    disabled={isCurrent}
+                    disabled={isCurrent || isBusy || !userId}
                     sx={{
                       textTransform: "none",
                       borderRadius: 999,
@@ -265,7 +320,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                         : {}),
                     }}
                   >
-                    {isCurrent ? "План активний" : plan.ctaLabel}
+                    {isCurrent
+                      ? "План активний"
+                      : isThisPending
+                        ? "Застосовую..."
+                        : plan.ctaLabel}
                   </Button>
                 </Stack>
               </CardContent>

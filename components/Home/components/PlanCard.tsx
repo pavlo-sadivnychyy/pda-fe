@@ -17,13 +17,16 @@ import {
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
+export type PlanId = "FREE" | "BASIC" | "PRO";
+
 type Props = {
-  currentPlan?: "FREE" | "BASIC" | "PRO";
-  // якщо хочеш — можеш передати текст підказки (наприклад, "Доступно в PRO")
+  currentPlan?: PlanId | null;
   hintText?: string | null;
 };
 
-export function PlanCard({ currentPlan = "FREE", hintText = null }: Props) {
+export function PlanCard({ currentPlan = null, hintText = null }: Props) {
+  const planLabel = currentPlan ?? "…";
+
   return (
     <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
       <CardHeader
@@ -50,7 +53,7 @@ export function PlanCard({ currentPlan = "FREE", hintText = null }: Props) {
             spacing={2}
           >
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Поточний план: <b>{currentPlan}</b>
+              Поточний план: <b>{planLabel}</b>
               {currentPlan === "FREE"
                 ? " — спробуй, а потім апгрейднись."
                 : null}
