@@ -12,7 +12,6 @@ import { HomeHeader } from "@/components/Home/components/HomeHeader";
 import { BusinessProfileCard } from "@/components/Home/components/BusinessProfileCard";
 import { DocumentsCard } from "@/components/Home/components/DocumentsCard";
 import { FinanceShortcutsCard } from "@/components/Home/components/FinanceShortcutsCard";
-import { ActivityCard } from "@/components/Home/components/ActivityCard";
 import { TodayTasksCard } from "./components/TodayTasksCard";
 import { AiPlanCard } from "./components/AiPlanCard";
 import { PopularTasksCard } from "@/components/Home/components/PopularTasksCard";
@@ -86,8 +85,6 @@ export default function HomePage() {
               onOpenActs={() => router.push("/acts")}
               onOpenAnalytics={() => router.push("/analytics")}
             />
-
-            <ActivityCard />
           </Grid>
 
           {/* Right */}

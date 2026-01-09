@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   Box,
@@ -20,14 +20,14 @@ import {
 import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 import { useChatSessions } from "@/hooks/useChatSessions";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
-import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
-import { useRouter } from "next/navigation";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -36,12 +36,27 @@ function formatDateStable(dateStr: string) {
   return iso.slice(0, 16).replace("T", " ");
 }
 
+function decodeSearchParam(value: string | null) {
+  if (!value) return "";
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default function ChatPage() {
   const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+  useEffect(() => setHasMounted(true), []);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const prefillParam = decodeSearchParam(searchParams.get("prefill"));
+  const shouldCreateNew = searchParams.get("new") === "1";
+
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const didHandleDeepLinkRef = useRef(false);
 
   const {
     clerkUser,
@@ -83,14 +98,14 @@ export default function ChatPage() {
 
   const [draft, setDraft] = useState("");
 
-  const handleCreateSession = () => {
+  const handleCreateSession = (title?: string) => {
     if (!organization || !apiUser) return;
 
     createSessionMutation.mutate(
       {
         organizationId: organization.id,
         createdById: apiUser.id,
-        title: "Новий діалог",
+        title: title?.trim() ? title : "Новий діалог",
       },
       {
         onSuccess: (data) => {
@@ -99,6 +114,65 @@ export default function ChatPage() {
       },
     );
   };
+
+  // ✅ Deep-link логіка: /chat?new=1&prefill=...
+  useEffect(() => {
+    if (!hasMounted) return;
+    if (didHandleDeepLinkRef.current) return;
+
+    // потрібні дані для створення сесії
+    if (!organization || !apiUser) return;
+
+    const hasAction = shouldCreateNew || !!prefillParam;
+    if (!hasAction) return;
+
+    didHandleDeepLinkRef.current = true;
+
+    // 1) заповнюємо інпут одразу
+    if (prefillParam) {
+      setDraft(prefillParam);
+      // легкий фокус
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+
+    // 2) якщо треба — створюємо новий діалог
+    if (shouldCreateNew) {
+      const smartTitle = prefillParam?.slice(0, 44)?.trim() || "Новий діалог";
+
+      createSessionMutation.mutate(
+        {
+          organizationId: organization.id,
+          createdById: apiUser.id,
+          title: smartTitle,
+        },
+        {
+          onSuccess: (data) => {
+            setSelectedSessionId(data.session.id);
+            setTimeout(() => inputRef.current?.focus(), 50);
+
+            // 3) прибираємо query, щоб при refresh не створювало знову
+            router.replace("/chat");
+          },
+          onError: () => {
+            // навіть якщо не вдалось створити — прибираємо query, щоб не зациклитись
+            router.replace("/chat");
+          },
+        },
+      );
+      return;
+    }
+
+    // якщо лише prefill без new — теж чистимо URL
+    router.replace("/chat");
+  }, [
+    hasMounted,
+    organization,
+    apiUser,
+    shouldCreateNew,
+    prefillParam,
+    router,
+    createSessionMutation,
+  ]);
 
   const handleSend = () => {
     if (
@@ -141,7 +215,6 @@ export default function ChatPage() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* ✅ Уніфікований page header */}
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/")}
@@ -150,6 +223,7 @@ export default function ChatPage() {
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -210,14 +284,7 @@ export default function ChatPage() {
           }}
         >
           <SignedOut>
-            <Box
-              sx={{
-                flex: 1,
-                display: "grid",
-                placeItems: "center",
-                px: 2,
-              }}
-            >
+            <Box sx={{ flex: 1, display: "grid", placeItems: "center", px: 2 }}>
               <Typography color="#6b7280">
                 Щоб користуватись AI-чатом, спочатку увійди в акаунт.
               </Typography>
@@ -233,7 +300,6 @@ export default function ChatPage() {
                 overflow: "hidden",
               }}
             >
-              {/* Скрол всередині */}
               <Box
                 sx={{
                   flex: 1,
@@ -251,7 +317,6 @@ export default function ChatPage() {
                 }}
               >
                 <Stack gap={3}>
-                  {/* Header + кнопка нового діалогу */}
                   <Stack
                     direction={{ xs: "column", md: "row" }}
                     justifyContent="space-between"
@@ -270,7 +335,7 @@ export default function ChatPage() {
                     <Button
                       variant="contained"
                       startIcon={<AddIcon />}
-                      onClick={handleCreateSession}
+                      onClick={() => handleCreateSession()}
                       disabled={
                         !organization ||
                         !apiUser ||
@@ -288,7 +353,6 @@ export default function ChatPage() {
                     </Button>
                   </Stack>
 
-                  {/* Bootstrap / errors */}
                   {isBootstrapLoading && (
                     <Paper
                       sx={{
@@ -322,7 +386,6 @@ export default function ChatPage() {
                     </Paper>
                   )}
 
-                  {/* Основний layout чату */}
                   <Box
                     sx={{
                       display: "grid",
@@ -331,7 +394,6 @@ export default function ChatPage() {
                       minHeight: "480px",
                     }}
                   >
-                    {/* Ліва колонка — список діалогів */}
                     <Paper
                       sx={{
                         p: 2,
@@ -426,7 +488,6 @@ export default function ChatPage() {
                       )}
                     </Paper>
 
-                    {/* Права колонка — чат */}
                     <Paper
                       sx={{
                         p: 2,
@@ -439,7 +500,6 @@ export default function ChatPage() {
                       }}
                       variant="outlined"
                     >
-                      {/* Заголовок чату */}
                       <Box
                         sx={{
                           pb: 1,
@@ -464,7 +524,6 @@ export default function ChatPage() {
                         )}
                       </Box>
 
-                      {/* Історія повідомлень */}
                       <Box
                         sx={{
                           flex: 1,
@@ -553,7 +612,6 @@ export default function ChatPage() {
                           })}
                       </Box>
 
-                      {/* Поле вводу */}
                       <Box sx={{ borderTop: "1px solid #e5e7eb", pt: 1 }}>
                         <Stack direction="row" alignItems="flex-end" gap={1}>
                           <TextField
@@ -566,6 +624,7 @@ export default function ChatPage() {
                             onChange={(e) => setDraft(e.target.value)}
                             onKeyDown={handleKeyDown}
                             size="small"
+                            inputRef={inputRef}
                             InputProps={{
                               sx: { bgcolor: "#f9fafb", color: "#111827" },
                             }}

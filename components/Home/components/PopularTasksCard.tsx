@@ -9,8 +9,11 @@ import {
   Typography,
 } from "@mui/material";
 import FlashOnIcon from "@mui/icons-material/FlashOn";
+import { useRouter } from "next/navigation";
 
 export function PopularTasksCard() {
+  const router = useRouter();
+
   const items = [
     "Зробити опис товару",
     "Згенерувати пост для соцмереж",
@@ -19,6 +22,15 @@ export function PopularTasksCard() {
     "Придумати ідеї акцій",
     "Скласти контент-план на тиждень",
   ];
+
+  const handleClick = (label: string) => {
+    const qs = new URLSearchParams({
+      new: "1",
+      prefill: label,
+    });
+
+    router.push(`/chat?${qs.toString()}`);
+  };
 
   return (
     <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
@@ -35,6 +47,7 @@ export function PopularTasksCard() {
           {items.map((label) => (
             <Button
               key={label}
+              onClick={() => handleClick(label)}
               variant="outlined"
               fullWidth
               size="small"
