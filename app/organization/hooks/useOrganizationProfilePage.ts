@@ -23,12 +23,25 @@ type Organization = {
   servicesDescription?: string | null;
   targetAudience?: string | null;
   brandStyle?: string | null;
+
+  // ✅ International payment details
+  legalName?: string | null;
+  legalAddress?: string | null;
+  vatId?: string | null;
+  registrationNumber?: string | null;
+  iban?: string | null;
+  swiftBic?: string | null;
+  bankName?: string | null;
+  bankAddress?: string | null;
+  beneficiaryName?: string | null;
+  paymentReferenceHint?: string | null;
 };
 
 type OrganizationMembership = { organization: Organization };
 type OrganizationsForUserResponse = { items: OrganizationMembership[] };
 
 export type FormValues = {
+  // main profile
   name: string;
   websiteUrl: string;
   industry: string;
@@ -37,6 +50,18 @@ export type FormValues = {
   servicesDescription: string;
   targetAudience: string;
   brandStyle: string;
+
+  // ✅ payment details
+  legalName: string;
+  beneficiaryName: string;
+  legalAddress: string;
+  vatId: string;
+  registrationNumber: string;
+  iban: string;
+  swiftBic: string;
+  bankName: string;
+  bankAddress: string;
+  paymentReferenceHint: string;
 };
 
 type ViewMode = "view" | "edit" | "create";
@@ -50,6 +75,17 @@ const emptyForm: FormValues = {
   servicesDescription: "",
   targetAudience: "",
   brandStyle: "",
+
+  legalName: "",
+  beneficiaryName: "",
+  legalAddress: "",
+  vatId: "",
+  registrationNumber: "",
+  iban: "",
+  swiftBic: "",
+  bankName: "",
+  bankAddress: "",
+  paymentReferenceHint: "",
 };
 
 const mapOrgToForm = (org: Organization): FormValues => ({
@@ -61,9 +97,21 @@ const mapOrgToForm = (org: Organization): FormValues => ({
   servicesDescription: org.servicesDescription ?? "",
   targetAudience: org.targetAudience ?? "",
   brandStyle: org.brandStyle ?? "",
+
+  legalName: org.legalName ?? "",
+  beneficiaryName: org.beneficiaryName ?? "",
+  legalAddress: org.legalAddress ?? "",
+  vatId: org.vatId ?? "",
+  registrationNumber: org.registrationNumber ?? "",
+  iban: org.iban ?? "",
+  swiftBic: org.swiftBic ?? "",
+  bankName: org.bankName ?? "",
+  bankAddress: org.bankAddress ?? "",
+  paymentReferenceHint: org.paymentReferenceHint ?? "",
 });
 
 const calculateProfileCompletion = (form: FormValues): number => {
+  // рахуй тільки “основний профіль”, щоб progress bar не просів через payment fields
   const keys: (keyof FormValues)[] = [
     "name",
     "websiteUrl",
@@ -100,7 +148,6 @@ export function useOrganizationProfilePage() {
 
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
-  // init from API once data arrives
   useEffect(() => {
     if (!data) return;
 
@@ -127,10 +174,8 @@ export function useOrganizationProfilePage() {
           severity: "success",
         });
 
-        // краще: після create інвалідувати org query щоб забрати справжній org з бекенду
-        // але щоб UI був швидкий — оновимо локально
         setOrganization((prev) => ({
-          id: prev?.id ?? "", // якщо бек повертає id в _d — краще брати з нього
+          id: prev?.id ?? "",
           name: values.name,
           industry: values.industry || null,
           description: values.description || null,
@@ -144,6 +189,18 @@ export function useOrganizationProfilePage() {
           servicesDescription: values.servicesDescription || null,
           targetAudience: values.targetAudience || null,
           brandStyle: values.brandStyle || null,
+
+          // ✅ payment details
+          legalName: values.legalName || null,
+          beneficiaryName: values.beneficiaryName || null,
+          legalAddress: values.legalAddress || null,
+          vatId: values.vatId || null,
+          registrationNumber: values.registrationNumber || null,
+          iban: values.iban || null,
+          swiftBic: values.swiftBic || null,
+          bankName: values.bankName || null,
+          bankAddress: values.bankAddress || null,
+          paymentReferenceHint: values.paymentReferenceHint || null,
         }));
 
         setForm(values);
@@ -211,6 +268,7 @@ export function useOrganizationProfilePage() {
     () => (form ? calculateProfileCompletion(form) : 0),
     [form],
   );
+
   const isSaving = isCreating || isUpdating;
   const isLoading = isUserLoading || isOrgLoading;
   const hasOrganization = !!organization;
@@ -224,7 +282,6 @@ export function useOrganizationProfilePage() {
   const toView = () => setMode("view");
 
   const cancelEdit = () => {
-    // повертаємо значення з org, якщо він є
     if (organization) setForm(mapOrgToForm(organization));
     setMode(hasOrganization ? "view" : "create");
   };

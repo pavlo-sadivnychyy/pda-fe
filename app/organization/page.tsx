@@ -14,6 +14,7 @@ import { PageHeader } from "@/app/organization/components/PageHeader";
 import { ProfileCard } from "./components/ProfileCard";
 import { CurrentPlanCard } from "@/app/organization/components/CurrentPlanCard";
 import { AssistantInfoCard } from "@/app/organization/components/AssistantInfoCard";
+import { PaymentDetailsCard } from "./components/PaymentDetailsCard";
 
 export default function OrganizationProfilePage() {
   const vm = useOrganizationProfilePage();
@@ -64,21 +65,35 @@ export default function OrganizationProfilePage() {
             onView={vm.actions.toView}
           />
 
-          {/* 3 окремі сутності (не в одній великій карточці) */}
           <Grid container spacing={2.5}>
             <Grid size={{ xs: 12, sm: 12, md: 12, lg: 8 }}>
-              <ProfileCard
-                mode={vm.mode}
-                hasOrganization={vm.hasOrganization}
-                organization={vm.organization}
-                form={vm.form}
-                profileCompletion={vm.profileCompletion}
-                isSaving={vm.isSaving}
-                onEdit={vm.actions.toEdit}
-                onCancel={vm.actions.cancelEdit}
-                onChange={vm.actions.onChange}
-                onSubmit={vm.actions.onSubmit}
-              />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                <ProfileCard
+                  mode={vm.mode}
+                  hasOrganization={vm.hasOrganization}
+                  organization={vm.organization}
+                  form={vm.form}
+                  profileCompletion={vm.profileCompletion}
+                  isSaving={vm.isSaving}
+                  onEdit={vm.actions.toEdit}
+                  onCancel={vm.actions.cancelEdit}
+                  onChange={vm.actions.onChange}
+                  onSubmit={vm.actions.onSubmit}
+                />
+
+                {/* ✅ NEW: International payment details card */}
+                <PaymentDetailsCard
+                  mode={vm.mode}
+                  hasOrganization={vm.hasOrganization}
+                  organization={vm.organization}
+                  form={vm.form}
+                  isSaving={vm.isSaving}
+                  onEdit={vm.actions.toEdit}
+                  onCancel={vm.actions.cancelEdit}
+                  onChange={vm.actions.onChange}
+                  onSubmit={vm.actions.onSubmit}
+                />
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4 }}>

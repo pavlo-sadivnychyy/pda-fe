@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query";
 
 export type OrganizationProfileFormValues = {
+  // main profile
   name: string;
   websiteUrl: string;
   industry: string;
@@ -16,6 +17,18 @@ export type OrganizationProfileFormValues = {
   servicesDescription: string;
   targetAudience: string;
   brandStyle: string;
+
+  // payment details
+  legalName: string;
+  beneficiaryName: string;
+  legalAddress: string;
+  vatId: string;
+  registrationNumber: string;
+  iban: string;
+  swiftBic: string;
+  bankName: string;
+  bankAddress: string;
+  paymentReferenceHint: string;
 };
 
 type CreateOrganizationVariables = {
@@ -34,6 +47,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const toNull = (v: string) => {
+  const trimmed = (v ?? "").trim();
+  return trimmed.length ? trimmed : null;
+};
+
 export const useCreateOrganization = (
   options?: UseMutationOptions<
     void,
@@ -49,14 +67,28 @@ export const useCreateOrganization = (
     mutationFn: async ({ values, currentUserId }) => {
       await api.post(`/organizations`, {
         ownerId: currentUserId,
+
+        // main
         name: values.name,
-        industry: values.industry || null,
-        description: values.description || null,
-        websiteUrl: values.websiteUrl || null,
-        businessNiche: values.businessNiche || null,
-        servicesDescription: values.servicesDescription || null,
-        targetAudience: values.targetAudience || null,
-        brandStyle: values.brandStyle || null,
+        industry: toNull(values.industry),
+        description: toNull(values.description),
+        websiteUrl: toNull(values.websiteUrl),
+        businessNiche: toNull(values.businessNiche),
+        servicesDescription: toNull(values.servicesDescription),
+        targetAudience: toNull(values.targetAudience),
+        brandStyle: toNull(values.brandStyle),
+
+        // payment
+        legalName: toNull(values.legalName),
+        beneficiaryName: toNull(values.beneficiaryName),
+        legalAddress: toNull(values.legalAddress),
+        vatId: toNull(values.vatId),
+        registrationNumber: toNull(values.registrationNumber),
+        iban: toNull(values.iban),
+        swiftBic: toNull(values.swiftBic),
+        bankName: toNull(values.bankName),
+        bankAddress: toNull(values.bankAddress),
+        paymentReferenceHint: toNull(values.paymentReferenceHint),
       });
     },
     onSuccess: async (data, variables, context) => {
@@ -64,14 +96,10 @@ export const useCreateOrganization = (
         queryKey: ["organizationsForUser", variables.currentUserId],
       });
 
-      if (options?.onSuccess) {
-        options.onSuccess(data, variables, context);
-      }
+      options?.onSuccess?.(data, variables, context);
     },
     onError: (error, variables, context) => {
-      if (options?.onError) {
-        options.onError(error, variables, context);
-      }
+      options?.onError?.(error, variables, context);
     },
   });
 };
@@ -90,14 +118,27 @@ export const useUpdateOrganization = (
     mutationKey: ["updateOrganization"],
     mutationFn: async ({ values, organizationId }) => {
       await api.patch(`/organizations/${organizationId}`, {
+        // main
         name: values.name,
-        industry: values.industry || null,
-        description: values.description || null,
-        websiteUrl: values.websiteUrl || null,
-        businessNiche: values.businessNiche || null,
-        servicesDescription: values.servicesDescription || null,
-        targetAudience: values.targetAudience || null,
-        brandStyle: values.brandStyle || null,
+        industry: toNull(values.industry),
+        description: toNull(values.description),
+        websiteUrl: toNull(values.websiteUrl),
+        businessNiche: toNull(values.businessNiche),
+        servicesDescription: toNull(values.servicesDescription),
+        targetAudience: toNull(values.targetAudience),
+        brandStyle: toNull(values.brandStyle),
+
+        // payment
+        legalName: toNull(values.legalName),
+        beneficiaryName: toNull(values.beneficiaryName),
+        legalAddress: toNull(values.legalAddress),
+        vatId: toNull(values.vatId),
+        registrationNumber: toNull(values.registrationNumber),
+        iban: toNull(values.iban),
+        swiftBic: toNull(values.swiftBic),
+        bankName: toNull(values.bankName),
+        bankAddress: toNull(values.bankAddress),
+        paymentReferenceHint: toNull(values.paymentReferenceHint),
       });
     },
     onSuccess: async (data, variables, context) => {
@@ -105,14 +146,10 @@ export const useUpdateOrganization = (
         queryKey: ["organizationsForUser", variables.currentUserId],
       });
 
-      if (options?.onSuccess) {
-        options.onSuccess(data, variables, context);
-      }
+      options?.onSuccess?.(data, variables, context);
     },
     onError: (error, variables, context) => {
-      if (options?.onError) {
-        options.onError(error, variables, context);
-      }
+      options?.onError?.(error, variables, context);
     },
   });
 };
