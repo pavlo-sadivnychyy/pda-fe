@@ -165,7 +165,7 @@ export default function InvoicesPage() {
         {/* ✅ Уніфікований хедер як на інших сторінках */}
         <Box sx={{ mb: 2.5 }}>
           <Button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/dashboard")}
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >

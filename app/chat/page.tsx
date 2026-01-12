@@ -274,7 +274,7 @@ export default function ChatPage() {
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 2.5 }}>
           <Button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/dashboard")}
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >

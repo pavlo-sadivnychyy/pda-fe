@@ -100,7 +100,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     <Container maxWidth="lg" sx={{ padding: "32px 0" }}>
       {/* Header */}
       <Button
-        onClick={() => router.push("/")}
+        onClick={() => router.push("/dashboard")}
         sx={{ color: "black", marginBottom: "20px" }}
         startIcon={<KeyboardReturnIcon fontSize="inherit" />}
       >

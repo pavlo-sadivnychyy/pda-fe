@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { useClerk, useUser } from "@clerk/nextjs";
 
 type Props = {
   firstName?: string | null;
@@ -16,6 +17,8 @@ type Props = {
 
 export function HomeHeader({ firstName }: Props) {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { signOut } = useClerk();
 
   return (
     <Card elevation={4} sx={{ borderRadius: 3, mb: 3, overflow: "hidden" }}>
@@ -70,6 +73,24 @@ export function HomeHeader({ firstName }: Props) {
             >
               Створити пост
             </Button>
+
+            {isSignedIn && (
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => signOut({ redirectUrl: "/" })}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 999,
+                  borderColor: "#fecaca",
+                  color: "#b91c1c",
+                  bgcolor: "#fff",
+                  "&:hover": { borderColor: "#fca5a5", bgcolor: "#fef2f2" },
+                }}
+              >
+                Вийти
+              </Button>
+            )}
           </Stack>
         </Stack>
       </CardContent>

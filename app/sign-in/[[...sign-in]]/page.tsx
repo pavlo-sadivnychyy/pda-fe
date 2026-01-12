@@ -12,7 +12,7 @@ export default function SignInPage() {
         justifyContent: "center",
       }}
     >
-      <SignIn afterSignInUrl="/" />
+      <SignIn />
     </div>
   );
 }
