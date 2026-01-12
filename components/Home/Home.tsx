@@ -83,6 +83,7 @@ export default function HomePage() {
               onOpenInvoices={() => router.push("/invoices")}
               onOpenActs={() => router.push("/acts")}
               onOpenAnalytics={() => router.push("/analytics")}
+              onOpenQuotes={() => router.push("/quotes")}
             />
           </Grid>
 

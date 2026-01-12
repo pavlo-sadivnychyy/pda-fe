@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Box,
   Button,
@@ -13,10 +14,12 @@ import GroupIcon from "@mui/icons-material/Group";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import InsightsIcon from "@mui/icons-material/Insights";
 import DescriptionIcon from "@mui/icons-material/Description";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 
 type Props = {
   onOpenClients: () => void;
   onOpenInvoices: () => void;
+  onOpenQuotes: () => void; // ✅ NEW
   onOpenActs: () => void;
   onOpenAnalytics: () => void;
 };
@@ -24,6 +27,7 @@ type Props = {
 export function FinanceShortcutsCard({
   onOpenClients,
   onOpenInvoices,
+  onOpenQuotes,
   onOpenActs,
   onOpenAnalytics,
 }: Props) {
@@ -52,6 +56,7 @@ export function FinanceShortcutsCard({
             button="Перейти до клієнтів"
             onClick={onOpenClients}
           />
+
           <Item
             icon={<ReceiptLongIcon sx={{ fontSize: 20, color: "#b45309" }} />}
             iconBg="#fef3c7"
@@ -60,6 +65,17 @@ export function FinanceShortcutsCard({
             button="Відкрити інвойси"
             onClick={onOpenInvoices}
           />
+
+          {/* ✅ NEW: Commercial Offers / Quotes */}
+          <Item
+            icon={<RequestQuoteIcon sx={{ fontSize: 20, color: "#047857" }} />}
+            iconBg="#ecfdf5"
+            title="Комерційні пропозиції"
+            desc="Формуй комерційні офери для клієнтів, відмічай статуси та конвертуй у інвойс в один клік."
+            button="Відкрити пропозиції"
+            onClick={onOpenQuotes}
+          />
+
           <Item
             icon={<DescriptionIcon sx={{ fontSize: 20, color: "#0e7490" }} />}
             iconBg="#ecfeff"
@@ -68,6 +84,7 @@ export function FinanceShortcutsCard({
             button="Перейти до актів"
             onClick={onOpenActs}
           />
+
           <Item
             icon={<InsightsIcon sx={{ fontSize: 20, color: "#4f46e5" }} />}
             iconBg="#eef2ff"

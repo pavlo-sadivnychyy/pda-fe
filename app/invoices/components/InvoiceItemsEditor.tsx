@@ -95,15 +95,6 @@ export const InvoiceItemsEditor = ({
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
-
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Лінійна сума:{" "}
-                {formatMoney(
-                  (Number.parseFloat(item.quantity) || 0) *
-                    (Number.parseFloat(item.unitPrice) || 0),
-                )}{" "}
-                {form.currency}
-              </Typography>
             </Box>
 
             <TextField
@@ -118,6 +109,15 @@ export const InvoiceItemsEditor = ({
                 onItemChange(index, "description", e.target.value)
               }
             />
+
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Лінійна сума:{" "}
+              {formatMoney(
+                (Number.parseFloat(item.quantity) || 0) *
+                  (Number.parseFloat(item.unitPrice) || 0),
+              )}{" "}
+              {form.currency}
+            </Typography>
           </Box>
         ))}
 
