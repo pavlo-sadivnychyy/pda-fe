@@ -1,43 +1,43 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
-import type { ChatSession } from "./useChatSessions";
+import { api } from "@/libs/axios";
 
-export type ChatMessageRole = "USER" | "ASSISTANT" | "SYSTEM";
-
-export type ChatMessage = {
+type ChatMessage = {
   id: string;
-  sessionId: string;
-  role: ChatMessageRole;
+  role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
-  metadata?: any | null;
   createdAt: string;
 };
 
-type ChatSessionResponse = {
-  session: ChatSession & {
-    messages: ChatMessage[];
-  };
+type ChatSession = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messages: ChatMessage[];
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+type GetChatSessionResponse = {
+  session: { messages: ChatMessage[] } & Omit<ChatSession, "messages">;
+};
 
 export function useChatSession(sessionId?: string, userId?: string) {
-  return useQuery<ChatSessionResponse>({
-    queryKey: ["chat-session", sessionId, userId],
-    enabled: !!sessionId && !!userId,
+  return useQuery({
+    queryKey: ["chatSession", sessionId, userId],
+    enabled: Boolean(sessionId && userId),
     queryFn: async () => {
-      const params = new URLSearchParams({
-        userId: userId as string,
-      });
-
-      const res = await fetch(
-        `${API_BASE_URL}/chat/sessions/${sessionId}?${params.toString()}`,
-      );
-
-      if (!res.ok) {
-        throw new Error(`Failed to load chat session: ${res.status}`);
+      if (!sessionId || !userId) {
+        return {
+          session: { id: "", title: "", updatedAt: "", messages: [] },
+        } as GetChatSessionResponse;
       }
 
-      return res.json();
+      const res = await api.get(`/chat/sessions/${sessionId}`, {
+        params: { userId },
+      });
+
+      return res.data as GetChatSessionResponse;
     },
+    staleTime: 10_000,
   });
 }

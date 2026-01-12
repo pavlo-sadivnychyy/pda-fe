@@ -43,6 +43,7 @@ export const InvoicesGrid = ({
         total: `${formatMoney(inv.total)} ${inv.currency}`,
         status: inv.status,
         hasPdf: Boolean(inv.pdfDocumentId),
+        hasInternationalPdf: Boolean((inv as any).internationalPdfDocumentId),
       })),
     [invoices, clients],
   );
@@ -73,11 +74,12 @@ export const InvoicesGrid = ({
         headerName: "PDF",
         sortable: false,
         filterable: false,
-        width: 160,
+        width: 260,
         renderCell: (params) => (
           <InvoicePdfButton
             invoiceId={params.row.id as string}
             hasPdf={params.row.hasPdf as boolean}
+            hasInternationalPdf={params.row.hasInternationalPdf as boolean}
           />
         ),
       },
@@ -101,8 +103,6 @@ export const InvoicesGrid = ({
           );
         },
       },
-
-      // ✅ NEW колонка видалення В КІНЦІ
       {
         field: "delete",
         headerName: "",

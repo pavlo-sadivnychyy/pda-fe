@@ -31,7 +31,6 @@ export default function HomePage() {
   const today = useTodayTasks(currentUserId);
   const ai = useAiPlan(currentUserId, todayDateString);
 
-  // ✅ беремо план з бекенду
   const currentPlanFromApi: PlanId =
     ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
@@ -107,7 +106,6 @@ export default function HomePage() {
 
             <PopularTasksCard />
 
-            {/* ✅ тут більше нема хардкоду */}
             <PlanCard currentPlan={currentPlanFromApi} />
           </Grid>
         </Grid>

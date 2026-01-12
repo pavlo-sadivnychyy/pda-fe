@@ -8,6 +8,11 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   List,
   ListItemButton,
@@ -21,6 +26,7 @@ import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
@@ -28,6 +34,8 @@ import { useChatSessions } from "@/hooks/useChatSessions";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
+import { useDeleteChatSession } from "@/hooksNew/useDeleteChatSession";
+import { useQueryClient } from "@tanstack/react-query";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -80,23 +88,39 @@ export default function ChatPage() {
     string | undefined
   >(undefined);
 
+  // ✅ FIX: коли сесій 0 — скинути selectedSessionId, щоб не було /undefined або старого id
+  // ✅ FIX: коли сесії зʼявились — вибрати першу
   useEffect(() => {
-    if (!selectedSessionId && sessions.length > 0) {
+    if (sessions.length === 0) {
+      if (selectedSessionId !== undefined) setSelectedSessionId(undefined);
+      return;
+    }
+    if (!selectedSessionId) {
       setSelectedSessionId(sessions[0].id);
     }
-  }, [selectedSessionId, sessions]);
+  }, [sessions, selectedSessionId]);
 
+  // ✅ FIX: useChatSession тепер safe, але ми ще й тут передаємо тільки валідні значення
   const { data: sessionData, isLoading: isSessionLoading } = useChatSession(
     selectedSessionId,
     apiUser?.id,
   );
 
-  const messages = sessionData?.session.messages ?? [];
+  const queryClient = useQueryClient();
+
+  const messages = sessionData?.session?.messages ?? [];
 
   const createSessionMutation = useCreateChatSession();
   const sendMessageMutation = useSendChatMessage(organization?.id);
+  const deleteSessionMutation = useDeleteChatSession();
 
   const [draft, setDraft] = useState("");
+
+  // delete confirm dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<
+    string | null
+  >(null);
 
   const handleCreateSession = (title?: string) => {
     if (!organization || !apiUser) return;
@@ -131,7 +155,6 @@ export default function ChatPage() {
     // 1) заповнюємо інпут одразу
     if (prefillParam) {
       setDraft(prefillParam);
-      // легкий фокус
       setTimeout(() => inputRef.current?.focus(), 50);
     }
 
@@ -149,12 +172,9 @@ export default function ChatPage() {
           onSuccess: (data) => {
             setSelectedSessionId(data.session.id);
             setTimeout(() => inputRef.current?.focus(), 50);
-
-            // 3) прибираємо query, щоб при refresh не створювало знову
             router.replace("/chat");
           },
           onError: () => {
-            // навіть якщо не вдалось створити — прибираємо query, щоб не зациклитись
             router.replace("/chat");
           },
         },
@@ -162,7 +182,6 @@ export default function ChatPage() {
       return;
     }
 
-    // якщо лише prefill без new — теж чистимо URL
     router.replace("/chat");
   }, [
     hasMounted,
@@ -209,6 +228,44 @@ export default function ChatPage() {
     const s = sessions.find((x) => x.id === selectedSessionId);
     return s?.title ?? "";
   }, [sessions, selectedSessionId]);
+
+  const openDeleteConfirm = (sessionId: string) => {
+    setPendingDeleteSessionId(sessionId);
+    setDeleteDialogOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (deleteSessionMutation.isPending) return;
+    setDeleteDialogOpen(false);
+    setPendingDeleteSessionId(null);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDeleteSessionId || !apiUser) return;
+
+    const deletingId = pendingDeleteSessionId;
+
+    const idx = sessions.findIndex((s) => s.id === deletingId);
+    const nextCandidate =
+      idx >= 0
+        ? (sessions[idx + 1]?.id ?? sessions[idx - 1]?.id ?? undefined)
+        : undefined;
+
+    deleteSessionMutation.mutate(
+      { sessionId: deletingId, userId: apiUser.id },
+      {
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setPendingDeleteSessionId(null);
+
+          queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+          if (selectedSessionId === deletingId) {
+            setSelectedSessionId(nextCandidate);
+          }
+        },
+      },
+    );
+  };
 
   if (!hasMounted) return null;
 
@@ -456,6 +513,7 @@ export default function ChatPage() {
                               sx={{
                                 borderRadius: 2,
                                 mb: 0.5,
+                                alignItems: "stretch",
                                 "&.Mui-selected": {
                                   bgcolor: "#eef2ff",
                                   "&:hover": { bgcolor: "#e0e7ff" },
@@ -481,7 +539,31 @@ export default function ChatPage() {
                                     {formatDateStable(s.updatedAt)}
                                   </Typography>
                                 }
+                                sx={{ pr: 1 }}
                               />
+
+                              <IconButton
+                                edge="end"
+                                size="small"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openDeleteConfirm(s.id);
+                                }}
+                                disabled={
+                                  !apiUser || deleteSessionMutation.isPending
+                                }
+                                sx={{
+                                  alignSelf: "center",
+                                  color: "#6b7280",
+                                  "&:hover": {
+                                    bgcolor: "#f3f4f6",
+                                    color: "#111827",
+                                  },
+                                }}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
                             </ListItemButton>
                           ))}
                         </List>
@@ -545,9 +627,15 @@ export default function ChatPage() {
                           </Stack>
                         )}
 
+                        {!selectedSessionId && (
+                          <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                            Обери діалог зліва або створи новий.
+                          </Typography>
+                        )}
+
                         {!isSessionLoading &&
-                          messages.length === 0 &&
-                          selectedSessionId && (
+                          selectedSessionId &&
+                          messages.length === 0 && (
                             <Typography
                               variant="body2"
                               sx={{ color: "#6b7280" }}
@@ -555,12 +643,6 @@ export default function ChatPage() {
                               Напиши перше повідомлення, щоб почати діалог.
                             </Typography>
                           )}
-
-                        {!selectedSessionId && (
-                          <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                            Обери діалог зліва або створи новий.
-                          </Typography>
-                        )}
 
                         {!isSessionLoading &&
                           messages.map((m) => {
@@ -659,6 +741,55 @@ export default function ChatPage() {
           </SignedIn>
         </Paper>
       </Container>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={closeDeleteConfirm}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: "#111827" }}>
+          Видалити діалог?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: "#6b7280" }}>
+            Діалог і всі повідомлення в ньому буде видалено назавжди.
+          </DialogContentText>
+
+          {deleteSessionMutation.isError && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="caption" color="#b91c1c">
+                Не вдалося видалити діалог. Спробуй ще раз.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={closeDeleteConfirm}
+            disabled={deleteSessionMutation.isPending}
+            sx={{ textTransform: "none" }}
+          >
+            Скасувати
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            disabled={
+              !pendingDeleteSessionId || deleteSessionMutation.isPending
+            }
+            variant="contained"
+            sx={{
+              textTransform: "none",
+              borderRadius: 999,
+              bgcolor: "#111827",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#000000", boxShadow: "none" },
+            }}
+          >
+            {deleteSessionMutation.isPending ? "Видаляємо…" : "Видалити"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
