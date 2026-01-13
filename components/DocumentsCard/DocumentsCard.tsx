@@ -48,8 +48,6 @@ type Props = {
 
   onDelete: (id: string) => void;
   isDeleting: boolean;
-
-  apiBaseUrl: string; // ✅ new
 };
 
 export function DocumentsCard(props: Props) {
@@ -68,7 +66,6 @@ export function DocumentsCard(props: Props) {
     searchError,
     onDelete,
     isDeleting,
-    apiBaseUrl,
   } = props;
 
   return (
@@ -144,7 +141,6 @@ export function DocumentsCard(props: Props) {
                 doc={doc}
                 onDelete={onDelete}
                 isDeleting={isDeleting}
-                apiBaseUrl={apiBaseUrl} // ✅ pass down
               />
             ))}
           </Stack>

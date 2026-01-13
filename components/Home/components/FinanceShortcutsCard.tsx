@@ -32,7 +32,11 @@ export function FinanceShortcutsCard({
   onOpenAnalytics,
 }: Props) {
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card
+      data-onb="card-clients-finance"
+      elevation={3}
+      sx={{ borderRadius: 3, mb: 3 }}
+    >
       <CardHeader
         avatar={<ReceiptLongIcon sx={{ color: "#6b7280" }} />}
         title={

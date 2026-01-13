@@ -108,6 +108,7 @@ export default function HomePage() {
             <PopularTasksCard />
 
             <PlanCard currentPlan={currentPlanFromApi} />
+            {/*<OnboardingCard />*/}
           </Grid>
         </Grid>
       </Box>

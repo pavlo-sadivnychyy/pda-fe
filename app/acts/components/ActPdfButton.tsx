@@ -1,12 +1,10 @@
 "use client";
 
 import { Button, Stack } from "@mui/material";
-import { getApiBaseUrl } from "../utils";
 
 export const ActPdfButton = ({ actId }: { actId: string }) => {
   const handleOpen = () => {
-    const url = `${getApiBaseUrl()}/acts/${actId}/pdf`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(`/api/pdf/acts/${actId}`, "_blank", "noopener,noreferrer");
   };
 
   return (

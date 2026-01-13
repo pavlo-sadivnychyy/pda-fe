@@ -36,14 +36,13 @@ type Props = {
   doc: Doc;
   onDelete: (id: string) => void;
   isDeleting: boolean;
-  apiBaseUrl: string; // ✅ new
 };
 
-export function DocumentItem({ doc, onDelete, isDeleting, apiBaseUrl }: Props) {
+export function DocumentItem({ doc, onDelete, isDeleting }: Props) {
   const handleDownload = () => {
     // відкриваємо стрім як download
     window.open(
-      `${apiBaseUrl}/knowledge-base/documents/${doc.id}/download`,
+      `/api/kb/documents/${doc.id}/download`,
       "_blank",
       "noopener,noreferrer",
     );

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { api } from "@/libs/axios";
 import type { KbDocument } from "./useKnowledgeBaseDocuments";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type KbSearchResult = {
   id: string;
@@ -21,22 +20,20 @@ export function useKnowledgeBaseSearch(
   return useQuery<{ items: KbSearchResult[] }>({
     queryKey: ["kb-search", organizationId, query],
     enabled: !!organizationId && !!query && query.trim().length >= 2,
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        organizationId: organizationId!,
-        q: query!,
-        limit: "10",
-      });
 
-      const res = await fetch(
-        `${API_URL}/knowledge-base/search?${params.toString()}`,
+    queryFn: async () => {
+      const res = await api.get<{ items: KbSearchResult[] }>(
+        "/knowledge-base/search",
+        {
+          params: {
+            organizationId,
+            q: query,
+            limit: 10,
+          },
+        },
       );
 
-      if (!res.ok) {
-        throw new Error(`Search failed: ${res.status}`);
-      }
-
-      return res.json();
+      return res.data;
     },
   });
 }

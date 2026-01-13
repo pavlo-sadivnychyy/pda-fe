@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { api } from "@/libs/axios"; // <-- твій axios instance з інтерсепторами
 
 export type KbApiUser = {
   id: string;
@@ -24,6 +24,18 @@ type BootstrapResult = {
   organization: KbApiOrganization;
 };
 
+type SyncUserResponse = { user: KbApiUser };
+
+type OrganizationsForUserResponse = {
+  items: Array<{
+    organization: any;
+  }>;
+};
+
+type CreateOrgResponse = {
+  organization: any;
+};
+
 export function useKnowledgeBaseBootstrap() {
   const { user, isLoaded } = useUser();
 
@@ -31,69 +43,56 @@ export function useKnowledgeBaseBootstrap() {
     queryKey: ["kb-bootstrap", user?.id],
     enabled: isLoaded && !!user,
     queryFn: async () => {
-      if (!user) {
-        throw new Error("User is not available");
-      }
+      if (!user) throw new Error("User is not available");
 
       // 1) sync user
-      const syncRes = await fetch(`${API_URL}/users/sync`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          authProvider: "clerk",
-          authUserId: user.id,
-          email: user.primaryEmailAddress?.emailAddress,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatarUrl: user.imageUrl,
-          locale: user.locale,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          jobTitle: user.publicMetadata?.jobTitle ?? null,
-        }),
+      const syncRes = await api.post<SyncUserResponse>("/users/sync", {
+        authProvider: "clerk",
+        authUserId: user.id,
+        email: user.primaryEmailAddress?.emailAddress,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.imageUrl,
+        locale: user.locale,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        jobTitle: (user.publicMetadata as any)?.jobTitle ?? null,
       });
 
-      if (!syncRes.ok) {
-        throw new Error(`Sync user failed: ${syncRes.status}`);
-      }
-
-      const syncData = await syncRes.json();
-      const dbUser = syncData.user as KbApiUser;
+      const dbUser = syncRes.data.user;
 
       // 2) get organizations for user
-      const orgListRes = await fetch(
-        `${API_URL}/organizations?userId=${dbUser.id}`,
+      const orgListRes = await api.get<OrganizationsForUserResponse>(
+        "/organizations",
+        {
+          params: { userId: dbUser.id },
+        },
       );
 
-      if (!orgListRes.ok) {
-        throw new Error(`Get organizations failed: ${orgListRes.status}`);
-      }
-
-      const orgListData = await orgListRes.json();
-      const items = orgListData.items as any[];
-
+      const items = orgListRes.data.items ?? [];
       let org: KbApiOrganization | null = null;
 
       if (items.length > 0) {
-        const first = items[0].organization;
-        org = {
-          id: first.id,
-          name: first.name,
-          slug: first.slug,
-          description: first.description ?? null,
-          industry: first.industry ?? null,
-          city: first.city ?? null,
-          country: first.country ?? null,
-        };
+        const first = items[0]?.organization;
+        if (first) {
+          org = {
+            id: first.id,
+            name: first.name,
+            slug: first.slug,
+            description: first.description ?? null,
+            industry: first.industry ?? null,
+            city: first.city ?? null,
+            country: first.country ?? null,
+          };
+        }
       } else {
         // 3) create organization if none exists
         const defaultName =
-          user.organization?.name ||
+          (user as any)?.organization?.name ||
           (user.firstName ? `${user.firstName}'s Business` : "My Business");
 
-        const createOrgRes = await fetch(`${API_URL}/organizations`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const createOrgRes = await api.post<CreateOrgResponse>(
+          "/organizations",
+          {
             name: defaultName,
             ownerId: dbUser.id,
             description:
@@ -103,15 +102,10 @@ export function useKnowledgeBaseBootstrap() {
             city: "Lviv",
             tagline: "AI-асистент для мого бізнесу",
             niche: "малий бізнес / послуги",
-          }),
-        });
+          },
+        );
 
-        if (!createOrgRes.ok) {
-          throw new Error(`Create organization failed: ${createOrgRes.status}`);
-        }
-
-        const createdData = await createOrgRes.json();
-        const createdOrg = createdData.organization;
+        const createdOrg = createOrgRes.data.organization;
 
         org = {
           id: createdOrg.id,
@@ -124,14 +118,9 @@ export function useKnowledgeBaseBootstrap() {
         };
       }
 
-      if (!org) {
-        throw new Error("Organization not resolved");
-      }
+      if (!org) throw new Error("Organization not resolved");
 
-      return {
-        apiUser: dbUser,
-        organization: org,
-      };
+      return { apiUser: dbUser, organization: org };
     },
   });
 

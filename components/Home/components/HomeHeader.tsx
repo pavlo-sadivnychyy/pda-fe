@@ -21,7 +21,11 @@ export function HomeHeader({ firstName }: Props) {
   const { signOut } = useClerk();
 
   return (
-    <Card elevation={4} sx={{ borderRadius: 3, mb: 3, overflow: "hidden" }}>
+    <Card
+      elevation={4}
+      sx={{ borderRadius: 3, mb: 3, overflow: "hidden" }}
+      data-onb="home-welcome"
+    >
       <CardContent sx={{ p: 3, pb: 2 }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -45,6 +49,7 @@ export function HomeHeader({ firstName }: Props) {
             width={{ xs: "100%", sm: "auto" }}
           >
             <Button
+              data-onb="home-ai-chat"
               onClick={() => router.push("/chat")}
               fullWidth
               variant="contained"
@@ -57,21 +62,6 @@ export function HomeHeader({ firstName }: Props) {
               }}
             >
               AI-чат
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{
-                textTransform: "none",
-                borderRadius: 999,
-                borderColor: "#dadce0",
-                color: "#374151",
-                bgcolor: "#ffffff",
-                "&:hover": { borderColor: "#c4c6cb", bgcolor: "#fafafa" },
-              }}
-            >
-              Створити пост
             </Button>
 
             {isSignedIn && (

@@ -33,8 +33,6 @@ const quotesKeys = {
     [...quotesKeys.all, "list", organizationId] as const,
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-
 type QuotesListResponse = { quotes: Quote[] };
 
 function useQuotesQuery(organizationId?: string) {
@@ -123,7 +121,7 @@ export default function QuotesPage() {
       if (invoiceId) {
         // відкриваємо PDF інвойсу
         window.open(
-          `${API}/invoices/${invoiceId}/pdf`,
+          `/api/pdf/invoices/${invoiceId}`,
           "_blank",
           "noopener,noreferrer",
         );

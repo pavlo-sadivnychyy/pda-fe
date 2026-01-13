@@ -2,8 +2,6 @@
 
 import { Button, Stack } from "@mui/material";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-
 export const InvoicePdfButton = ({
   invoiceId,
   hasPdf,
@@ -15,7 +13,7 @@ export const InvoicePdfButton = ({
 }) => {
   const openUa = () => {
     window.open(
-      `${API}/invoices/${invoiceId}/pdf`,
+      `/api/pdf/invoices/${invoiceId}`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -23,7 +21,7 @@ export const InvoicePdfButton = ({
 
   const openIntl = () => {
     window.open(
-      `${API}/invoices/${invoiceId}/pdf-international`,
+      `/api/pdf/invoices/${invoiceId}/international`,
       "_blank",
       "noopener,noreferrer",
     );
@@ -56,7 +54,7 @@ export const InvoicePdfButton = ({
         variant={uaPrimary ? "contained" : "outlined"}
         sx={baseSx(uaPrimary)}
       >
-        {hasPdf ? "UA PDF" : "UA PDF"}
+        UA PDF
       </Button>
 
       <Button
@@ -65,7 +63,7 @@ export const InvoicePdfButton = ({
         variant={intlPrimary ? "contained" : "outlined"}
         sx={baseSx(intlPrimary)}
       >
-        {hasInternationalPdf ? "INTL PDF" : "INTL PDF"}
+        INTL PDF
       </Button>
     </Stack>
   );

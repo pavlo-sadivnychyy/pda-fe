@@ -33,7 +33,7 @@ export function useKnowledgeBasePage() {
     error: docsError,
   } = useKnowledgeBaseDocuments(organization?.id);
 
-  const documents = useMemo(() => docsData?.items ?? [], [docsData]);
+  const documents = useMemo(() => docsData?.data?.items ?? [], [docsData]);
 
   const {
     mutate: uploadDocument,

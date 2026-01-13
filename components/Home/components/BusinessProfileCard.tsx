@@ -38,7 +38,11 @@ export function BusinessProfileCard({
   onOpenProfile,
 }: Props) {
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card
+      data-onb="card-organization"
+      elevation={3}
+      sx={{ borderRadius: 3, mb: 3 }}
+    >
       <CardHeader
         title={
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>

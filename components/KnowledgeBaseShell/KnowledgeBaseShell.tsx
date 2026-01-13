@@ -16,8 +16,6 @@ import { CreateDocumentDialog } from "@/components/CreateDocumentDialog/CreateDo
 
 export function KnowledgeBaseShell() {
   const vm = useKnowledgeBasePage();
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   return (
     <>
@@ -51,7 +49,6 @@ export function KnowledgeBaseShell() {
             )}
 
             <DocumentsCard
-              apiBaseUrl={API_BASE_URL} // ✅ new
               organization={vm.organization}
               apiUser={vm.apiUser}
               isBootstrapLoading={vm.isBootstrapLoading}

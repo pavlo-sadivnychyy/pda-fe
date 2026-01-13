@@ -1,11 +1,11 @@
 "use client";
 
-import axios from "axios";
 import {
   useMutation,
   useQueryClient,
   UseMutationOptions,
 } from "@tanstack/react-query";
+import { api } from "@/libs/axios";
 
 export type OrganizationProfileFormValues = {
   // main profile
@@ -41,11 +41,6 @@ type UpdateOrganizationVariables = {
   organizationId: string;
   currentUserId: string;
 };
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
-  withCredentials: true,
-});
 
 const toNull = (v: string) => {
   const trimmed = (v ?? "").trim();

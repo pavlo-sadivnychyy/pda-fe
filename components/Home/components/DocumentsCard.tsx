@@ -17,7 +17,11 @@ export function DocumentsCard() {
   const router = useRouter();
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card
+      data-onb="card-documents"
+      elevation={3}
+      sx={{ borderRadius: 3, mb: 3 }}
+    >
       <CardHeader
         avatar={<DescriptionIcon sx={{ color: "#6b7280" }} />}
         title={

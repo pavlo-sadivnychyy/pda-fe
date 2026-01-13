@@ -46,7 +46,7 @@ export function AiPlanCard({
   })();
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card data-onb="card-ai-plan" elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
       <CardHeader
         avatar={<FlashOnIcon sx={{ color: "#f97316" }} />}
         title={
