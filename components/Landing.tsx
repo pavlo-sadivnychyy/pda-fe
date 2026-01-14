@@ -29,11 +29,12 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import SecurityIcon from "@mui/icons-material/Security";
+import Image from "next/image";
 
 // framer-motion
 import { motion, AnimatePresence } from "framer-motion";
 
-const ORANGE = "#F36B16";
+const ORANGE = "#febe58";
 const DARK = "#111827";
 const MUTED = "#64748b";
 const BG = "#f3f4f6";
@@ -198,19 +199,23 @@ export default function AisdrStyleLanding() {
                 sx={{
                   width: 40,
                   height: 40,
-                  borderRadius: 999,
                   bgcolor: "#ffffff",
-                  border: `1px solid ${BORDER}`,
                   display: "grid",
                   placeItems: "center",
                 }}
               >
-                <SmartToyIcon sx={{ color: DARK }} />
+                <Image
+                  src="/spravly-icon.png"
+                  alt="Spravly"
+                  width={32}
+                  height={32}
+                  priority
+                />
               </Box>
               <Typography
                 sx={{ fontWeight: 950, color: DARK, letterSpacing: "-0.02em" }}
               >
-                AI-асистент
+                Spravly
               </Typography>
             </Stack>
 
@@ -269,13 +274,13 @@ export default function AisdrStyleLanding() {
             spacing={{ xs: 4, md: 6 }}
             alignItems="center"
             justifyContent="center"
-            sx={{ textAlign: { xs: "center", md: "left" } }}
+            sx={{ textAlign: { xs: "center", md: "center" } }}
           >
             {/* Left */}
-            <Grid item xs={12} md={7}>
+            <Grid item xs={12} md={12}>
               <Stack
                 spacing={2.2}
-                alignItems={{ xs: "center", md: "flex-start" }}
+                alignItems={{ xs: "center", md: "center" }}
                 sx={{ px: { xs: 2, sm: 0 } }}
               >
                 <MotionBox
@@ -343,7 +348,7 @@ export default function AisdrStyleLanding() {
                   <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={1.5}
-                    justifyContent={{ xs: "center", md: "flex-start" }}
+                    justifyContent={{ xs: "center", md: "center" }}
                     alignItems="center"
                     sx={{ width: "100%" }}
                   >
@@ -361,7 +366,7 @@ export default function AisdrStyleLanding() {
                         py: 1.55,
                         boxShadow: "none",
                         minWidth: { xs: "100%", sm: 240 },
-                        "&:hover": { bgcolor: "#d95a0f", boxShadow: "none" },
+                        "&:hover": { bgcolor: "#fdb17f", boxShadow: "none" },
                       }}
                     >
                       Почати без налаштувань
@@ -1060,16 +1065,19 @@ export default function AisdrStyleLanding() {
                 sx={{
                   width: 40,
                   height: 40,
-                  borderRadius: 999,
-                  bgcolor: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
                   display: "grid",
                   placeItems: "center",
                 }}
               >
-                <SmartToyIcon sx={{ color: "#fff" }} />
+                <Image
+                  src="/spravly-icon.png"
+                  alt="Spravly"
+                  width={32}
+                  height={32}
+                  priority
+                />
               </Box>
-              <Typography sx={{ fontWeight: 950 }}>AI-асистент</Typography>
+              <Typography sx={{ fontWeight: 950 }}>Spravly</Typography>
             </Stack>
 
             <Typography
@@ -1088,7 +1096,7 @@ export default function AisdrStyleLanding() {
             />
 
             <Typography sx={{ color: "rgba(255,255,255,0.60)", fontSize: 14 }}>
-              © 2026 AI Асистент. Всі права захищені.
+              © 2026 Spravly. Всі права захищені.
             </Typography>
           </Stack>
         </Container>
