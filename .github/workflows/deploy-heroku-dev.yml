@@ -11,26 +11,29 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Use Node 20
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
 
-      - run: npm ci
+      - name: Install deps
+        run: npm ci
 
-      - run: npm run build
+      - name: Build (sanity check)
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+        run: npm run build
 
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.14.15
-        with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
-          usedocker: false
+      - name: Deploy to Heroku (existing app)
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+        run: |
+          git remote add heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git
+          git push heroku HEAD:main --force
