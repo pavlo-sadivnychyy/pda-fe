@@ -213,7 +213,6 @@ export default function ActsPage() {
               )}
             </Box>
           </ActsCard>
-
           <CreateActDialog
             open={createDialogOpen}
             onClose={closeCreate}
