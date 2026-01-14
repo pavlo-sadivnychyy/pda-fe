@@ -61,7 +61,7 @@ export function DocumentsCard(props: Props) {
 
   return (
     <Paper sx={styles.root}>
-      <Stack gap={2}>
+      <Stack sx={styles.cardLayout} gap={2}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           justifyContent="space-between"
@@ -96,20 +96,8 @@ export function DocumentsCard(props: Props) {
           justifyContent="space-between"
           alignItems="center"
         >
-          <Typography variant="subtitle1" sx={styles.sectionTitle}>
-            Документи
-          </Typography>
           {docsLoading && <CircularProgress size={18} />}
         </Stack>
-
-        {/*<TextField*/}
-        {/*  size="small"*/}
-        {/*  fullWidth*/}
-        {/*  placeholder="Пошук по базі знань"*/}
-        {/*  value={search}*/}
-        {/*  onChange={(e) => setSearch(e.target.value)}*/}
-        {/*  InputProps={{ sx: { bgcolor: "#f9fafb" } }}*/}
-        {/*/>*/}
 
         {docsError && (
           <Typography variant="body2" color="#b91c1c">
@@ -124,8 +112,9 @@ export function DocumentsCard(props: Props) {
           </Typography>
         )}
 
+        {/* ✅ СКРОЛИТЬСЯ ЛИШЕ ЦЕЙ БЛОК */}
         {!docsLoading && documents.length > 0 && (
-          <Stack gap={1.5}>
+          <Stack sx={styles.itemsScroll} gap={1.5}>
             {documents.map((doc) => (
               <DocumentItem
                 key={doc.id}
@@ -136,17 +125,6 @@ export function DocumentsCard(props: Props) {
             ))}
           </Stack>
         )}
-
-        {/*{searchQuery && (*/}
-        {/*  <Box mt={2}>*/}
-        {/*    <SearchResults*/}
-        {/*      query={searchQuery}*/}
-        {/*      isLoading={isSearchLoading}*/}
-        {/*      error={searchError}*/}
-        {/*      results={searchResults}*/}
-        {/*    />*/}
-        {/*  </Box>*/}
-        {/*)}*/}
       </Stack>
     </Paper>
   );
@@ -158,7 +136,31 @@ const styles = {
     borderRadius: 3,
     border: "1px solid #e5e7eb",
     bgcolor: "#ffffff",
+    width: "100%",
+    height: "100%", // ✅ Paper має займати весь доступний простір
+    minHeight: 0, // ✅ must-have
   },
+
+  cardLayout: {
+    height: "100%",
+    minHeight: 0,
+  },
+
+  itemsScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    pr: 0.5,
+    pb: 0.5,
+
+    "&::-webkit-scrollbar": { width: 6 },
+    "&::-webkit-scrollbar-thumb": {
+      borderRadius: 999,
+      backgroundColor: "#d1d5db",
+    },
+    "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+  },
+
   h1: { fontWeight: 600, color: "#111827" },
   muted: { color: "#6b7280" },
   sectionTitle: { color: "#111827", fontWeight: 600 },

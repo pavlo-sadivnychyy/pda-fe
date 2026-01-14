@@ -53,6 +53,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/require-await': 'off',
+      'no-empty': 'off',
 
       'unused-imports/no-unused-imports': 'error',
 
