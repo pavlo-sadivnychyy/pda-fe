@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -10,6 +11,8 @@ import {
   Grid,
   TextField,
   Typography,
+  Stack,
+  Chip,
 } from "@mui/material";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import type { FormValues } from "../hooks/useOrganizationProfilePage";
@@ -30,6 +33,11 @@ type Organization = {
   paymentReferenceHint?: string | null;
 };
 
+type PaymentReadiness = {
+  ua: { ready: boolean; missing: string[] };
+  international: { ready: boolean; missing: string[] };
+};
+
 type Props = {
   mode: "view" | "edit" | "create";
   hasOrganization: boolean;
@@ -40,6 +48,9 @@ type Props = {
   onCancel: () => void;
   onChange: (field: keyof FormValues) => any;
   onSubmit: (e: any) => void;
+
+  // ✅ NEW
+  paymentReadiness?: PaymentReadiness | null;
 };
 
 const cardSx = {
@@ -65,6 +76,86 @@ function Row({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+function ReadinessAlert({
+  title,
+  ready,
+  missing,
+}: {
+  title: string;
+  ready: boolean;
+  missing: string[];
+}) {
+  if (ready) {
+    return (
+      <Alert
+        severity="success"
+        variant="outlined"
+        sx={{ borderRadius: 2, bgcolor: "#f8fafc" }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography sx={{ fontWeight: 800, color: "#0f172a" }}>
+            {title}:
+          </Typography>
+          <Chip
+            size="small"
+            label="Готово"
+            sx={{
+              bgcolor: "rgba(22,163,74,0.10)",
+              color: "#166534",
+              fontWeight: 800,
+              border: "1px solid rgba(22,163,74,0.22)",
+            }}
+          />
+        </Box>
+        <Typography variant="body2" sx={{ color: "#334155", mt: 0.5 }}>
+          Реквізити заповнені — у PDF буде коректний блок для оплати.
+        </Typography>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert
+      severity="warning"
+      variant="outlined"
+      sx={{ borderRadius: 2, bgcolor: "#fffbeb" }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography sx={{ fontWeight: 800, color: "#0f172a" }}>
+          {title}:
+        </Typography>
+        <Chip
+          size="small"
+          label="Не вистачає"
+          sx={{
+            bgcolor: "rgba(245,158,11,0.14)",
+            color: "#92400e",
+            fontWeight: 800,
+            border: "1px solid rgba(245,158,11,0.28)",
+          }}
+        />
+      </Box>
+
+      <Typography variant="body2" sx={{ color: "#334155", mt: 0.5 }}>
+        PDF згенерується, але клієнту може бути незрозуміло, як оплатити.
+      </Typography>
+
+      <Box component="ul" sx={{ m: 0, mt: 1, pl: 2.2 }}>
+        {missing.map((m) => (
+          <Typography
+            key={m}
+            component="li"
+            variant="body2"
+            sx={{ color: "#92400e" }}
+          >
+            {m}
+          </Typography>
+        ))}
+      </Box>
+    </Alert>
+  );
+}
+
 export function PaymentDetailsCard({
   mode,
   hasOrganization,
@@ -75,6 +166,7 @@ export function PaymentDetailsCard({
   onCancel,
   onChange,
   onSubmit,
+  paymentReadiness,
 }: Props) {
   const isView = mode === "view" && hasOrganization && organization;
 
@@ -98,18 +190,35 @@ export function PaymentDetailsCard({
         }
         title={
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Реквізити для міжнародних оплат (для International Invoice PDF)
+            Реквізити для оплати (UA + International Invoice PDF)
           </Typography>
         }
         subheader={
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Заповни IBAN/SWIFT і банк — ці дані автоматично підставляться в PDF.
+            Заповни IBAN / банк / SWIFT — ці дані автоматично підставляться в
+            PDF.
           </Typography>
         }
       />
 
       <CardContent sx={{ pt: 0 }}>
         <Divider sx={{ mb: 2 }} />
+
+        {/* ✅ NEW: readiness alerts */}
+        {paymentReadiness && (
+          <Stack spacing={1.2} sx={{ mb: 2 }}>
+            <ReadinessAlert
+              title="UA Invoice PDF"
+              ready={paymentReadiness.ua.ready}
+              missing={paymentReadiness.ua.missing}
+            />
+            <ReadinessAlert
+              title="International Invoice PDF"
+              ready={paymentReadiness.international.ready}
+              missing={paymentReadiness.international.missing}
+            />
+          </Stack>
+        )}
 
         {isView ? (
           <>
@@ -153,7 +262,6 @@ export function PaymentDetailsCard({
             </Box>
           </>
         ) : (
-          // ✅ Form mode (edit/create)
           <Box component="form" onSubmit={onSubmit}>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
@@ -166,6 +274,7 @@ export function PaymentDetailsCard({
                   onChange={onChange("beneficiaryName")}
                 />
               </Grid>
+
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
@@ -187,6 +296,7 @@ export function PaymentDetailsCard({
                   onChange={onChange("vatId")}
                 />
               </Grid>
+
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   InputLabelProps={{ shrink: true }}
@@ -198,7 +308,7 @@ export function PaymentDetailsCard({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
                 <TextField
                   fullWidth
                   InputLabelProps={{ shrink: true }}
@@ -219,6 +329,7 @@ export function PaymentDetailsCard({
                   placeholder="UA00XXXX...."
                 />
               </Grid>
+
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
@@ -240,6 +351,7 @@ export function PaymentDetailsCard({
                   onChange={onChange("bankName")}
                 />
               </Grid>
+
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
@@ -251,7 +363,7 @@ export function PaymentDetailsCard({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
                 <TextField
                   fullWidth
                   InputLabelProps={{ shrink: true }}

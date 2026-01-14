@@ -14,12 +14,27 @@ import { InvoicePdfButton } from "./InvoicePdfButton";
 import { InvoiceRowActions } from "./InvoiceRowActions";
 import { InvoiceDeleteButton } from "./InvoiceDeleteButton";
 
+function getClientEmail(inv: Invoice, clients: Client[]) {
+  // підлаштуй під свою модель:
+  // якщо inv вже містить client -> беремо звідти
+  const direct = (inv as any)?.client?.email;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  const clientId = (inv as any)?.clientId;
+  if (!clientId) return null;
+
+  const found = clients.find((c) => c.id === clientId);
+  const email = (found as any)?.email;
+
+  return typeof email === "string" && email.trim() ? email.trim() : null;
+}
+
 export const InvoicesGrid = ({
   invoices,
   clients,
   loading,
   onAction,
-  actionBusyId,
+  actionBusyKey,
   onDelete,
   deleteBusyId,
 }: {
@@ -27,24 +42,31 @@ export const InvoicesGrid = ({
   clients: Client[];
   loading: boolean;
   onAction: (id: string, action: InvoiceAction) => void;
-  actionBusyId: string | null;
+
+  // ✅ було actionBusyId, стало actionBusyKey: `${id}:${action}`
+  actionBusyKey: string | null;
 
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
 }) => {
   const rows = useMemo(
     () =>
-      invoices.map((inv) => ({
-        id: inv.id,
-        number: inv.number,
-        clientName: getClientDisplayName(inv, clients),
-        issueDate: formatDate(inv.issueDate),
-        dueDate: formatDate(inv.dueDate ?? null),
-        total: `${formatMoney(inv.total)} ${inv.currency}`,
-        status: inv.status,
-        hasPdf: Boolean(inv.pdfDocumentId),
-        hasInternationalPdf: Boolean((inv as any).internationalPdfDocumentId),
-      })),
+      invoices.map((inv) => {
+        const clientEmail = getClientEmail(inv, clients);
+
+        return {
+          id: inv.id,
+          number: inv.number,
+          clientName: getClientDisplayName(inv, clients),
+          clientEmail, // ✅ NEW
+          issueDate: formatDate(inv.issueDate),
+          dueDate: formatDate(inv.dueDate ?? null),
+          total: `${formatMoney(inv.total)} ${inv.currency}`,
+          status: inv.status,
+          hasPdf: Boolean(inv.pdfDocumentId),
+          hasInternationalPdf: Boolean(inv.pdfInternationalDocumentId),
+        };
+      }),
     [invoices, clients],
   );
 
@@ -88,16 +110,22 @@ export const InvoicesGrid = ({
         headerName: "",
         sortable: false,
         filterable: false,
-        width: 300,
+        width: 360,
         renderCell: (params) => {
           const id = params.row.id as string;
           const status = params.row.status as InvoiceStatus;
-          const busy = actionBusyId === id;
+
+          const busy = Boolean(actionBusyKey?.startsWith(`${id}:`));
+
+          const hasClientEmail = Boolean(
+            (params.row.clientEmail as string | null)?.trim?.(),
+          );
 
           return (
             <InvoiceRowActions
               status={status}
               busy={busy}
+              hasClientEmail={hasClientEmail} // ✅ NEW
               onAction={(a) => onAction(id, a)}
             />
           );
@@ -121,7 +149,7 @@ export const InvoicesGrid = ({
         },
       },
     ],
-    [onAction, actionBusyId, onDelete, deleteBusyId],
+    [onAction, actionBusyKey, onDelete, deleteBusyId],
   );
 
   return (

@@ -91,6 +91,7 @@ export default function OrganizationProfilePage() {
                   onCancel={vm.actions.cancelEdit}
                   onChange={vm.actions.onChange}
                   onSubmit={vm.actions.onSubmit}
+                  paymentReadiness={vm.paymentReadiness}
                 />
               </Box>
             </Grid>

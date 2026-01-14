@@ -220,7 +220,7 @@ export default function ClientsPage() {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={snackbar.close}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={snackbar.close}

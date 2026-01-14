@@ -97,7 +97,7 @@ export function KnowledgeBaseShell() {
         open={vm.snackbar.open}
         autoHideDuration={4000}
         onClose={vm.closeSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           severity={vm.snackbar.severity}

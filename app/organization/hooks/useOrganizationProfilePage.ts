@@ -24,7 +24,7 @@ type Organization = {
   targetAudience?: string | null;
   brandStyle?: string | null;
 
-  // ✅ International payment details
+  // ✅ Payment details (shared for UA + International)
   legalName?: string | null;
   legalAddress?: string | null;
   vatId?: string | null;
@@ -51,7 +51,7 @@ export type FormValues = {
   targetAudience: string;
   brandStyle: string;
 
-  // ✅ payment details
+  // payment details (shared)
   legalName: string;
   beneficiaryName: string;
   legalAddress: string;
@@ -111,7 +111,6 @@ const mapOrgToForm = (org: Organization): FormValues => ({
 });
 
 const calculateProfileCompletion = (form: FormValues): number => {
-  // рахуй тільки “основний профіль”, щоб progress bar не просів через payment fields
   const keys: (keyof FormValues)[] = [
     "name",
     "websiteUrl",
@@ -125,6 +124,50 @@ const calculateProfileCompletion = (form: FormValues): number => {
   const filled = keys.filter((k) => form[k]?.trim()).length;
   return Math.round((filled / keys.length) * 100);
 };
+
+// ================================
+// ✅ Payment readiness validation
+// ================================
+type PaymentReadiness = {
+  ua: { ready: boolean; missing: string[] };
+  international: { ready: boolean; missing: string[] };
+};
+
+const normalize = (v?: string | null) => (v ?? "").trim();
+
+function computePaymentReadiness(form: FormValues): PaymentReadiness {
+  // IMPORTANT:
+  // - org.name завжди існує, але для "оплати" бажано мати beneficiary/legalName.
+  // - мінімум для UA: IBAN + Bank name + (Beneficiary OR Legal name OR Org name)
+  // - мінімум для INTL: IBAN + SWIFT/BIC + Bank name + Beneficiary(або legalName/name)
+  const missingUa: string[] = [];
+  const missingIntl: string[] = [];
+
+  const hasBeneficiary =
+    Boolean(normalize(form.beneficiaryName)) ||
+    Boolean(normalize(form.legalName)) ||
+    Boolean(normalize(form.name));
+
+  const hasIban = Boolean(normalize(form.iban));
+  const hasBankName = Boolean(normalize(form.bankName));
+  const hasSwift = Boolean(normalize(form.swiftBic));
+
+  // UA
+  if (!hasBeneficiary) missingUa.push("Отримувач (Beneficiary / Legal name)");
+  if (!hasIban) missingUa.push("IBAN");
+  if (!hasBankName) missingUa.push("Назва банку");
+
+  // International
+  if (!hasBeneficiary) missingIntl.push("Beneficiary / Legal name");
+  if (!hasIban) missingIntl.push("IBAN");
+  if (!hasSwift) missingIntl.push("SWIFT / BIC");
+  if (!hasBankName) missingIntl.push("Bank name");
+
+  return {
+    ua: { ready: missingUa.length === 0, missing: missingUa },
+    international: { ready: missingIntl.length === 0, missing: missingIntl },
+  };
+}
 
 export function useOrganizationProfilePage() {
   const { data: userData, isLoading: isUserLoading } = useCurrentUser();
@@ -190,7 +233,6 @@ export function useOrganizationProfilePage() {
           targetAudience: values.targetAudience || null,
           brandStyle: values.brandStyle || null,
 
-          // ✅ payment details
           legalName: values.legalName || null,
           beneficiaryName: values.beneficiaryName || null,
           legalAddress: values.legalAddress || null,
@@ -269,6 +311,11 @@ export function useOrganizationProfilePage() {
     [form],
   );
 
+  const paymentReadiness = useMemo(
+    () => (form ? computePaymentReadiness(form) : null),
+    [form],
+  );
+
   const isSaving = isCreating || isUpdating;
   const isLoading = isUserLoading || isOrgLoading;
   const hasOrganization = !!organization;
@@ -299,6 +346,7 @@ export function useOrganizationProfilePage() {
     isLoading,
     isError,
     hasOrganization,
+    paymentReadiness, // ✅ NEW
     actions: {
       onChange,
       onSubmit,
