@@ -7,7 +7,7 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> | { id: string } },
 ) {
-  const { id } = await ctx.params; // ✅ Next: params може бути Promise
+  const { id } = await ctx.params;
 
   const a = await auth();
   const token = await a.getToken();
@@ -17,14 +17,7 @@ export async function GET(
   }
 
   const API = process.env.NEXT_PUBLIC_API_URL;
-  if (!API) {
-    return NextResponse.json(
-      { message: "NEXT_PUBLIC_API_URL is missing" },
-      { status: 500 },
-    );
-  }
-
-  const url = `${API}/knowledge-base/documents/${id}/download`;
+  const url = `${API}/invoices/${id}/pdf`;
 
   const upstream = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
@@ -40,19 +33,13 @@ export async function GET(
 
   const arrayBuffer = await upstream.arrayBuffer();
 
-  const contentType =
-    upstream.headers.get("content-type") ?? "application/octet-stream";
-
-  // бекенд вже ставить attachment + filename*, беремо як є
-  const disposition =
-    upstream.headers.get("content-disposition") ??
-    'attachment; filename="document"';
-
   return new NextResponse(arrayBuffer, {
     status: 200,
     headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": disposition,
+      "Content-Type": upstream.headers.get("content-type") ?? "application/pdf",
+      "Content-Disposition":
+        upstream.headers.get("content-disposition") ??
+        'inline; filename="invoice-international.pdf"',
       "Cache-Control": "no-store",
     },
   });

@@ -81,6 +81,7 @@ export const ClientDialog = ({
           />
           <TextField
             label="Контактна особа"
+            placeholder="Введіть контактну особу"
             fullWidth
             value={form.contactName}
             onChange={(e) => setField("contactName", e.target.value)}
@@ -89,12 +90,14 @@ export const ClientDialog = ({
           <TextField
             label="Email"
             fullWidth
+            placeholder="Введіть email"
             value={form.email}
             onChange={(e) => setField("email", e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
           <TextField
             label="Телефон"
+            placeholder="Введіть номер телефону"
             fullWidth
             value={form.phone}
             onChange={(e) => setField("phone", e.target.value)}
@@ -103,12 +106,14 @@ export const ClientDialog = ({
           <TextField
             label="Податковий номер / ЄДРПОУ"
             fullWidth
+            placeholder="Введіть податковий номер"
             value={form.taxNumber}
             onChange={(e) => setField("taxNumber", e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
           <TextField
             label="Адреса"
+            placeholder="Введіть адресу"
             fullWidth
             value={form.address}
             onChange={(e) => setField("address", e.target.value)}
@@ -117,6 +122,7 @@ export const ClientDialog = ({
           <TextField
             label="Нотатки (опціонально)"
             fullWidth
+            placeholder="Нотатки"
             multiline
             minRows={3}
             value={form.notes}

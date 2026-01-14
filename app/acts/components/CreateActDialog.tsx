@@ -104,7 +104,7 @@ export const CreateActDialog = ({
             value={fields.actTitle}
             onChange={(e) => setTitle(e.target.value)}
             fullWidth
-            InputLabelProps={{ shrink: Boolean(fields.actTitle) }}
+            InputLabelProps={{ shrink: true }}
           />
 
           <TextField

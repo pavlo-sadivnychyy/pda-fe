@@ -2,15 +2,12 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import {
-  Box,
   Button,
   CircularProgress,
   Paper,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
-import { SearchResults } from "@/components/SearchResults/SearchResults";
 import { DocumentItem } from "@/components/DocumentItem/DocumentItem";
 
 type Doc = {
@@ -58,12 +55,6 @@ export function DocumentsCard(props: Props) {
     documents,
     docsLoading,
     docsError,
-    search,
-    setSearch,
-    searchQuery,
-    searchResults,
-    isSearchLoading,
-    searchError,
     onDelete,
     isDeleting,
   } = props;
@@ -111,14 +102,14 @@ export function DocumentsCard(props: Props) {
           {docsLoading && <CircularProgress size={18} />}
         </Stack>
 
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="Пошук по базі знань"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{ sx: { bgcolor: "#f9fafb" } }}
-        />
+        {/*<TextField*/}
+        {/*  size="small"*/}
+        {/*  fullWidth*/}
+        {/*  placeholder="Пошук по базі знань"*/}
+        {/*  value={search}*/}
+        {/*  onChange={(e) => setSearch(e.target.value)}*/}
+        {/*  InputProps={{ sx: { bgcolor: "#f9fafb" } }}*/}
+        {/*/>*/}
 
         {docsError && (
           <Typography variant="body2" color="#b91c1c">
@@ -146,16 +137,16 @@ export function DocumentsCard(props: Props) {
           </Stack>
         )}
 
-        {searchQuery && (
-          <Box mt={2}>
-            <SearchResults
-              query={searchQuery}
-              isLoading={isSearchLoading}
-              error={searchError}
-              results={searchResults}
-            />
-          </Box>
-        )}
+        {/*{searchQuery && (*/}
+        {/*  <Box mt={2}>*/}
+        {/*    <SearchResults*/}
+        {/*      query={searchQuery}*/}
+        {/*      isLoading={isSearchLoading}*/}
+        {/*      error={searchError}*/}
+        {/*      results={searchResults}*/}
+        {/*    />*/}
+        {/*  </Box>*/}
+        {/*)}*/}
       </Stack>
     </Paper>
   );

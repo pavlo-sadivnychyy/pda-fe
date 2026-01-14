@@ -112,14 +112,17 @@ export const ProfileFormContent = ({
                 <Stack spacing={2}>
                   <TextField
                     fullWidth
+                    InputLabelProps={{ shrink: true }}
                     size="small"
                     required
                     label="Назва компанії"
+                    placeholder="Назва компанії"
                     value={form.name}
                     onChange={onChange("name")}
                   />
                   <TextField
                     fullWidth
+                    InputLabelProps={{ shrink: true }}
                     size="small"
                     label="Сайт"
                     placeholder="https://..."
@@ -128,6 +131,7 @@ export const ProfileFormContent = ({
                   />
                   <TextField
                     fullWidth
+                    InputLabelProps={{ shrink: true }}
                     size="small"
                     label="Індустрія"
                     placeholder="Маркетинг, консалтинг, e-commerce..."
@@ -135,6 +139,7 @@ export const ProfileFormContent = ({
                     onChange={onChange("industry")}
                   />
                   <TextField
+                    InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
                     multiline
@@ -152,6 +157,7 @@ export const ProfileFormContent = ({
                 <SectionTitle>Профіль для асистента</SectionTitle>
                 <Stack spacing={2}>
                   <TextField
+                    InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
                     label="Ніша бізнесу"
@@ -160,6 +166,7 @@ export const ProfileFormContent = ({
                     onChange={onChange("businessNiche")}
                   />
                   <TextField
+                    InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
                     multiline
@@ -172,6 +179,7 @@ export const ProfileFormContent = ({
                   <TextField
                     fullWidth
                     size="small"
+                    InputLabelProps={{ shrink: true }}
                     multiline
                     minRows={3}
                     label="Цільова аудиторія"
@@ -180,6 +188,7 @@ export const ProfileFormContent = ({
                     onChange={onChange("targetAudience")}
                   />
                   <TextField
+                    InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
                     multiline

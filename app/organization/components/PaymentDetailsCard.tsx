@@ -156,61 +156,73 @@ export function PaymentDetailsCard({
           // ✅ Form mode (edit/create)
           <Box component="form" onSubmit={onSubmit}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Beneficiary name"
+                  placeholder="Beneficiary name"
                   value={form.beneficiaryName}
                   onChange={onChange("beneficiaryName")}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Legal name"
+                  placeholder="Legal name"
                   value={form.legalName}
                   onChange={onChange("legalName")}
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  InputLabelProps={{ shrink: true }}
                   fullWidth
                   label="VAT / Tax ID"
+                  placeholder="VAT / Tax ID"
                   value={form.vatId}
                   onChange={onChange("vatId")}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  InputLabelProps={{ shrink: true }}
                   fullWidth
                   label="Registration number"
+                  placeholder="Registration number"
                   value={form.registrationNumber}
                   onChange={onChange("registrationNumber")}
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Legal address"
+                  placeholder="Legal address"
                   value={form.legalAddress}
                   onChange={onChange("legalAddress")}
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="IBAN"
                   value={form.iban}
                   onChange={onChange("iban")}
                   placeholder="UA00XXXX...."
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="SWIFT / BIC"
                   value={form.swiftBic}
                   onChange={onChange("swiftBic")}
@@ -218,26 +230,31 @@ export function PaymentDetailsCard({
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  InputLabelProps={{ shrink: true }}
                   fullWidth
                   label="Bank name"
+                  placeholder="Bank name"
                   value={form.bankName}
                   onChange={onChange("bankName")}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Bank address"
+                  placeholder="Bank address"
                   value={form.bankAddress}
                   onChange={onChange("bankAddress")}
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Payment reference hint"
                   value={form.paymentReferenceHint}
                   onChange={onChange("paymentReferenceHint")}
