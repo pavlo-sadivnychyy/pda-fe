@@ -93,4 +93,8 @@ export type CreateInvoicePayload = {
   }[];
 };
 
-export type InvoiceAction = "send" | "mark-paid" | "cancel";
+export type InvoiceAction =
+  | "send-ua"
+  | "send-international"
+  | "mark-paid"
+  | "cancel";

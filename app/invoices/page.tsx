@@ -11,7 +11,9 @@ import {
   Typography,
 } from "@mui/material";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useOrganizationContext } from "./hooks/useOrganizationContext";
 import { useInvoicesQueries } from "./hooks/useInvoicesQueries";
@@ -23,13 +25,10 @@ import { InvoicesGrid } from "./components/InvoicesGrid";
 import { CreateInvoiceDialog } from "./components/CreateInvoiceDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 
-import type { InvoiceAction } from "./types";
-import type { CreateInvoicePayload } from "./types";
-import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
-import { useRouter } from "next/navigation";
+import type { InvoiceAction, CreateInvoicePayload } from "./types";
 
 export default function InvoicesPage() {
-  const { currentUserId, organizationId } = useOrganizationContext();
+  const { organizationId } = useOrganizationContext();
 
   const { clientsQuery, invoicesQuery } = useInvoicesQueries(organizationId);
   const {
@@ -75,13 +74,19 @@ export default function InvoicesPage() {
 
   const onCreateClose = () => setCreateDialogOpen(false);
 
-  const actionBusyId = useMemo(
-    () => invoiceActionMutation.variables?.id ?? null,
-    [invoiceActionMutation.variables],
-  );
+  // ✅ actionBusyKey: `${id}:${action}`
+  const actionBusyKey = useMemo(() => {
+    const v = invoiceActionMutation.variables;
+    if (!invoiceActionMutation.isPending || !v?.id || !v?.action) return null;
+    return `${v.id}:${v.action}`;
+  }, [invoiceActionMutation.isPending, invoiceActionMutation.variables]);
+
   const deleteBusyId = useMemo(
-    () => deleteInvoiceMutation.variables ?? null,
-    [deleteInvoiceMutation.variables],
+    () =>
+      deleteInvoiceMutation.isPending
+        ? (deleteInvoiceMutation.variables ?? null)
+        : null,
+    [deleteInvoiceMutation.isPending, deleteInvoiceMutation.variables],
   );
 
   const invoicesCount = invoicesQuery.data?.length ?? 0;
@@ -90,21 +95,23 @@ export default function InvoicesPage() {
     try {
       await invoiceActionMutation.mutateAsync({ id, action });
 
-      if (action === "send")
-        showSnackbar("Інвойс відправлено (позначено як SENT)", "success");
+      if (action === "send-ua")
+        showSnackbar("UA інвойс надіслано (SENT)", "success");
+      if (action === "send-international")
+        showSnackbar("International інвойс надіслано (SENT)", "success");
       if (action === "mark-paid")
         showSnackbar("Інвойс позначено як оплачений", "success");
       if (action === "cancel") showSnackbar("Інвойс скасовано", "success");
     } catch (e) {
       console.error(e);
-      showSnackbar("Помилка оновлення статусу інвойсу", "error");
+      showSnackbar("Помилка виконання дії з інвойсом", "error");
     }
   };
 
   const handleSubmit = async () => {
     try {
-      if (!organizationId || !currentUserId) {
-        showSnackbar("Немає organizationId або currentUserId", "error");
+      if (!organizationId) {
+        showSnackbar("Немає organizationId", "error");
         return;
       }
       if (!invoiceForm.items.length) {
@@ -112,9 +119,9 @@ export default function InvoicesPage() {
         return;
       }
 
+      // ✅ createdById не треба (бек бере з Clerk)
       const payload: CreateInvoicePayload = {
         organizationId,
-        createdById: currentUserId,
         clientId: invoiceForm.clientId || undefined,
         issueDate: invoiceForm.issueDate
           ? `${invoiceForm.issueDate}T00:00:00.000Z`
@@ -161,7 +168,7 @@ export default function InvoicesPage() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ✅ Уніфікований хедер як на інших сторінках */}
         <Box sx={{ mb: 2.5 }}>
           <Button
@@ -171,6 +178,7 @@ export default function InvoicesPage() {
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -212,8 +220,8 @@ export default function InvoicesPage() {
           </Stack>
 
           <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
-            Створюй рахунки, керуй статусами (відправлено/оплачено/скасовано) та
-            видаляй інвойси при потребі.
+            Створюй рахунки, надсилай UA/International на email, керуй статусами
+            та видаляй інвойси.
           </Typography>
         </Box>
 
@@ -224,13 +232,9 @@ export default function InvoicesPage() {
               clients={clientsQuery.data ?? []}
               loading={invoicesQuery.isFetching}
               onAction={handleInvoiceAction}
-              actionBusyId={
-                invoiceActionMutation.isPending ? actionBusyId : null
-              }
+              actionBusyKey={actionBusyKey}
               onDelete={requestDelete}
-              deleteBusyId={
-                deleteInvoiceMutation.isPending ? deleteBusyId : null
-              }
+              deleteBusyId={deleteBusyId}
             />
           </InvoicesCard>
         </Box>
@@ -268,7 +272,7 @@ export default function InvoicesPage() {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}
