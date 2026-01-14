@@ -10,7 +10,6 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { DocumentsCard } from "@/components/DocumentsCard/DocumentsCard";
-import { OrgInfoCard } from "@/components/OrgInfoCard/OrgInfoCard";
 import { useKnowledgeBasePage } from "@/hooksNew/useKnowledgeBasePage";
 import { CreateDocumentDialog } from "@/components/CreateDocumentDialog/CreateDocumentDialog";
 
@@ -20,34 +19,29 @@ export function KnowledgeBaseShell() {
   return (
     <>
       <Box sx={styles.shell}>
-        <Box sx={styles.scroll}>
-          <Stack gap={3}>
-            {vm.isBootstrapLoading && (
-              <Paper sx={styles.bootstrapInfo}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <CircularProgress size={20} />
-                  <Typography variant="body2" sx={{ color: "#4b5563" }}>
-                    Готуємо середовище для твоєї бази знань…
-                  </Typography>
-                </Stack>
-              </Paper>
-            )}
-
-            {vm.bootstrapError && (
-              <Paper sx={styles.bootstrapError}>
-                <Typography variant="body2" color="#b91c1c">
-                  Помилка ініціалізації: {vm.bootstrapError.message}
+        {/* ✅ без scroll wrapper */}
+        <Stack sx={styles.content} gap={3}>
+          {vm.isBootstrapLoading && (
+            <Paper sx={styles.bootstrapInfo}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <CircularProgress size={20} />
+                <Typography variant="body2" sx={{ color: "#4b5563" }}>
+                  Готуємо середовище для твоєї бази знань…
                 </Typography>
-              </Paper>
-            )}
+              </Stack>
+            </Paper>
+          )}
 
-            {vm.organization && (
-              <OrgInfoCard
-                organization={vm.organization}
-                clerkUser={vm.clerkUser}
-              />
-            )}
+          {vm.bootstrapError && (
+            <Paper sx={styles.bootstrapError}>
+              <Typography variant="body2" color="#b91c1c">
+                Помилка ініціалізації: {vm.bootstrapError.message}
+              </Typography>
+            </Paper>
+          )}
 
+          {/* ✅ важливо: ця обгортка дає DocumentsCard зайняти весь залишок */}
+          <Box sx={styles.cardWrap}>
             <DocumentsCard
               organization={vm.organization}
               apiUser={vm.apiUser}
@@ -67,8 +61,8 @@ export function KnowledgeBaseShell() {
               onDelete={vm.handleDelete}
               isDeleting={vm.isDeleting}
             />
-          </Stack>
-        </Box>
+          </Box>
+        </Stack>
       </Box>
 
       <input
@@ -93,8 +87,8 @@ export function KnowledgeBaseShell() {
         tags={vm.tags}
         setTags={vm.setTags}
         file={vm.file}
-        inputRef={vm.dialogInputRef} // ✅ new
-        onPickFile={vm.openDialogPicker} // ✅ new
+        inputRef={vm.dialogInputRef}
+        onPickFile={vm.openDialogPicker}
         onFileChange={vm.onDialogFileChange}
         uploadError={vm.uploadError?.message}
       />
@@ -124,19 +118,20 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
+    minHeight: 0, // ✅ must-have для вкладених overflow
   },
-  scroll: {
+
+  content: {
     flex: 1,
-    overflowY: "auto",
-    pr: 0,
-    pb: 1,
-    "&::-webkit-scrollbar": { width: 6 },
-    "&::-webkit-scrollbar-thumb": {
-      borderRadius: 999,
-      backgroundColor: "#d1d5db",
-    },
-    "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+    minHeight: 0, // ✅ must-have
   },
+
+  cardWrap: {
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+  },
+
   bootstrapInfo: {
     p: 2,
     borderRadius: 3,

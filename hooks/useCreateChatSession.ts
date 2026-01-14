@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/libs/axios"; // ✅ твій axios instance
+import { api } from "@/libs/axios";
 
 type CreateSessionPayload = {
   organizationId: string;
+  createdById: string;
   title?: string;
 };
 
@@ -29,8 +30,12 @@ export function useCreateChatSession() {
       );
       return res.data;
     },
+
     onSuccess: (data) => {
+      // ✅ важливо: інвалідимо саме такий ключ, який використовує useChatSessions
       queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+
+      // ✅ і одразу прогріваємо session query, щоб чат відкрився без "порожньо"
       queryClient.invalidateQueries({
         queryKey: ["chat-session", data.session.id],
       });

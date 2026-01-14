@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Drawer,
   IconButton,
   List,
   ListItemButton,
@@ -27,7 +28,9 @@ import AddIcon from "@mui/icons-material/Add";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -35,7 +38,6 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
 import { useDeleteChatSession } from "@/hooksNew/useDeleteChatSession";
-import { useQueryClient } from "@tanstack/react-query";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -53,25 +55,37 @@ function decodeSearchParam(value: string | null) {
   }
 }
 
+const scrollBarSx = {
+  "&::-webkit-scrollbar": { width: 6 },
+  "&::-webkit-scrollbar-thumb": {
+    borderRadius: 999,
+    backgroundColor: "#d1d5db",
+  },
+  "&::-webkit-scrollbar-track": {
+    backgroundColor: "transparent",
+  },
+} as const;
+
 export default function ChatClient() {
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => setHasMounted(true), []);
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const prefillParam = decodeSearchParam(searchParams.get("prefill"));
   const shouldCreateNew = searchParams.get("new") === "1";
 
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const didHandleDeepLinkRef = useRef(false);
+  const didAutoCreateEmptySessionRef = useRef(false);
 
-  const {
-    clerkUser,
-    data: bootstrapData,
-    isLoading: isBootstrapLoading,
-    error: bootstrapError,
-  } = useKnowledgeBaseBootstrap();
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { data: bootstrapData } = useKnowledgeBaseBootstrap();
 
   const organization = bootstrapData?.organization ?? null;
   const apiUser = bootstrapData?.apiUser ?? null;
@@ -88,8 +102,6 @@ export default function ChatClient() {
     string | undefined
   >(undefined);
 
-  // ✅ FIX: коли сесій 0 — скинути selectedSessionId, щоб не було /undefined або старого id
-  // ✅ FIX: коли сесії зʼявились — вибрати першу
   useEffect(() => {
     if (sessions.length === 0) {
       if (selectedSessionId !== undefined) setSelectedSessionId(undefined);
@@ -100,15 +112,23 @@ export default function ChatClient() {
     }
   }, [sessions, selectedSessionId]);
 
-  // ✅ FIX: useChatSession тепер safe, але ми ще й тут передаємо тільки валідні значення
-  const { data: sessionData, isLoading: isSessionLoading } = useChatSession(
-    selectedSessionId,
-    apiUser?.id,
-  );
+  const {
+    data: sessionData,
+    isLoading: isSessionLoading,
+    refetch: refetchSession,
+  } = useChatSession(selectedSessionId, apiUser?.id) as any;
 
-  const queryClient = useQueryClient();
+  const serverMessages = sessionData?.session?.messages ?? [];
 
-  const messages = sessionData?.session?.messages ?? [];
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+
+  useEffect(() => {
+    setLocalMessages(serverMessages);
+  }, [selectedSessionId, sessionData]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [localMessages.length]);
 
   const createSessionMutation = useCreateChatSession();
   const sendMessageMutation = useSendChatMessage(organization?.id);
@@ -116,7 +136,6 @@ export default function ChatClient() {
 
   const [draft, setDraft] = useState("");
 
-  // delete confirm dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<
     string | null
@@ -132,19 +151,57 @@ export default function ChatClient() {
         title: title?.trim() ? title : "Новий діалог",
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           setSelectedSessionId(data.session.id);
+          setSidebarOpen(false); // ✅ on mobile close drawer
+          setTimeout(() => inputRef.current?.focus(), 50);
         },
       },
     );
   };
 
-  // ✅ Deep-link логіка: /chat?new=1&prefill=...
+  // ✅ auto-create first empty dialog if none exists
+  useEffect(() => {
+    if (!organization || !apiUser) return;
+    if (isSessionsLoading || sessionsError) return;
+    if (didAutoCreateEmptySessionRef.current) return;
+    if (shouldCreateNew) return;
+
+    if (sessions.length === 0 && !createSessionMutation.isPending) {
+      didAutoCreateEmptySessionRef.current = true;
+
+      createSessionMutation.mutate(
+        {
+          organizationId: organization.id,
+          createdById: apiUser.id,
+          title: "Новий діалог",
+        },
+        {
+          onSuccess: (data: any) => {
+            setSelectedSessionId(data.session.id);
+            setSidebarOpen(false);
+            setTimeout(() => inputRef.current?.focus(), 50);
+          },
+          onError: () => {
+            didAutoCreateEmptySessionRef.current = false;
+          },
+        },
+      );
+    }
+  }, [
+    organization,
+    apiUser,
+    sessions.length,
+    isSessionsLoading,
+    sessionsError,
+    shouldCreateNew,
+    createSessionMutation.isPending,
+  ]);
+
+  // ✅ deep-link
   useEffect(() => {
     if (!hasMounted) return;
     if (didHandleDeepLinkRef.current) return;
-
-    // потрібні дані для створення сесії
     if (!organization || !apiUser) return;
 
     const hasAction = shouldCreateNew || !!prefillParam;
@@ -152,13 +209,11 @@ export default function ChatClient() {
 
     didHandleDeepLinkRef.current = true;
 
-    // 1) заповнюємо інпут одразу
     if (prefillParam) {
       setDraft(prefillParam);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
 
-    // 2) якщо треба — створюємо новий діалог
     if (shouldCreateNew) {
       const smartTitle = prefillParam?.slice(0, 44)?.trim() || "Новий діалог";
 
@@ -169,14 +224,13 @@ export default function ChatClient() {
           title: smartTitle,
         },
         {
-          onSuccess: (data) => {
+          onSuccess: (data: any) => {
             setSelectedSessionId(data.session.id);
+            setSidebarOpen(false);
             setTimeout(() => inputRef.current?.focus(), 50);
             router.replace("/chat");
           },
-          onError: () => {
-            router.replace("/chat");
-          },
+          onError: () => router.replace("/chat"),
         },
       );
       return;
@@ -190,36 +244,7 @@ export default function ChatClient() {
     shouldCreateNew,
     prefillParam,
     router,
-    createSessionMutation,
   ]);
-
-  const handleSend = () => {
-    if (
-      !draft.trim() ||
-      !selectedSessionId ||
-      !apiUser ||
-      sendMessageMutation.isPending
-    )
-      return;
-
-    const content = draft.trim();
-    setDraft("");
-
-    sendMessageMutation.mutate({
-      sessionId: selectedSessionId,
-      userId: apiUser.id,
-      content,
-    });
-  };
-
-  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (
-    e,
-  ) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   const isSending = sendMessageMutation.isPending;
 
@@ -259,6 +284,7 @@ export default function ChatClient() {
           setPendingDeleteSessionId(null);
 
           queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+
           if (selectedSessionId === deletingId) {
             setSelectedSessionId(nextCandidate);
           }
@@ -267,15 +293,197 @@ export default function ChatClient() {
     );
   };
 
+  const handleSend = () => {
+    if (!draft.trim() || !selectedSessionId || !apiUser || isSending) return;
+
+    const content = draft.trim();
+    setDraft("");
+
+    const tempUserMessage = {
+      id: `temp-${Date.now()}`,
+      role: "USER",
+      content,
+      createdAt: new Date().toISOString(),
+    };
+
+    setLocalMessages((prev) => [...prev, tempUserMessage]);
+
+    sendMessageMutation.mutate(
+      { sessionId: selectedSessionId, userId: apiUser.id, content },
+      {
+        onSuccess: (data: any) => {
+          setLocalMessages((prev) => {
+            const replaced = data?.userMessage
+              ? prev.map((m) =>
+                  String(m.id).startsWith("temp-") && m.content === content
+                    ? data.userMessage
+                    : m,
+                )
+              : prev;
+
+            return data?.assistantMessage
+              ? [...replaced, data.assistantMessage]
+              : replaced;
+          });
+
+          try {
+            refetchSession?.();
+          } catch {}
+
+          queryClient.invalidateQueries({ queryKey: ["chat-session"] });
+          queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+        },
+        onError: () => {
+          setDraft(content);
+          setLocalMessages((prev) =>
+            prev.filter(
+              (m) =>
+                !(String(m.id).startsWith("temp-") && m.content === content),
+            ),
+          );
+        },
+      },
+    );
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (
+    e,
+  ) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handlePickSession = (id: string) => {
+    setSelectedSessionId(id);
+    setSidebarOpen(false); // ✅ mobile UX
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
   if (!hasMounted) return null;
 
+  const SidebarContent = (
+    <Box sx={styles.sidebar}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography
+          variant="subtitle2"
+          sx={{ color: "#6b7280", fontWeight: 700 }}
+        >
+          Діалоги
+        </Typography>
+
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleCreateSession()}
+          disabled={
+            !organization || !apiUser || createSessionMutation.isPending
+          }
+          sx={{
+            textTransform: "none",
+            borderRadius: 999,
+            bgcolor: "#111827",
+            boxShadow: "none",
+            px: 1.5,
+            "&:hover": { bgcolor: "#000000", boxShadow: "none" },
+          }}
+        >
+          Новий
+        </Button>
+      </Stack>
+
+      <Box sx={{ mt: 1, flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {isSessionsLoading && (
+          <Stack flex={1} alignItems="center" justifyContent="center">
+            <CircularProgress size={20} />
+          </Stack>
+        )}
+
+        {sessionsError && (
+          <Typography variant="body2" color="#b91c1c">
+            Помилка завантаження діалогів: {sessionsError.message}
+          </Typography>
+        )}
+
+        {!isSessionsLoading && sessions.length > 0 && (
+          <List dense sx={styles.sessionsScroll}>
+            {sessions.map((s: any) => (
+              <ListItemButton
+                key={s.id}
+                selected={s.id === selectedSessionId}
+                onClick={() => handlePickSession(s.id)}
+                sx={{
+                  borderRadius: 2,
+                  mb: 0.5,
+                  alignItems: "stretch",
+                  "&.Mui-selected": {
+                    bgcolor: "#eef2ff",
+                    "&:hover": { bgcolor: "#e0e7ff" },
+                  },
+                }}
+              >
+                <ListItemText
+                  primary={
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#111827" }}
+                      noWrap
+                    >
+                      {s.title}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#9ca3af" }}
+                      noWrap
+                    >
+                      {formatDateStable(s.updatedAt)}
+                    </Typography>
+                  }
+                  sx={{ pr: 1 }}
+                />
+
+                <IconButton
+                  edge="end"
+                  size="small"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openDeleteConfirm(s.id);
+                  }}
+                  disabled={!apiUser || deleteSessionMutation.isPending}
+                  sx={{
+                    alignSelf: "center",
+                    color: "#6b7280",
+                    "&:hover": { bgcolor: "#f3f4f6", color: "#111827" },
+                  }}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+
+        {!isSessionsLoading && sessions.length === 0 && (
+          <Typography variant="body2" sx={{ mt: 1, color: "#6b7280" }}>
+            Створюємо перший діалог…
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Box sx={{ mb: 2.5 }}>
+    <Box sx={styles.page}>
+      <Container maxWidth="lg" sx={styles.container}>
+        <Box sx={styles.header}>
           <Button
             onClick={() => router.push("/dashboard")}
-            sx={{ color: "black", marginBottom: "20px" }}
+            sx={{ color: "black", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
             Повернутись назад
@@ -327,19 +535,7 @@ export default function ChatClient() {
           </Typography>
         </Box>
 
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 4,
-            p: { xs: 2, md: 4 },
-            boxShadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
-            bgcolor: "#ffffff",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            minHeight: { xs: "calc(100vh - 220px)", md: "72vh" },
-          }}
-        >
+        <Paper elevation={0} sx={styles.paper}>
           <SignedOut>
             <Box sx={{ flex: 1, display: "grid", placeItems: "center", px: 2 }}>
               <Typography color="#6b7280">
@@ -349,398 +545,216 @@ export default function ChatClient() {
           </SignedOut>
 
           <SignedIn>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
-              <Box
-                sx={{
-                  flex: 1,
-                  overflowY: "auto",
-                  pr: 1,
-                  pb: 1,
-                  "&::-webkit-scrollbar": { width: 6 },
-                  "&::-webkit-scrollbar-thumb": {
-                    borderRadius: 999,
-                    backgroundColor: "#d1d5db",
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: "transparent",
-                  },
-                }}
+            <Box sx={styles.chatShell}>
+              {/* ✅ top bar inside paper */}
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                gap={1}
+                sx={styles.innerHeader}
               >
-                <Stack gap={3}>
-                  <Stack
-                    direction={{ xs: "column", md: "row" }}
-                    justifyContent="space-between"
-                    alignItems={{ xs: "flex-start", md: "center" }}
-                    gap={2}
-                  >
-                    <Stack spacing={0.5}>
-                      <Typography
-                        variant="h5"
-                        sx={{ fontWeight: 600, color: "#111827" }}
-                      >
-                        Діалоги з асистентом
-                      </Typography>
-                    </Stack>
-
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => handleCreateSession()}
-                      disabled={
-                        !organization ||
-                        !apiUser ||
-                        createSessionMutation.isPending
-                      }
-                      sx={{
-                        textTransform: "none",
-                        borderRadius: 999,
-                        bgcolor: "#111827",
-                        boxShadow: "none",
-                        "&:hover": { bgcolor: "#000000", boxShadow: "none" },
-                      }}
-                    >
-                      Новий діалог
-                    </Button>
-                  </Stack>
-
-                  {isBootstrapLoading && (
-                    <Paper
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        border: "1px solid #e5e7eb",
-                        bgcolor: "#f9fafb",
-                      }}
-                    >
-                      <Stack direction="row" gap={2} alignItems="center">
-                        <CircularProgress size={20} />
-                        <Typography variant="body2" sx={{ color: "#4b5563" }}>
-                          Синхронізуємо користувача та організацію…
-                        </Typography>
-                      </Stack>
-                    </Paper>
-                  )}
-
-                  {bootstrapError && (
-                    <Paper
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        border: "1px solid #fecaca",
-                        bgcolor: "#fef2f2",
-                      }}
-                    >
-                      <Typography variant="body2" color="#b91c1c">
-                        Помилка ініціалізації: {bootstrapError.message}
-                      </Typography>
-                    </Paper>
-                  )}
-
-                  <Box
+                <Stack direction="row" gap={1} alignItems="center">
+                  {/* ✅ mobile hamburger */}
+                  <IconButton
+                    onClick={() => setSidebarOpen(true)}
                     sx={{
-                      display: "grid",
-                      gridTemplateColumns: { xs: "1fr", md: "280px 1fr" },
-                      gap: 2,
-                      minHeight: "480px",
+                      display: { xs: "inline-flex", md: "none" },
+                      border: "1px solid #e5e7eb",
+                      bgcolor: "#ffffff",
                     }}
                   >
-                    <Paper
-                      sx={{
-                        p: 2,
-                        bgcolor: "#ffffff",
-                        borderColor: "#e5e7eb",
-                        borderRadius: 3,
-                        display: "flex",
-                        flexDirection: "column",
-                      }}
-                      variant="outlined"
-                    >
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ mb: 1, color: "#6b7280", fontWeight: 600 }}
+                    <MenuIcon />
+                  </IconButton>
+
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: 700, color: "#111827" }}
+                  >
+                    {selectedSessionTitle || "Діалог"}
+                  </Typography>
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleCreateSession()}
+                  disabled={
+                    !organization || !apiUser || createSessionMutation.isPending
+                  }
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: 999,
+                    bgcolor: "#111827",
+                    boxShadow: "none",
+                    "&:hover": { bgcolor: "#000000", boxShadow: "none" },
+                  }}
+                >
+                  Новий діалог
+                </Button>
+              </Stack>
+
+              {/* ✅ desktop grid */}
+              <Box sx={styles.grid}>
+                <Box
+                  sx={{ display: { xs: "none", md: "block" }, minHeight: 0 }}
+                >
+                  <Paper variant="outlined" sx={styles.sidebarPaper}>
+                    {SidebarContent}
+                  </Paper>
+                </Box>
+
+                <Paper sx={styles.chatPanel} variant="outlined">
+                  <Box sx={styles.messagesScroll}>
+                    {isSessionLoading && selectedSessionId && (
+                      <Stack
+                        flex={1}
+                        alignItems="center"
+                        justifyContent="center"
                       >
-                        Діалоги
+                        <CircularProgress size={22} />
+                      </Stack>
+                    )}
+
+                    {!selectedSessionId && (
+                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                        Обери діалог або створи новий.
                       </Typography>
+                    )}
 
-                      {isSessionsLoading && (
-                        <Stack
-                          flex={1}
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          <CircularProgress size={20} />
-                        </Stack>
-                      )}
-
-                      {sessionsError && (
-                        <Typography variant="body2" color="#b91c1c">
-                          Помилка завантаження діалогів: {sessionsError.message}
+                    {!isSessionLoading &&
+                      selectedSessionId &&
+                      localMessages.length === 0 && (
+                        <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                          Напиши перше повідомлення, щоб почати діалог.
                         </Typography>
                       )}
 
-                      {!isSessionsLoading && sessions.length === 0 && (
-                        <Typography
-                          variant="body2"
-                          sx={{ mt: 1, color: "#6b7280" }}
-                        >
-                          Немає діалогів. Створи перший — натисни «Новий
-                          діалог».
-                        </Typography>
-                      )}
+                    {!isSessionLoading &&
+                      localMessages.map((m: any) => {
+                        const isUser = m.role === "USER";
+                        const align = isUser ? "flex-end" : "flex-start";
+                        const bg = isUser ? "#111827" : "#f3f4f6";
+                        const borderColor = isUser ? "#111827" : "#e5e7eb";
+                        const textColor = isUser ? "#f9fafb" : "#111827";
+                        const metaColor = isUser ? "#e5e7eb" : "#9ca3af";
 
-                      {!isSessionsLoading && sessions.length > 0 && (
-                        <List
-                          dense
-                          sx={{
-                            mt: 1,
-                            overflowY: "auto",
-                            maxHeight: "60vh",
-                            pr: 0.5,
-                          }}
-                        >
-                          {sessions.map((s) => (
-                            <ListItemButton
-                              key={s.id}
-                              selected={s.id === selectedSessionId}
-                              onClick={() => setSelectedSessionId(s.id)}
+                        return (
+                          <Box
+                            key={m.id}
+                            sx={{ display: "flex", justifyContent: align }}
+                          >
+                            <Box
                               sx={{
+                                maxWidth: "86%",
+                                bgcolor: bg,
+                                border: `1px solid ${borderColor}`,
                                 borderRadius: 2,
-                                mb: 0.5,
-                                alignItems: "stretch",
-                                "&.Mui-selected": {
-                                  bgcolor: "#eef2ff",
-                                  "&:hover": { bgcolor: "#e0e7ff" },
-                                },
+                                px: 1.5,
+                                py: 1,
                               }}
                             >
-                              <ListItemText
-                                primary={
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "#111827" }}
-                                    noWrap
-                                  >
-                                    {s.title}
-                                  </Typography>
-                                }
-                                secondary={
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ color: "#9ca3af" }}
-                                    noWrap
-                                  >
-                                    {formatDateStable(s.updatedAt)}
-                                  </Typography>
-                                }
-                                sx={{ pr: 1 }}
-                              />
-
-                              <IconButton
-                                edge="end"
-                                size="small"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  openDeleteConfirm(s.id);
-                                }}
-                                disabled={
-                                  !apiUser || deleteSessionMutation.isPending
-                                }
+                              <Typography
+                                variant="caption"
                                 sx={{
-                                  alignSelf: "center",
-                                  color: "#6b7280",
-                                  "&:hover": {
-                                    bgcolor: "#f3f4f6",
-                                    color: "#111827",
-                                  },
+                                  display: "block",
+                                  mb: 0.5,
+                                  color: metaColor,
                                 }}
                               >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </ListItemButton>
-                          ))}
-                        </List>
-                      )}
-                    </Paper>
-
-                    <Paper
-                      sx={{
-                        p: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        minHeight: "480px",
-                        bgcolor: "#ffffff",
-                        borderColor: "#e5e7eb",
-                        borderRadius: 3,
-                      }}
-                      variant="outlined"
-                    >
-                      <Box
-                        sx={{
-                          pb: 1,
-                          borderBottom: "1px solid #e5e7eb",
-                          mb: 1.5,
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ color: "#111827", fontWeight: 600 }}
-                        >
-                          {selectedSessionTitle || "Діалог"}
-                        </Typography>
-
-                        {clerkUser?.emailAddresses?.[0]?.emailAddress && (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "#9ca3af" }}
-                          >
-                            Ти: {clerkUser.emailAddresses[0].emailAddress}
-                          </Typography>
-                        )}
-                      </Box>
-
-                      <Box
-                        sx={{
-                          flex: 1,
-                          overflowY: "auto",
-                          mb: 1.5,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 1,
-                          pr: 0.5,
-                        }}
-                      >
-                        {isSessionLoading && selectedSessionId && (
-                          <Stack
-                            flex={1}
-                            alignItems="center"
-                            justifyContent="center"
-                          >
-                            <CircularProgress size={22} />
-                          </Stack>
-                        )}
-
-                        {!selectedSessionId && (
-                          <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                            Обери діалог зліва або створи новий.
-                          </Typography>
-                        )}
-
-                        {!isSessionLoading &&
-                          selectedSessionId &&
-                          messages.length === 0 && (
-                            <Typography
-                              variant="body2"
-                              sx={{ color: "#6b7280" }}
-                            >
-                              Напиши перше повідомлення, щоб почати діалог.
-                            </Typography>
-                          )}
-
-                        {!isSessionLoading &&
-                          messages.map((m) => {
-                            const isUser = m.role === "USER";
-                            const align = isUser ? "flex-end" : "flex-start";
-                            const bg = isUser ? "#111827" : "#f3f4f6";
-                            const borderColor = isUser ? "#111827" : "#e5e7eb";
-                            const textColor = isUser ? "#f9fafb" : "#111827";
-                            const metaColor = isUser ? "#e5e7eb" : "#9ca3af";
-
-                            return (
-                              <Box
-                                key={m.id}
-                                sx={{ display: "flex", justifyContent: align }}
+                                {isUser ? "Ти" : "Асистент"} ·{" "}
+                                {formatDateStable(m.createdAt)}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: textColor,
+                                  whiteSpace: "pre-wrap",
+                                }}
                               >
-                                <Box
-                                  sx={{
-                                    maxWidth: "80%",
-                                    bgcolor: bg,
-                                    border: `1px solid ${borderColor}`,
-                                    borderRadius: 2,
-                                    px: 1.5,
-                                    py: 1,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      display: "block",
-                                      mb: 0.5,
-                                      color: metaColor,
-                                    }}
-                                  >
-                                    {isUser ? "Ти" : "Асистент"} ·{" "}
-                                    {formatDateStable(m.createdAt)}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      color: textColor,
-                                      whiteSpace: "pre-wrap",
-                                    }}
-                                  >
-                                    {m.content}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            );
-                          })}
-                      </Box>
+                                {m.content}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        );
+                      })}
 
-                      <Box sx={{ borderTop: "1px solid #e5e7eb", pt: 1 }}>
-                        <Stack direction="row" alignItems="flex-end" gap={1}>
-                          <TextField
-                            fullWidth
-                            multiline
-                            minRows={1}
-                            maxRows={4}
-                            placeholder="Напиши повідомлення (Enter — відправити, Shift+Enter — новий рядок)"
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            size="small"
-                            inputRef={inputRef}
-                            InputProps={{
-                              sx: { bgcolor: "#f9fafb", color: "#111827" },
-                            }}
-                          />
-                          <IconButton
-                            onClick={handleSend}
-                            disabled={
-                              !selectedSessionId ||
-                              !apiUser ||
-                              !draft.trim() ||
-                              isSending
-                            }
-                            sx={{
-                              bgcolor: "#111827",
-                              color: "#f9fafb",
-                              "&:hover": { bgcolor: "#000000" },
-                            }}
-                          >
-                            {isSending ? (
-                              <CircularProgress size={20} />
-                            ) : (
-                              <SendIcon />
-                            )}
-                          </IconButton>
-                        </Stack>
-                      </Box>
-                    </Paper>
+                    <div ref={chatBottomRef} />
                   </Box>
-                </Stack>
+
+                  <Box sx={styles.composer}>
+                    <Stack direction="row" alignItems="flex-end" gap={1}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={1}
+                        maxRows={4}
+                        placeholder="Напиши повідомлення"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        size="small"
+                        inputRef={inputRef}
+                        InputProps={{
+                          sx: { bgcolor: "#f9fafb", color: "#111827" },
+                        }}
+                      />
+                      <IconButton
+                        onClick={handleSend}
+                        disabled={
+                          !selectedSessionId ||
+                          !apiUser ||
+                          !draft.trim() ||
+                          isSending
+                        }
+                        sx={{
+                          bgcolor: "#111827",
+                          color: "#f9fafb",
+                          "&:hover": { bgcolor: "#000000" },
+                        }}
+                      >
+                        {isSending ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          <SendIcon />
+                        )}
+                      </IconButton>
+                    </Stack>
+                  </Box>
+                </Paper>
               </Box>
             </Box>
           </SignedIn>
         </Paper>
       </Container>
+
+      {/* ✅ MOBILE SIDEBAR DRAWER */}
+      <Drawer
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        anchor="left"
+        PaperProps={{
+          sx: {
+            width: "86vw",
+            maxWidth: 360,
+            bgcolor: "#ffffff",
+            borderRight: "1px solid #e5e7eb",
+          },
+        }}
+      >
+        <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+          <Box sx={{ p: 2, borderBottom: "1px solid #e5e7eb" }}>
+            <Typography sx={{ fontWeight: 800, color: "#111827" }}>
+              Діалоги
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#6b7280" }}>
+              Обери діалог або створи новий
+            </Typography>
+          </Box>
+
+          <Box sx={{ flex: 1, minHeight: 0, p: 2 }}>{SidebarContent}</Box>
+        </Box>
+      </Drawer>
 
       <Dialog
         open={deleteDialogOpen}
@@ -793,3 +807,113 @@ export default function ChatClient() {
     </Box>
   );
 }
+
+const styles = {
+  page: {
+    height: "100dvh",
+    overflow: "hidden",
+    bgcolor: "#f3f4f6",
+    display: "flex",
+  },
+
+  container: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    py: { xs: 2, md: 4 },
+    px: { xs: 2, sm: 3 },
+  },
+
+  header: {
+    flexShrink: 0,
+    mb: 2.5,
+  },
+
+  paper: {
+    flex: 1,
+    minHeight: 0,
+    borderRadius: 4,
+    p: { xs: 2, md: 4 },
+    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
+    bgcolor: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+
+  chatShell: {
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+
+  innerHeader: {
+    flexShrink: 0,
+    mb: 2,
+  },
+
+  grid: {
+    flex: 1,
+    minHeight: 0,
+    display: "grid",
+    gridTemplateColumns: { xs: "1fr", md: "280px 1fr" },
+    gap: 2,
+  },
+
+  sidebarPaper: {
+    height: "100%",
+    minHeight: 0,
+    overflow: "hidden",
+    borderRadius: 3,
+    borderColor: "#e5e7eb",
+  },
+
+  sidebar: {
+    height: "100%",
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    p: 2,
+  },
+
+  sessionsScroll: {
+    mt: 1,
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    pr: 0.5,
+    ...scrollBarSx,
+  },
+
+  chatPanel: {
+    p: 2,
+    bgcolor: "#ffffff",
+    borderColor: "#e5e7eb",
+    borderRadius: 3,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    overflow: "hidden",
+  },
+
+  messagesScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 1,
+    pr: 0.5,
+    ...scrollBarSx,
+  },
+
+  composer: {
+    borderTop: "1px solid #e5e7eb",
+    pt: 1,
+    flexShrink: 0,
+  },
+} as const;
