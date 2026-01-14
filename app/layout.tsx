@@ -7,6 +7,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Personal Business Assistant",
   description: "AI-powered SaaS for your business",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
