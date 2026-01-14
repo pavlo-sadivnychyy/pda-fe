@@ -212,7 +212,6 @@ export default function AisdrStyleLanding() {
               >
                 AI-асистент
               </Typography>
-              <Chip size="small" label="SaaS" sx={pillSx} />
             </Stack>
 
             <Stack direction="row" spacing={1.2} alignItems="center">
