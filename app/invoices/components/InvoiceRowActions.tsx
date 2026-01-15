@@ -101,7 +101,7 @@ export const InvoiceRowActions = ({
         anchorEl={anchorEl}
         open={sendMenuOpen}
         onClose={closeSendMenu}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
           paper: {

@@ -325,7 +325,7 @@ export default function QuotesPage() {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={closeSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
           severity={snackbar.severity}
