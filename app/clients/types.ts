@@ -1,7 +1,10 @@
+export type ClientCrmStatus = "LEAD" | "IN_PROGRESS" | "ACTIVE" | "INACTIVE";
+
 export type Client = {
   id: string;
   organizationId: string;
-  createdById: string;
+  createdById?: string | null;
+
   name: string;
   contactName?: string | null;
   email?: string | null;
@@ -9,8 +12,17 @@ export type Client = {
   taxNumber?: string | null;
   address?: string | null;
   notes?: string | null;
+
+  // ✅ NEW
+  crmStatus: ClientCrmStatus;
+  tags: string[];
+
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type ClientsListResponse = {
+  clients: Client[];
 };
 
 export type ClientFormValues = {
@@ -21,8 +33,8 @@ export type ClientFormValues = {
   taxNumber: string;
   address: string;
   notes: string;
-};
 
-export type ClientsListResponse = {
-  clients: Client[];
+  // ✅ NEW
+  crmStatus: ClientCrmStatus;
+  tags: string[];
 };

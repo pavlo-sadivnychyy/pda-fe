@@ -94,7 +94,7 @@ export const QuotesGrid = ({
         sortable: false,
         filterable: false,
         flex: 1.2,
-        minWidth: 240,
+        minWidth: 300,
         renderCell: (params) => {
           const id = params.row.id as string;
           const status = params.row.status as QuoteStatus;
