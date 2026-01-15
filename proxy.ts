@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
 
@@ -6,18 +7,20 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
   const isAuthenticated = !!userId;
 
-  const url = new URL(req.url);
+  const url = req.nextUrl.clone();
 
   // ✅ 1) Залогінений не може зайти на "/"
   if (isAuthenticated && url.pathname === "/") {
-    url.pathname = "/dashboard"; // <-- куди треба
-    return Response.redirect(url);
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
   }
 
   // ✅ 2) Незалогінений не може на приватні роути
   if (!isAuthenticated && !isPublicRoute(req)) {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
