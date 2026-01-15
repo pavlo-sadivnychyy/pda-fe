@@ -127,7 +127,7 @@ export default function ClientsPage() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: 4 }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* ===== Header ===== */}
         <Box sx={{ mb: 2.5 }}>
           <Button
@@ -244,7 +244,7 @@ export default function ClientsPage() {
         </Box>
 
         {/* ===== Main Content ===== */}
-        <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto" }}>
           <ClientsCard count={clients.length} onCreate={formState.openCreate}>
             <ClientsGrid
               clients={clients}
@@ -271,6 +271,16 @@ export default function ClientsPage() {
           Boolean(currentUserId) &&
           formState.canSubmit
         }
+        tagOptions={[
+          "Новий",
+          "Постійний",
+          "VIP",
+          "Проблемний з оплатами",
+          "Проблемний",
+          "Разова співпраця",
+          "Партнер",
+          "Холодний лід",
+        ]}
       />
 
       <ConfirmDialog

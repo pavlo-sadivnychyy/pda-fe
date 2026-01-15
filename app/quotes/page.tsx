@@ -153,7 +153,7 @@ export default function QuotesPage() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/dashboard")}
@@ -282,7 +282,7 @@ export default function QuotesPage() {
         </Box>
 
         {/* Твій існуючий UI */}
-        <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+        <Box sx={{ maxWidth: 1700, mx: "auto" }}>
           <QuotesCard
             count={clients.length}
             organizationId={organizationId}

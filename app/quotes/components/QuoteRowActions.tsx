@@ -39,19 +39,23 @@ export function QuoteRowActions({
   const canConvert =
     !hasInvoice && (status === "ACCEPTED" || status === "SENT");
 
-  // статусні переходи
   const canSend = status === "DRAFT";
   const canAccept = status === "SENT";
   const canReject = status === "SENT";
   const canExpire = status === "SENT";
 
-  // ✅ стабільний набір кнопок: [Send] [Convert] [⋯]
-  // Send: показуємо тільки коли релевантно (DRAFT), інакше не показуємо
-  // Convert: завжди показуємо, але disabled якщо не можна
-  // Menu: завжди
-
   return (
-    <Stack direction="row" spacing={1} alignItems="center" height="100%">
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="center"
+      height="100%"
+      sx={{
+        width: "100%",
+        minWidth: 0, // 🔑 дозволяє дітям стискатися
+        overflow: "hidden", // 🔑 нічого не вилітає з клітинки
+      }}
+    >
       {canSend ? (
         <Button
           size="small"
@@ -60,10 +64,11 @@ export function QuoteRowActions({
           onClick={() => onAction("send")}
           startIcon={<SendIcon sx={{ fontSize: 16 }} />}
           sx={{
+            flexShrink: 0, // 🔑 ця кнопка не стискається
             textTransform: "none",
             fontSize: 12,
             borderRadius: 999,
-            px: 1.5,
+            px: 1.25,
             whiteSpace: "nowrap",
             bgcolor: "#ffffff",
             borderColor: "#e2e8f0",
@@ -74,11 +79,10 @@ export function QuoteRowActions({
           Надіслати
         </Button>
       ) : (
-        // щоб layout був стабільніший, коли немає "Надіслати",
-        // залишимо невеликий "плейсхолдер" ширини (але без видимого контенту)
-        <Box sx={{ width: 0 }} />
+        <Box sx={{ width: 0, flexShrink: 0 }} />
       )}
 
+      {/* 🔑 Convert стає "гумовим": займає доступний простір і обрізає текст */}
       <Tooltip
         title={
           hasInvoice
@@ -88,21 +92,41 @@ export function QuoteRowActions({
               : "Конвертація доступна після 'Надіслано' або 'Прийнято'"
         }
       >
-        <span>
-          <QuoteConvertButton
-            disabled={!canConvert}
-            busy={busy}
-            onClick={onConvert}
-          />
-        </span>
+        <Box
+          sx={{
+            flex: "1 1 auto", // 🔑 може стискатися і рости
+            minWidth: 0, // 🔑 потрібен для text-overflow
+            overflow: "hidden",
+            // Підтискаємо внутрішню кнопку, навіть якщо QuoteConvertButton не приймає sx
+            "& .MuiButton-root": {
+              width: "100%",
+              minWidth: 0,
+              px: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            },
+            "& .MuiButton-startIcon": {
+              mr: 0.75,
+            },
+          }}
+        >
+          <span style={{ display: "block" }}>
+            <QuoteConvertButton
+              disabled={!canConvert}
+              busy={busy}
+              onClick={onConvert}
+            />
+          </span>
+        </Box>
       </Tooltip>
 
-      {/* ⋯ меню завжди */}
       <IconButton
         size="small"
         onClick={(e) => setAnchorEl(e.currentTarget)}
         disabled={busy}
         sx={{
+          flexShrink: 0,
           border: "1px solid #e2e8f0",
           bgcolor: "#fff",
           "&:hover": { bgcolor: "#f3f4f6" },

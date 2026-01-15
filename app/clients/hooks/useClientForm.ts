@@ -25,21 +25,26 @@ export const useClientForm = () => {
       taxNumber: client.taxNumber || "",
       address: client.address || "",
       notes: client.notes || "",
+
+      crmStatus: client.crmStatus ?? "LEAD",
+      tags: Array.isArray(client.tags) ? client.tags : [],
     });
     setDialogOpen(true);
   };
 
   const close = () => setDialogOpen(false);
 
-  const setField = (field: keyof ClientFormValues, value: string) => {
+  // ✅ ВАЖЛИВО: тепер value може бути будь-якого типу поля
+  const setField = <K extends keyof ClientFormValues>(
+    field: K,
+    value: ClientFormValues[K],
+  ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const isEditing = Boolean(editingClient);
 
-  const canSubmit = useMemo(() => {
-    return Boolean(form.name.trim());
-  }, [form.name]);
+  const canSubmit = useMemo(() => Boolean(form.name.trim()), [form.name]);
 
   return {
     dialogOpen,
