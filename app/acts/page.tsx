@@ -9,6 +9,7 @@ import {
   Container,
   Stack,
   Typography,
+  Snackbar,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { useMemo, useState } from "react";
@@ -34,8 +35,15 @@ export default function ActsPage() {
   const { currentUserId, organizationId } = useOrganizationContext();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // ✅ Snackbar state
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackText, setSnackText] = useState("Готово");
+  const openSnack = (text: string) => {
+    setSnackText(text);
+    setSnackOpen(true);
+  };
 
   const router = useRouter();
 
@@ -43,7 +51,9 @@ export default function ActsPage() {
     organizationId,
     createDialogOpen,
   );
-  const { createFromInvoice, deleteAct } = useActMutations(organizationId);
+
+  const { createFromInvoice, deleteAct, sendAct } =
+    useActMutations(organizationId);
 
   const form = useActForm();
 
@@ -77,6 +87,7 @@ export default function ActsPage() {
     });
 
     setCreateDialogOpen(false);
+    openSnack("Акт створено");
   };
 
   const requestDelete = (id: string) => setDeleteId(id);
@@ -85,6 +96,7 @@ export default function ActsPage() {
     if (!deleteId) return;
     await deleteAct.mutateAsync(deleteId);
     setDeleteId(null);
+    openSnack("Акт видалено");
   };
 
   const deleteBusyId = useMemo(
@@ -107,6 +119,7 @@ export default function ActsPage() {
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -148,12 +161,12 @@ export default function ActsPage() {
           </Stack>
 
           <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
-            Створюй акти виконаних робіт на основі інвойсів, завантажуй/керуй
-            документами та видаляй при потребі.
+            Створюй акти виконаних робіт на основі інвойсів, переглядай PDF,
+            надсилай клієнту та видаляй при потребі.
           </Typography>
         </Box>
 
-        {/* ✅ Friendly hint block (додано) */}
+        {/* ✅ Friendly hint block */}
         <Box sx={{ mt: 2, mb: 3 }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
@@ -171,12 +184,8 @@ export default function ActsPage() {
             >
               Після створення акту ти отримуєш{" "}
               <strong>PDF-версію документа</strong>, яку можна{" "}
-              <strong>відкрити або завантажити у будь-який момент</strong> —
-              зручно, коли потрібно швидко підтвердити факт виконання робіт чи
-              підготувати документи для клієнта/бухгалтерії. А ще це допомагає{" "}
-              <strong>тримати порядок</strong>: усі акти зберігаються{" "}
-              <strong>в одному місці</strong>, без пошуку в пошті, чатах або
-              папках.
+              <strong>відкрити або завантажити</strong> — і{" "}
+              <strong>надіслати клієнту на email</strong> в 1 клік.
             </Typography>
 
             <Stack
@@ -197,7 +206,7 @@ export default function ActsPage() {
               <Chip
                 size="small"
                 icon={<DownloadIcon />}
-                label="Завантаження в 1 клік"
+                label="Надсилання клієнту"
                 sx={{
                   bgcolor: "#f8fafc",
                   border: "1px solid #e2e8f0",
@@ -280,6 +289,15 @@ export default function ActsPage() {
                   acts={acts}
                   onDelete={requestDelete}
                   deleteBusyId={deleteAct.isPending ? deleteBusyId : null}
+                  onSend={async (id) => {
+                    await sendAct.mutateAsync(id);
+                    openSnack("Акт відправлено");
+                  }}
+                  sendBusyId={
+                    sendAct.isPending
+                      ? ((sendAct.variables as any) ?? null)
+                      : null
+                  }
                 />
               )}
             </Box>
@@ -318,6 +336,15 @@ export default function ActsPage() {
           />
         </Box>
       </Container>
+
+      {/* ✅ Snackbar */}
+      <Snackbar
+        open={snackOpen}
+        autoHideDuration={2500}
+        onClose={() => setSnackOpen(false)}
+        message={snackText}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 }

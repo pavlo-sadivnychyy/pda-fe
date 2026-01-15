@@ -1,6 +1,8 @@
 "use client";
 
 import { Button, Stack } from "@mui/material";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import * as React from "react";
 
 export const InvoicePdfButton = ({
   invoiceId,
@@ -53,8 +55,9 @@ export const InvoicePdfButton = ({
         onClick={openUa}
         variant={uaPrimary ? "contained" : "outlined"}
         sx={baseSx(uaPrimary)}
+        startIcon={<PictureAsPdfIcon sx={{ fontSize: 18 }} />}
       >
-        UA PDF
+        UA
       </Button>
 
       <Button
@@ -62,8 +65,9 @@ export const InvoicePdfButton = ({
         onClick={openIntl}
         variant={intlPrimary ? "contained" : "outlined"}
         sx={baseSx(intlPrimary)}
+        startIcon={<PictureAsPdfIcon sx={{ fontSize: 18 }} />}
       >
-        INTL PDF
+        International
       </Button>
     </Stack>
   );
