@@ -1,5 +1,6 @@
 "use client";
 
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Autocomplete,
   Box,
@@ -7,6 +8,8 @@ import {
   Chip,
   Dialog,
   DialogContent,
+  DialogTitle,
+  IconButton,
   MenuItem,
   TextField,
   Typography,
@@ -67,45 +70,54 @@ export const ClientDialog = ({
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
     >
-      <DialogContent sx={{ padding: "24px" }}>
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#f3f4f6",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            CLIENTS
-          </Typography>
-        </Box>
-
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
-        >
+      {/* ✅ HEADER з кнопкою X */}
+      <DialogTitle
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
+          bgcolor: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <Typography sx={{ fontWeight: 800, fontSize: 18, color: "#020617" }}>
           {isEditing ? "Редагувати клієнта" : "Додати клієнта"}
         </Typography>
 
-        <Typography
-          variant="body2"
-          sx={{ color: "#6b7280", mb: 3, maxWidth: 520 }}
+        <IconButton
+          onClick={onClose}
+          disabled={submitting}
+          size="small"
+          aria-label="Close dialog"
+          sx={{
+            color: "#6b7280",
+            "&:hover": { bgcolor: "#f3f4f6" },
+            "&.Mui-disabled": { color: "#cbd5e1" },
+          }}
         >
-          Заповни дані клієнта. Теги — як у CRM: вибирай зі списку, щоб швидко
-          фільтрувати.
-        </Typography>
+          <CloseIcon fontSize="medium" />
+        </IconButton>
+      </DialogTitle>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+      <DialogContent sx={{ padding: "24px" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+            paddingTop: "15px",
+          }}
+        >
           <TextField
             label="Назва клієнта *"
             placeholder="Наприклад: ТОВ «Агро Світ»"
             fullWidth
+            variant="standard"
             value={form.name}
             onChange={(e) => setField("name", e.target.value)}
             InputLabelProps={{ shrink: true }}
@@ -115,6 +127,7 @@ export const ClientDialog = ({
             select
             label="CRM-статус"
             fullWidth
+            variant="standard"
             value={form.crmStatus}
             onChange={(e) => setField("crmStatus", e.target.value as any)}
             InputLabelProps={{ shrink: true }}
@@ -153,6 +166,7 @@ export const ClientDialog = ({
               <TextField
                 {...params}
                 label="Теги"
+                variant="standard"
                 placeholder="Обери теги…"
                 InputLabelProps={{ shrink: true }}
               />
@@ -160,6 +174,7 @@ export const ClientDialog = ({
           />
 
           <TextField
+            variant="standard"
             label="Контактна особа"
             placeholder="Введіть контактну особу"
             fullWidth
@@ -169,6 +184,7 @@ export const ClientDialog = ({
           />
 
           <TextField
+            variant="standard"
             label="Email"
             fullWidth
             placeholder="Введіть email"
@@ -178,6 +194,7 @@ export const ClientDialog = ({
           />
 
           <TextField
+            variant="standard"
             label="Телефон"
             placeholder="Введіть номер телефону"
             fullWidth
@@ -187,6 +204,7 @@ export const ClientDialog = ({
           />
 
           <TextField
+            variant="standard"
             label="Податковий номер / ЄДРПОУ"
             fullWidth
             placeholder="Введіть податковий номер"
@@ -196,6 +214,7 @@ export const ClientDialog = ({
           />
 
           <TextField
+            variant="standard"
             label="Адреса"
             placeholder="Введіть адресу"
             fullWidth
@@ -219,20 +238,12 @@ export const ClientDialog = ({
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             alignItems: "center",
             mt: 4,
             gap: 2,
           }}
         >
-          <Button
-            onClick={onClose}
-            disabled={submitting}
-            sx={{ textTransform: "none", color: "#6b7280" }}
-          >
-            Скасувати
-          </Button>
-
           <Button
             variant="contained"
             onClick={onSubmit}
@@ -242,6 +253,7 @@ export const ClientDialog = ({
               borderRadius: 999,
               px: 3,
               bgcolor: "#111827",
+              color: "white",
               "&:hover": { bgcolor: "#020617" },
             }}
           >

@@ -115,7 +115,6 @@ export default function OrganizationProfilePage() {
           severity={vm.snackbar.severity}
           onClose={vm.actions.closeSnackbar}
           variant="filled"
-          sx={{ width: "100%" }}
         >
           {vm.snackbar.message}
         </Alert>

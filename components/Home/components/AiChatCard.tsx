@@ -69,6 +69,7 @@ export function AiChatCard() {
                 fontWeight: 700,
                 boxShadow: "none",
                 bgcolor: "#111827",
+                color: "white",
                 "&:hover": { bgcolor: "#1f2937", boxShadow: "none" },
               }}
             >

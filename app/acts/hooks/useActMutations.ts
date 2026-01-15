@@ -16,6 +16,10 @@ export const useActMutations = (organizationId?: string) => {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: actsKeys.acts(organizationId) });
     },
+    onError: (error) => {
+      if (error.status === 409) {
+      }
+    },
   });
 
   const deleteAct = useMutation({

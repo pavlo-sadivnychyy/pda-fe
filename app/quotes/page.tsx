@@ -22,7 +22,6 @@ import type { Quote, QuoteAction } from "./types";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import { useRouter } from "next/navigation";
 import { QuotesGrid } from "@/app/quotes/components/QuotesGrid";
-import { CreateQuoteDrawer } from "@/app/quotes/components/CreateQuoteDrawer";
 import { QuotesCard } from "@/app/quotes/components/QuotesCard";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import * as React from "react";
@@ -32,6 +31,7 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import BoltIcon from "@mui/icons-material/Bolt";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import { CreateQuoteDialog } from "@/app/quotes/components/CreateQuoteDialog";
 
 const quotesKeys = {
   all: ["quotes"] as const,
@@ -301,7 +301,7 @@ export default function QuotesPage() {
         </Box>
       </Container>
 
-      <CreateQuoteDrawer
+      <CreateQuoteDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         organizationId={organizationId || ""}
@@ -320,7 +320,6 @@ export default function QuotesPage() {
           setSnackbar({ open: true, message: msg, severity: "error" })
         }
       />
-
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

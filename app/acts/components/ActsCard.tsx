@@ -58,6 +58,7 @@ export const ActsCard = ({
                   textTransform: "none",
                   borderRadius: 999,
                   bgcolor: "#111827",
+                  color: "white",
                   "&:hover": { bgcolor: "#020617" },
                 }}
               >

@@ -1,17 +1,33 @@
 "use client";
 
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   Button,
   Dialog,
   DialogContent,
+  DialogTitle,
+  IconButton,
   MenuItem,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import type { Invoice } from "../types";
+
+function toDayjs(value: string): Dayjs | null {
+  if (!value) return null;
+  const d = dayjs(value);
+  return d.isValid() ? d : null;
+}
+
+function toISODate(value: Dayjs | null): string {
+  if (!value) return "";
+  return value.format("YYYY-MM-DD");
+}
 
 export const CreateActDialog = ({
   open,
@@ -64,41 +80,40 @@ export const CreateActDialog = ({
       maxWidth="sm"
       PaperProps={{ sx: { borderRadius: 4, padding: 0 } }}
     >
-      <DialogContent sx={{ padding: "24px" }}>
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#f3f4f6",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            АКТИ
-          </Typography>
-        </Box>
-
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
-        >
+      {/* ✅ Header + X */}
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <Typography sx={{ fontWeight: 800, color: "#020617" }}>
           Створити акт наданих послуг
         </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: "#6b7280", mb: 3, maxWidth: 520 }}
-        >
-          Обери інвойс, додай назву, номер, період та нотатки — дані підуть в
-          документ і PDF.
-        </Typography>
 
-        <Stack spacing={2.5}>
+        <IconButton
+          onClick={onClose}
+          disabled={submitting}
+          size="small"
+          sx={{
+            color: "#6b7280",
+            "&:hover": { bgcolor: "#f3f4f6" },
+            "&.Mui-disabled": { color: "#cbd5e1" },
+          }}
+          aria-label="Close"
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ padding: "24px" }}>
+        <Stack spacing={2.5} paddingTop={"15px"}>
           <TextField
+            variant={"standard"}
             label="Назва акта"
             placeholder="Наприклад: Акт за січень для клієнта ABC"
             value={fields.actTitle}
@@ -109,14 +124,20 @@ export const CreateActDialog = ({
 
           <TextField
             select
+            variant={"standard"}
             label="Інвойс"
             value={fields.selectedInvoiceId}
             onChange={(e) => onSelectInvoice(e.target.value)}
             fullWidth
             disabled={loadingInvoices}
+            placeholder={"Оберіть інвойс"}
             helperText="Оберіть рахунок, на основі якого буде створено акт"
             InputLabelProps={{ shrink: true }}
+            SelectProps={{ displayEmpty: true }}
           >
+            <MenuItem value="" sx={{ color: "text.secondary" }}>
+              Обери інвойс
+            </MenuItem>
             {loadingInvoices ? (
               <MenuItem value="">
                 <em>Завантаження інвойсів...</em>
@@ -136,6 +157,7 @@ export const CreateActDialog = ({
           </TextField>
 
           <TextField
+            variant={"standard"}
             label="Номер акта"
             value={fields.actNumber}
             onChange={(e) => setNumber(e.target.value)}
@@ -146,21 +168,29 @@ export const CreateActDialog = ({
           />
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
+            <DatePicker
               label="Період з"
-              type="date"
-              value={fields.periodFrom}
-              onChange={(e) => setPeriodFrom(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
+              value={toDayjs(fields.periodFrom)}
+              onChange={(d) => setPeriodFrom(toISODate(d))}
+              disabled={submitting}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  InputLabelProps: { shrink: true },
+                },
+              }}
             />
-            <TextField
+            <DatePicker
               label="Період по"
-              type="date"
-              value={fields.periodTo}
-              onChange={(e) => setPeriodTo(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
+              value={toDayjs(fields.periodTo)}
+              onChange={(d) => setPeriodTo(toISODate(d))}
+              disabled={submitting}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  InputLabelProps: { shrink: true },
+                },
+              }}
             />
           </Stack>
 
@@ -179,20 +209,12 @@ export const CreateActDialog = ({
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             alignItems: "center",
             mt: 4,
             gap: 2,
           }}
         >
-          <Button
-            onClick={onClose}
-            disabled={submitting}
-            sx={{ textTransform: "none", color: "#6b7280" }}
-          >
-            Скасувати
-          </Button>
-
           <Button
             variant="contained"
             onClick={onSubmit}
@@ -203,6 +225,7 @@ export const CreateActDialog = ({
               px: 3,
               bgcolor: "#111827",
               "&:hover": { bgcolor: "#020617" },
+              color: "white",
             }}
           >
             {submitting ? "Створюємо..." : "Створити акт"}

@@ -83,6 +83,7 @@ export const QuotesCard = ({
             borderRadius: 999,
             bgcolor: "#111827",
             "&:hover": { bgcolor: "#020617" },
+            color: "white",
           }}
           disabled={!organizationId || !currentUserId}
         >

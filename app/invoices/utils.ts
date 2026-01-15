@@ -37,3 +37,12 @@ export const statusChipColor = (status: InvoiceStatus) => {
       return { color: "#64748b", bg: "rgba(100,116,139,0.08)" };
   }
 };
+
+export const INVOICE_STATUS_OPTIONS: { value: InvoiceStatus; label: string }[] =
+  [
+    { value: "DRAFT", label: "Чернетка" },
+    { value: "SENT", label: "Надіслано" },
+    { value: "PAID", label: "Оплачено" },
+    { value: "OVERDUE", label: "Прострочено" },
+    { value: "CANCELLED", label: "Скасовано" },
+  ];

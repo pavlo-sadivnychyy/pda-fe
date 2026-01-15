@@ -179,6 +179,7 @@ export const ProfileViewContent = ({
             py: 1.25,
             bgcolor: "#111827",
             boxShadow: "none",
+            color: "white",
             "&:hover": {
               bgcolor: "#000000",
               boxShadow: "none",

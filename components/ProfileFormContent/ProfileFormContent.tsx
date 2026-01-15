@@ -112,6 +112,7 @@ export const ProfileFormContent = ({
                 <Stack spacing={2}>
                   <TextField
                     fullWidth
+                    variant={"standard"}
                     InputLabelProps={{ shrink: true }}
                     size="small"
                     required
@@ -122,6 +123,7 @@ export const ProfileFormContent = ({
                   />
                   <TextField
                     fullWidth
+                    variant={"standard"}
                     InputLabelProps={{ shrink: true }}
                     size="small"
                     label="Сайт"
@@ -131,6 +133,7 @@ export const ProfileFormContent = ({
                   />
                   <TextField
                     fullWidth
+                    variant={"standard"}
                     InputLabelProps={{ shrink: true }}
                     size="small"
                     label="Індустрія"
@@ -139,6 +142,7 @@ export const ProfileFormContent = ({
                     onChange={onChange("industry")}
                   />
                   <TextField
+                    variant={"standard"}
                     InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
@@ -157,6 +161,7 @@ export const ProfileFormContent = ({
                 <SectionTitle>Профіль для асистента</SectionTitle>
                 <Stack spacing={2}>
                   <TextField
+                    variant={"standard"}
                     InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
@@ -169,8 +174,9 @@ export const ProfileFormContent = ({
                     InputLabelProps={{ shrink: true }}
                     fullWidth
                     size="small"
+                    variant={"standard"}
                     multiline
-                    minRows={3}
+                    minRows={1}
                     label="Опис послуг"
                     placeholder="Які послуги / продукти ви надаєте? У чому ваша унікальність?"
                     value={form.servicesDescription}
@@ -181,7 +187,8 @@ export const ProfileFormContent = ({
                     size="small"
                     InputLabelProps={{ shrink: true }}
                     multiline
-                    minRows={3}
+                    minRows={1}
+                    variant={"standard"}
                     label="Цільова аудиторія"
                     placeholder="Хто ваші клієнти? Гео, тип бізнесу, розмір, їх ключові болі."
                     value={form.targetAudience}
@@ -192,7 +199,8 @@ export const ProfileFormContent = ({
                     fullWidth
                     size="small"
                     multiline
-                    minRows={3}
+                    minRows={1}
+                    variant={"standard"}
                     label="Брендовий стиль"
                     placeholder="Тон комунікації, стиль контенту, на які бренди ви рівняєтесь."
                     value={form.brandStyle}
@@ -231,6 +239,7 @@ export const ProfileFormContent = ({
             py: 1.25,
             bgcolor: "#111827",
             boxShadow: "none",
+            color: "white",
             "&:hover": {
               bgcolor: "#000000",
               boxShadow: "none",
