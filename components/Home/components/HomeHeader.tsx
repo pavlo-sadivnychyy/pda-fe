@@ -8,7 +8,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 
 type Props = {
@@ -16,7 +15,6 @@ type Props = {
 };
 
 export function HomeHeader({ firstName }: Props) {
-  const router = useRouter();
   const { isSignedIn } = useUser();
   const { signOut } = useClerk();
 
@@ -48,22 +46,6 @@ export function HomeHeader({ firstName }: Props) {
             spacing={1}
             width={{ xs: "100%", sm: "auto" }}
           >
-            <Button
-              data-onb="home-ai-chat"
-              onClick={() => router.push("/chat")}
-              fullWidth
-              variant="contained"
-              sx={{
-                textTransform: "none",
-                bgcolor: "#202124",
-                "&:hover": { bgcolor: "#111827" },
-                borderRadius: 999,
-                px: 3,
-              }}
-            >
-              AI-чат
-            </Button>
-
             {isSignedIn && (
               <Button
                 fullWidth

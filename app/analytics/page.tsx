@@ -2,6 +2,7 @@
 
 import React from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -18,6 +19,11 @@ import { DonutCard } from "@/app/analytics/components/DonutCard";
 import { useFinancialAnalytics } from "@/app/analytics/hooks/useFinancialAnalytics";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import { useRouter } from "next/navigation";
+
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 
 const FinancialAnalyticsPage: React.FC = () => {
   const {
@@ -43,6 +49,7 @@ const FinancialAnalyticsPage: React.FC = () => {
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -87,6 +94,70 @@ const FinancialAnalyticsPage: React.FC = () => {
             Огляд фінансового стану: отримані кошти, заборгованість, прострочені
             платежі та загальна картина по інвойсах.
           </Typography>
+
+          {/* ✅ Friendly hint block (додано) */}
+          <Box sx={{ mt: 2 }}>
+            <Alert
+              icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
+              severity="info"
+              sx={{
+                bgcolor: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: 3,
+                "& .MuiAlert-message": { width: "100%" },
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ color: "#334155", lineHeight: 1.55 }}
+              >
+                Ця сторінка допомагає{" "}
+                <strong>бачити фінансову картину за обраний період</strong>:
+                скільки вже отримано, скільки ще <strong>очікується</strong>, і
+                що потребує уваги (наприклад, прострочені платежі). Візуалізація
+                — це не “про графіки”, а про рішення:{" "}
+                <strong>кому варто нагадати про оплату</strong>, які інвойси
+                закрити першими та де може <strong>просідати кеш-флоу</strong>.
+              </Typography>
+
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                sx={{ mt: 1.25 }}
+              >
+                <Chip
+                  size="small"
+                  icon={<PaymentsIcon />}
+                  label="Отримано / очікується"
+                  sx={{
+                    bgcolor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontWeight: 600,
+                  }}
+                />
+                <Chip
+                  size="small"
+                  icon={<ReportProblemIcon />}
+                  label="Що потребує уваги"
+                  sx={{
+                    bgcolor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontWeight: 600,
+                  }}
+                />
+                <Chip
+                  size="small"
+                  icon={<TimelineIcon />}
+                  label="Рішення по кеш-флоу"
+                  sx={{
+                    bgcolor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    fontWeight: 600,
+                  }}
+                />
+              </Stack>
+            </Alert>
+          </Box>
         </Box>
 
         {/* ✅ Основна картка контенту */}

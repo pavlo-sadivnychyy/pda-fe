@@ -28,7 +28,7 @@ export function PlanCard({ currentPlan = null, hintText = null }: Props) {
   const planLabel = currentPlan ?? "…";
 
   return (
-    <Card data-onb="card-plan" elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card data-onb="card-plan" elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         avatar={<WorkspacePremiumIcon sx={{ color: "#f97316" }} />}
         title={

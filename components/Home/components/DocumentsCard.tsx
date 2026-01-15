@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Box,
   Button,
   Card,
   CardContent,
@@ -11,6 +12,7 @@ import {
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import SearchIcon from "@mui/icons-material/Search";
 import { useRouter } from "next/navigation";
 
 export function DocumentsCard() {
@@ -31,10 +33,11 @@ export function DocumentsCard() {
         }
         subheader={
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Завантажуйте договори, описи, регламенти.
+            Всі файли та згенеровані документи в одному місці.
           </Typography>
         }
       />
+
       <CardContent sx={{ pt: 1 }}>
         <Button
           onClick={() => router.push("/knowledge-base")}
@@ -56,17 +59,36 @@ export function DocumentsCard() {
 
         <Divider sx={{ my: 1.5 }} />
 
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-          Останні документи
-        </Typography>
-        <Stack spacing={0.5}>
-          <Typography variant="body2">• Договір надання послуг.docx</Typography>
-          <Typography variant="body2">
-            • Політика повернення коштів.pdf
-          </Typography>
+        <Stack spacing={1}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            • Опис пакету “Premium”.txt
+            Тут зберігаються{" "}
+            <strong style={{ color: "black" }}>
+              всі завантажені вами файли
+            </strong>
+            , а також
+            <strong style={{ color: "black" }}>
+              {" "}
+              згенеровані інвойси, акти
+            </strong>{" "}
+            і<strong style={{ color: "black" }}> комерційні пропозиції</strong>.
           </Typography>
+
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Використовуйте <strong style={{ color: "black" }}>пошук</strong>,
+            щоб
+            <strong style={{ color: "black" }}>
+              {" "}
+              миттєво знайти потрібний документ
+            </strong>{" "}
+            за назвою або змістом.
+          </Typography>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
+            <SearchIcon color={"warning"} sx={{ fontSize: 18 }} />
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Жодних пошуків у пошті чи чатах — все впорядковано тут.
+            </Typography>
+          </Box>
         </Stack>
       </CardContent>
     </Card>

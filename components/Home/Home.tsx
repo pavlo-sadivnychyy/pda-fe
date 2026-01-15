@@ -1,23 +1,19 @@
 "use client";
 
 import { Box, Grid } from "@mui/material";
-import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useHomeProfile } from "@/components/Home/hooks/useHomeProfile";
 import { useTodayTasks } from "@/components/Home/hooks/useTodayTasks";
-import { useAiPlan } from "./hooks/useAiPlan";
 import { HomeHeader } from "@/components/Home/components/HomeHeader";
 import { BusinessProfileCard } from "@/components/Home/components/BusinessProfileCard";
 import { DocumentsCard } from "@/components/Home/components/DocumentsCard";
-import { FinanceShortcutsCard } from "@/components/Home/components/FinanceShortcutsCard";
+import { FinanceShortcutsCards } from "@/components/Home/components/FinanceShortcutsCards";
 import { TodayTasksCard } from "./components/TodayTasksCard";
-import { AiPlanCard } from "./components/AiPlanCard";
-import { PopularTasksCard } from "@/components/Home/components/PopularTasksCard";
-import { PlanCard } from "@/components/Home/components/PlanCard";
+import { AiChatCard } from "@/components/Home/components/AiChatCard";
 
-type PlanId = "FREE" | "BASIC" | "PRO";
+// type PlanId = "FREE" | "BASIC" | "PRO";
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,27 +21,27 @@ export default function HomePage() {
   const { data: userData } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
-  const todayDateString = dayjs().format("YYYY-MM-DD");
+  // const todayDateString = dayjs().format("YYYY-MM-DD");
 
   const profile = useHomeProfile(currentUserId);
   const today = useTodayTasks(currentUserId);
-  const ai = useAiPlan(currentUserId, todayDateString);
+  // const ai = useAiPlan(currentUserId, todayDateString);
 
-  const currentPlanFromApi: PlanId =
-    ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
+  // const currentPlanFromApi: PlanId =
+  //   ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
-  const disabledReason: "HAS_PLAN" | "NO_TASKS" | "LOADING" | "IDLE" = (() => {
-    if (ai.isLoading || ai.isFetching) return "LOADING";
-    if (ai.plan) return "HAS_PLAN";
-    if (!today.count) return "NO_TASKS";
-    return "IDLE";
-  })();
+  // const disabledReason: "HAS_PLAN" | "NO_TASKS" | "LOADING" | "IDLE" = (() => {
+  //   if (ai.isLoading || ai.isFetching) return "LOADING";
+  //   if (ai.plan) return "HAS_PLAN";
+  //   if (!today.count) return "NO_TASKS";
+  //   return "IDLE";
+  // })();
 
-  const handleGeneratePlan = () => {
-    if (!currentUserId) return;
-    if (disabledReason !== "IDLE") return;
-    ai.generate();
-  };
+  // const handleGeneratePlan = () => {
+  //   if (!currentUserId) return;
+  //   if (disabledReason !== "IDLE") return;
+  //   ai.generate();
+  // };
 
   return (
     <Box
@@ -78,17 +74,8 @@ export default function HomePage() {
 
             <DocumentsCard />
 
-            <FinanceShortcutsCard
-              onOpenClients={() => router.push("/clients")}
-              onOpenInvoices={() => router.push("/invoices")}
-              onOpenActs={() => router.push("/acts")}
-              onOpenAnalytics={() => router.push("/analytics")}
-              onOpenQuotes={() => router.push("/quotes")}
-            />
-          </Grid>
+            <AiChatCard />
 
-          {/* Right */}
-          <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <TodayTasksCard
               tasks={today.tasks}
               count={today.count}
@@ -97,17 +84,30 @@ export default function HomePage() {
               onOpenTodo={() => router.push("/todo")}
             />
 
-            <AiPlanCard
-              plan={ai.plan}
-              disabledReason={disabledReason}
-              isBusy={ai.isGenerating}
-              errorText={ai.errorText}
-              onGenerate={handleGeneratePlan}
+            {/*<PlanCard currentPlan={currentPlanFromApi} />*/}
+            {/* ✅ NEW: 5 separate cards */}
+          </Grid>
+
+          {/* Right */}
+          <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+            <FinanceShortcutsCards
+              onOpenClients={() => router.push("/clients")}
+              onOpenInvoices={() => router.push("/invoices")}
+              onOpenActs={() => router.push("/acts")}
+              onOpenAnalytics={() => router.push("/analytics")}
+              onOpenQuotes={() => router.push("/quotes")}
             />
 
-            <PopularTasksCard />
+            {/*<AiPlanCard*/}
+            {/*  plan={ai.plan}*/}
+            {/*  disabledReason={disabledReason}*/}
+            {/*  isBusy={ai.isGenerating}*/}
+            {/*  errorText={ai.errorText}*/}
+            {/*  onGenerate={handleGeneratePlan}*/}
+            {/*/>*/}
 
-            <PlanCard currentPlan={currentPlanFromApi} />
+            {/*<PopularTasksCard />*/}
+
             {/*<OnboardingCard />*/}
           </Grid>
         </Grid>
