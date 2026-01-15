@@ -12,8 +12,7 @@ import { DocumentsCard } from "@/components/Home/components/DocumentsCard";
 import { FinanceShortcutsCards } from "@/components/Home/components/FinanceShortcutsCards";
 import { TodayTasksCard } from "./components/TodayTasksCard";
 import { AiChatCard } from "@/components/Home/components/AiChatCard";
-
-// type PlanId = "FREE" | "BASIC" | "PRO";
+import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadlinesCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -30,18 +29,7 @@ export default function HomePage() {
   // const currentPlanFromApi: PlanId =
   //   ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
-  // const disabledReason: "HAS_PLAN" | "NO_TASKS" | "LOADING" | "IDLE" = (() => {
-  //   if (ai.isLoading || ai.isFetching) return "LOADING";
-  //   if (ai.plan) return "HAS_PLAN";
-  //   if (!today.count) return "NO_TASKS";
-  //   return "IDLE";
-  // })();
-
-  // const handleGeneratePlan = () => {
-  //   if (!currentUserId) return;
-  //   if (disabledReason !== "IDLE") return;
-  //   ai.generate();
-  // };
+  const organizationId = profile.organization?.id ?? null;
 
   return (
     <Box
@@ -90,6 +78,13 @@ export default function HomePage() {
 
           {/* Right */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+            <InvoiceDeadlinesCard
+              organizationId={organizationId}
+              onOpenInvoices={() => router.push("/invoices")}
+              minDays={1}
+              maxDays={2}
+            />
+
             <FinanceShortcutsCards
               onOpenClients={() => router.push("/clients")}
               onOpenInvoices={() => router.push("/invoices")}
@@ -97,18 +92,6 @@ export default function HomePage() {
               onOpenAnalytics={() => router.push("/analytics")}
               onOpenQuotes={() => router.push("/quotes")}
             />
-
-            {/*<AiPlanCard*/}
-            {/*  plan={ai.plan}*/}
-            {/*  disabledReason={disabledReason}*/}
-            {/*  isBusy={ai.isGenerating}*/}
-            {/*  errorText={ai.errorText}*/}
-            {/*  onGenerate={handleGeneratePlan}*/}
-            {/*/>*/}
-
-            {/*<PopularTasksCard />*/}
-
-            {/*<OnboardingCard />*/}
           </Grid>
         </Grid>
       </Box>
