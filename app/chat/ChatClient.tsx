@@ -387,6 +387,7 @@ export default function ChatClient() {
             bgcolor: "#111827",
             boxShadow: "none",
             px: 1.5,
+            color: "white",
             "&:hover": { bgcolor: "#000000", boxShadow: "none" },
           }}
         >
@@ -587,6 +588,7 @@ export default function ChatClient() {
                     borderRadius: 999,
                     bgcolor: "#111827",
                     boxShadow: "none",
+                    color: "white",
                     "&:hover": { bgcolor: "#000000", boxShadow: "none" },
                   }}
                 >
@@ -797,6 +799,7 @@ export default function ChatClient() {
               borderRadius: 999,
               bgcolor: "#111827",
               boxShadow: "none",
+              color: "white",
               "&:hover": { bgcolor: "#000000", boxShadow: "none" },
             }}
           >
