@@ -312,7 +312,7 @@ export default function QuotesPage() {
           await refreshQuotes();
           setSnackbar({
             open: true,
-            message: "Комерційну пропозицію створено ✅",
+            message: "Комерційну пропозицію створено",
             severity: "success",
           });
         }}
