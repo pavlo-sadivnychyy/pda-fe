@@ -47,7 +47,6 @@ export const QuotesGrid = ({
     [quotes, clients],
   );
 
-  // ✅ пошук по всіх колонках
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -83,7 +82,7 @@ export const QuotesGrid = ({
       {
         field: "status",
         headerName: "Статус",
-        flex: 0.8,
+        flex: 0.9,
         minWidth: 150,
         renderCell: (params: GridRenderCellParams<QuoteStatus>) => (
           <QuoteStatusChip status={params.value as QuoteStatus} />
@@ -91,10 +90,11 @@ export const QuotesGrid = ({
       },
       {
         field: "actions",
-        headerName: "",
+        headerName: "Дії",
         sortable: false,
         filterable: false,
-        width: 360,
+        flex: 1.2,
+        minWidth: 240,
         renderCell: (params) => {
           const id = params.row.id as string;
           const status = params.row.status as QuoteStatus;
@@ -128,7 +128,6 @@ export const QuotesGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
-      {/* ✅ Search bar */}
       <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
         <TextField
           value={query}

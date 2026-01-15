@@ -8,24 +8,27 @@ import { useMemo, useState } from "react";
 import type { Act } from "../types";
 import { formatMoney, formatPeriod } from "../utils";
 import { ActStatusChip } from "./ActStatusChip";
-import { ActPdfButton } from "./ActPdfButton";
-import { ActDeleteButton } from "./ActDeleteButton";
+import { ActRowActions } from "./ActRowActions";
 
 export const ActsGrid = ({
   acts,
   onDelete,
   deleteBusyId,
+  onSend,
+  sendBusyId,
 }: {
   acts: Act[];
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
+  onSend: (id: string) => Promise<void> | void;
+  sendBusyId: string | null;
 }) => {
   const [query, setQuery] = useState("");
 
-  // ✅ нормалізуємо дані в rows, щоб пошук був по всіх полях
   const rows = useMemo(() => {
     return acts.map((a) => {
       const clientName = (a as any)?.client?.name ?? "—";
+      const clientEmail = (a as any)?.client?.email ?? null;
       const invoiceNumber = (a as any)?.relatedInvoice?.number
         ? `№ ${(a as any).relatedInvoice.number}`
         : "—";
@@ -36,6 +39,7 @@ export const ActsGrid = ({
       return {
         ...a,
         clientName,
+        clientEmail,
         invoiceNumber,
         period,
         totalFormatted: total,
@@ -44,15 +48,15 @@ export const ActsGrid = ({
     });
   }, [acts]);
 
-  // ✅ пошук по всіх колонках (по підготовлених полях)
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
 
-    return rows.filter((r) => {
+    return rows.filter((r: any) => {
       const haystack = [
         r.number ?? "",
         r.clientName ?? "",
+        r.clientEmail ?? "",
         r.invoiceNumber ?? "",
         r.period ?? "",
         r.totalFormatted ?? "",
@@ -71,10 +75,9 @@ export const ActsGrid = ({
       {
         field: "client",
         headerName: "Клієнт",
-        flex: 1.5,
-        minWidth: 160,
-        // лишаємо твою логіку відображення
-        valueGetter: (_, row) => row?.client?.name ?? "—",
+        flex: 1.6,
+        minWidth: 180,
+        valueGetter: (_, row: any) => row?.client?.name ?? "—",
         renderCell: (params) => params.row?.client?.name ?? "—",
       },
       {
@@ -82,7 +85,7 @@ export const ActsGrid = ({
         headerName: "Інвойс",
         flex: 1,
         minWidth: 140,
-        valueGetter: (_, row) =>
+        valueGetter: (_, row: any) =>
           row?.relatedInvoice?.number ? `№ ${row.relatedInvoice.number}` : "—",
         renderCell: (params) =>
           params.row?.relatedInvoice?.number
@@ -94,7 +97,8 @@ export const ActsGrid = ({
         headerName: "Період",
         flex: 1.2,
         minWidth: 160,
-        valueGetter: (_, row) => formatPeriod(row?.periodFrom, row?.periodTo),
+        valueGetter: (_, row: any) =>
+          formatPeriod(row?.periodFrom, row?.periodTo),
         renderCell: (params) =>
           formatPeriod(params.row?.periodFrom, params.row?.periodTo),
         sortable: false,
@@ -104,50 +108,53 @@ export const ActsGrid = ({
         headerName: "Сума",
         flex: 1,
         minWidth: 140,
-        valueGetter: (_, row) => formatMoney(row?.total, row?.currency),
+        valueGetter: (_, row: any) => formatMoney(row?.total, row?.currency),
         renderCell: (params) =>
           formatMoney(params.row?.total, params.row?.currency),
       },
       {
         field: "status",
         headerName: "Статус",
-        flex: 0.8,
-        minWidth: 120,
+        flex: 0.9,
+        minWidth: 130,
         renderCell: (params) => <ActStatusChip status={params.value} />,
       },
       {
         field: "actions",
-        headerName: "",
-        sortable: false,
-        flex: 1,
-        minWidth: 180,
-        renderCell: (params) => (
-          <ActPdfButton actId={params.row.id as string} />
-        ),
-      },
-      {
-        field: "delete",
-        headerName: "",
+        headerName: "Дії",
         sortable: false,
         filterable: false,
-        width: 70,
-        align: "right",
-        headerAlign: "right",
+        flex: 1.3,
+        minWidth: 220,
         renderCell: (params) => {
           const id = params.row.id as string;
-          const busy = deleteBusyId === id;
+          const busyDelete = deleteBusyId === id;
+          const busySend = sendBusyId === id;
+
           return (
-            <ActDeleteButton disabled={busy} onClick={() => onDelete(id)} />
+            <ActRowActions
+              act={params.row}
+              onOpenPdf={() => {
+                window.open(
+                  `/api/pdf/acts/${id}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+              onSend={() => onSend(id)}
+              onDelete={() => onDelete(id)}
+              busyDelete={busyDelete}
+              busySend={busySend}
+            />
           );
         },
       },
     ],
-    [onDelete, deleteBusyId],
+    [onDelete, deleteBusyId, onSend, sendBusyId],
   );
 
   return (
     <Box>
-      {/* ✅ Search bar */}
       <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
         <TextField
           value={query}

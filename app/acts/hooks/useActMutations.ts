@@ -27,5 +27,17 @@ export const useActMutations = (organizationId?: string) => {
     },
   });
 
-  return { createFromInvoice, deleteAct };
+  // ✅ NEW: send act by email
+  const sendAct = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.post<{ act: Act }>(`/acts/${id}/send`);
+      return res.data.act;
+    },
+    onSuccess: async () => {
+      // щоб статус SENT одразу оновився
+      await qc.invalidateQueries({ queryKey: actsKeys.acts(organizationId) });
+    },
+  });
+
+  return { createFromInvoice, deleteAct, sendAct };
 };
