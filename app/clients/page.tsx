@@ -12,7 +12,15 @@ import {
   Typography,
 } from "@mui/material";
 import GroupIcon from "@mui/icons-material/Group";
+import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useOrganizationContext } from "./hooks/useOrganizationContext";
 import { useClientsQueries } from "./hooks/useClientsQueries";
@@ -26,8 +34,6 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { useSnackbar } from "./components/useSnackbar";
 
 import { toCreatePayload, toUpdatePayload } from "./utils";
-import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
-import { useRouter } from "next/navigation";
 
 const getErrorMessage = (e: unknown) => {
   if (axios.isAxiosError(e)) {
@@ -45,7 +51,6 @@ const getErrorMessage = (e: unknown) => {
 
 export default function ClientsPage() {
   const { currentUserId, organizationId } = useOrganizationContext();
-
   const snackbar = useSnackbar();
   const formState = useClientForm();
   const router = useRouter();
@@ -121,17 +126,18 @@ export default function ClientsPage() {
   const submitting = createClient.isPending || updateClient.isPending;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: 4 }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* ✅ Уніфікований хедер як на інших сторінках */}
+        {/* ===== Header ===== */}
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/dashboard")}
-            sx={{ color: "black", marginBottom: "20px" }}
+            sx={{ color: "#0f172a", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -177,7 +183,67 @@ export default function ClientsPage() {
           </Typography>
         </Box>
 
-        {/* Твій існуючий UI */}
+        {/* ===== Friendly Info Block ===== */}
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Alert
+            icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
+            severity="info"
+            sx={{
+              bgcolor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 3,
+              "& .MuiAlert-message": { width: "100%" },
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: "#334155", lineHeight: 1.55 }}
+            >
+              <strong>Порада:</strong> додавай email клієнта при створенні —
+              тоді зможеш надсилати інвойси та акти в один клік без копіювання
+              та месенджерів. Якщо email відсутній — можна додати його пізніше.
+            </Typography>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              sx={{ mt: 1.25 }}
+            >
+              <Chip
+                size="small"
+                icon={<MarkEmailReadIcon />}
+                label="Швидка відправка документів"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<CheckCircleOutlineIcon />}
+                label="Менше ручної рутини"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<AutoAwesomeIcon />}
+                label="Все в одному місці"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+            </Stack>
+          </Alert>
+        </Box>
+
+        {/* ===== Main Content ===== */}
         <Box sx={{ maxWidth: 1200, mx: "auto" }}>
           <ClientsCard count={clients.length} onCreate={formState.openCreate}>
             <ClientsGrid
@@ -191,6 +257,7 @@ export default function ClientsPage() {
         </Box>
       </Container>
 
+      {/* ===== Dialogs ===== */}
       <ClientDialog
         open={formState.dialogOpen}
         onClose={formState.close}
@@ -209,7 +276,7 @@ export default function ClientsPage() {
       <ConfirmDialog
         open={Boolean(deleteId)}
         title="Видалити клієнта?"
-        description="Цю дію неможливо відмінити. Якщо клієнт привʼязаний до актів/інвойсів — бекенд не дозволить видалення."
+        description="Цю дію неможливо відмінити. Якщо клієнт привʼязаний до актів або інвойсів — система не дозволить видалення."
         confirmText="Видалити"
         loading={deleteClient.isPending}
         onClose={() => setDeleteId(null)}

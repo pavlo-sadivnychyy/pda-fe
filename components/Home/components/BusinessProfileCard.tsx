@@ -101,41 +101,46 @@ export function BusinessProfileCard({
               />
             </>
           )}
-
-          <List dense sx={{ mt: 1 }}>
-            <Row
-              ok={hasNiche}
-              title="Ніша бізнесу"
-              hint="Чим конкретніше — тим краще"
-            />
-            <Row
-              ok={hasServices}
-              title="Опис послуг"
-              hint="Які послуги/продукти ви пропонуєте"
-            />
-            <Row
-              ok={hasAudience}
-              title="Цільова аудиторія"
-              hint="Кому саме ви продаєте / для кого контент"
-            />
-            <Row
-              ok={hasBrandStyle}
-              title="Брендовий стиль та tone of voice"
-              hint="Як ви хочете звучати в текстах"
-            />
-          </List>
+          {!hasNiche ||
+            !hasServices ||
+            !hasAudience ||
+            (!hasBrandStyle && (
+              <List dense sx={{ mt: 1 }}>
+                <Row
+                  ok={hasNiche}
+                  title="Ніша бізнесу"
+                  hint="Чим конкретніше — тим краще"
+                />
+                <Row
+                  ok={hasServices}
+                  title="Опис послуг"
+                  hint="Які послуги/продукти ви пропонуєте"
+                />
+                <Row
+                  ok={hasAudience}
+                  title="Цільова аудиторія"
+                  hint="Кому саме ви продаєте / для кого контент"
+                />
+                <Row
+                  ok={hasBrandStyle}
+                  title="Брендовий стиль та tone of voice"
+                  hint="Як ви хочете звучати в текстах"
+                />
+              </List>
+            ))}
 
           <Button
             variant="outlined"
             onClick={onOpenProfile}
             sx={{
-              alignSelf: "flex-start",
-              textTransform: "none",
+              mt: 0.5,
               borderRadius: 999,
-              borderColor: "#dadce0",
-              color: "#374151",
-              bgcolor: "#ffffff",
-              "&:hover": { borderColor: "#c4c6cb", bgcolor: "#fafafa" },
+              textTransform: "none",
+              fontWeight: 700,
+              boxShadow: "none",
+              bgcolor: "#111827",
+              "&:hover": { bgcolor: "#1f2937", boxShadow: "none" },
+              color: "white",
             }}
           >
             {buttonLabel}

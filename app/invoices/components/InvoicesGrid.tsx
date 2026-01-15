@@ -1,12 +1,14 @@
 "use client";
 
-import { Box } from "@mui/material";
+import { Box, IconButton, InputAdornment, TextField } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import {
   DataGrid,
   type GridColDef,
   type GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Client, Invoice, InvoiceStatus, InvoiceAction } from "../types";
 import { formatDate, formatMoney, getClientDisplayName } from "../utils";
 import { InvoiceStatusChip } from "./InvoiceStatusChip";
@@ -15,8 +17,6 @@ import { InvoiceRowActions } from "./InvoiceRowActions";
 import { InvoiceDeleteButton } from "./InvoiceDeleteButton";
 
 function getClientEmail(inv: Invoice, clients: Client[]) {
-  // підлаштуй під свою модель:
-  // якщо inv вже містить client -> беремо звідти
   const direct = (inv as any)?.client?.email;
   if (typeof direct === "string" && direct.trim()) return direct.trim();
 
@@ -42,13 +42,12 @@ export const InvoicesGrid = ({
   clients: Client[];
   loading: boolean;
   onAction: (id: string, action: InvoiceAction) => void;
-
-  // ✅ було actionBusyId, стало actionBusyKey: `${id}:${action}`
-  actionBusyKey: string | null;
-
+  actionBusyKey: string | null; // `${id}:${action}`
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
 }) => {
+  const [query, setQuery] = useState("");
+
   const rows = useMemo(
     () =>
       invoices.map((inv) => {
@@ -69,6 +68,28 @@ export const InvoicesGrid = ({
       }),
     [invoices, clients],
   );
+
+  // ✅ пошук по всіх колонках
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+
+    return rows.filter((r) => {
+      const haystack = [
+        r.number,
+        r.clientName,
+        r.clientEmail ?? "",
+        r.issueDate,
+        r.dueDate,
+        r.total,
+        r.status, // enum/string
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, query]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -125,7 +146,7 @@ export const InvoicesGrid = ({
             <InvoiceRowActions
               status={status}
               busy={busy}
-              hasClientEmail={hasClientEmail} // ✅ NEW
+              hasClientEmail={hasClientEmail}
               onAction={(a) => onAction(id, a)}
             />
           );
@@ -164,9 +185,42 @@ export const InvoicesGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
+      {/* ✅ Search bar */}
+      <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
+        <TextField
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Пошук по інвойсах… (номер, клієнт, email, статус, сума, дата)"
+          fullWidth
+          size="small"
+          sx={{
+            bgcolor: "#fff",
+            "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: query ? (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="clear search"
+                  size="small"
+                  onClick={() => setQuery("")}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      </Box>
+
       <DataGrid
         autoHeight
-        rows={rows}
+        rows={filteredRows}
         columns={columns}
         loading={loading}
         disableRowSelectionOnClick
@@ -174,7 +228,11 @@ export const InvoicesGrid = ({
         initialState={{
           pagination: { paginationModel: { pageSize: 10, page: 0 } },
         }}
-        localeText={{ noRowsLabel: "Інвойсів поки немає" }}
+        localeText={{
+          noRowsLabel: query.trim()
+            ? "Нічого не знайдено за вашим запитом"
+            : "Інвойсів поки немає",
+        }}
       />
     </Box>
   );

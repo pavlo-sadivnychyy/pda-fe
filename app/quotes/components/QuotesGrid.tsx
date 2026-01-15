@@ -1,12 +1,14 @@
 "use client";
 
-import { Box } from "@mui/material";
+import { Box, IconButton, InputAdornment, TextField } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import {
   DataGrid,
   type GridColDef,
   type GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Client, Quote, QuoteAction, QuoteStatus } from "../types";
 import { formatDate, formatMoney, getClientDisplayName } from "../utils";
 import { QuoteStatusChip } from "./QuoteStatusChip";
@@ -27,6 +29,8 @@ export const QuotesGrid = ({
   onConvert: (id: string) => void;
   actionBusyId: string | null;
 }) => {
+  const [query, setQuery] = useState("");
+
   const rows = useMemo(
     () =>
       quotes.map((q) => ({
@@ -42,6 +46,27 @@ export const QuotesGrid = ({
       })),
     [quotes, clients],
   );
+
+  // ✅ пошук по всіх колонках
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+
+    return rows.filter((r) => {
+      const haystack = [
+        r.number,
+        r.clientName,
+        r.issueDate,
+        r.validUntil,
+        r.total,
+        String(r.status ?? ""),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, query]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -103,9 +128,42 @@ export const QuotesGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
+      {/* ✅ Search bar */}
+      <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
+        <TextField
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Пошук по пропозиціях… (номер, клієнт, статус, сума, дата)"
+          fullWidth
+          size="small"
+          sx={{
+            bgcolor: "#fff",
+            "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: query ? (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="clear search"
+                  size="small"
+                  onClick={() => setQuery("")}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      </Box>
+
       <DataGrid
         autoHeight
-        rows={rows}
+        rows={filteredRows}
         columns={columns}
         loading={loading}
         disableRowSelectionOnClick
@@ -113,7 +171,11 @@ export const QuotesGrid = ({
         initialState={{
           pagination: { paginationModel: { pageSize: 10, page: 0 } },
         }}
-        localeText={{ noRowsLabel: "Quote поки немає" }}
+        localeText={{
+          noRowsLabel: query.trim()
+            ? "Нічого не знайдено за вашим запитом"
+            : "Quote поки немає",
+        }}
       />
     </Box>
   );

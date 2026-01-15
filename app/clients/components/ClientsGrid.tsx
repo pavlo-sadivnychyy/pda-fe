@@ -1,12 +1,14 @@
 "use client";
 
-import { Box } from "@mui/material";
+import { Box, InputAdornment, TextField, IconButton } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import {
   DataGrid,
   type GridColDef,
   type GridRowParams,
 } from "@mui/x-data-grid";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Client } from "../types";
 import { formatDate } from "../utils";
 import { ClientDeleteButton } from "./ClientDeleteButton";
@@ -24,6 +26,8 @@ export const ClientsGrid = ({
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
 }) => {
+  const [query, setQuery] = useState("");
+
   const rows = useMemo(
     () =>
       clients.map((c) => ({
@@ -37,6 +41,28 @@ export const ClientsGrid = ({
       })),
     [clients],
   );
+
+  // ✅ пошук по всіх колонках
+  const filteredRows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+
+    return rows.filter((r) => {
+      // зливаємо всі поля рядка (крім id) в один текст і шукаємо входження
+      const haystack = [
+        r.name,
+        r.contactName,
+        r.email,
+        r.phone,
+        r.taxNumber,
+        r.createdAt,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, query]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -95,9 +121,44 @@ export const ClientsGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
+      {/* ✅ Search bar */}
+      <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
+        <TextField
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Пошук по клієнтах… (імʼя, email, телефон, податковий номер)"
+          fullWidth
+          size="small"
+          sx={{
+            bgcolor: "#fff",
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2.5,
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: query ? (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="clear search"
+                  size="small"
+                  onClick={() => setQuery("")}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      </Box>
+
       <DataGrid
         autoHeight
-        rows={rows}
+        rows={filteredRows}
         columns={columns}
         loading={loading}
         disableRowSelectionOnClick
@@ -106,7 +167,11 @@ export const ClientsGrid = ({
         initialState={{
           pagination: { paginationModel: { pageSize: 10, page: 0 } },
         }}
-        localeText={{ noRowsLabel: "Клієнтів поки немає" }}
+        localeText={{
+          noRowsLabel: query.trim()
+            ? "Нічого не знайдено за вашим запитом"
+            : "Клієнтів поки немає",
+        }}
       />
     </Box>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -23,6 +24,11 @@ import { CreateActDialog } from "./components/CreateActDialog";
 import { ConfirmDialog } from "@/app/invoices/components/ConfirmDialog";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import { useRouter } from "next/navigation";
+
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import DownloadIcon from "@mui/icons-material/Download";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 
 export default function ActsPage() {
   const { currentUserId, organizationId } = useOrganizationContext();
@@ -147,6 +153,71 @@ export default function ActsPage() {
           </Typography>
         </Box>
 
+        {/* ✅ Friendly hint block (додано) */}
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Alert
+            icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
+            severity="info"
+            sx={{
+              bgcolor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 3,
+              "& .MuiAlert-message": { width: "100%" },
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: "#334155", lineHeight: 1.55 }}
+            >
+              Після створення акту ти отримуєш{" "}
+              <strong>PDF-версію документа</strong>, яку можна{" "}
+              <strong>відкрити або завантажити у будь-який момент</strong> —
+              зручно, коли потрібно швидко підтвердити факт виконання робіт чи
+              підготувати документи для клієнта/бухгалтерії. А ще це допомагає{" "}
+              <strong>тримати порядок</strong>: усі акти зберігаються{" "}
+              <strong>в одному місці</strong>, без пошуку в пошті, чатах або
+              папках.
+            </Typography>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              sx={{ mt: 1.25 }}
+            >
+              <Chip
+                size="small"
+                icon={<PictureAsPdfIcon />}
+                label="PDF завжди під рукою"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<DownloadIcon />}
+                label="Завантаження в 1 клік"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<FolderOpenIcon />}
+                label="Всі акти в одному місці"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+            </Stack>
+          </Alert>
+        </Box>
+
         <Box sx={{ maxWidth: 1200, mx: "auto" }}>
           <ActsCard
             organizationId={organizationId}
@@ -213,6 +284,7 @@ export default function ActsPage() {
               )}
             </Box>
           </ActsCard>
+
           <CreateActDialog
             open={createDialogOpen}
             onClose={closeCreate}

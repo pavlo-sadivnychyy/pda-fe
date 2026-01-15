@@ -12,6 +12,9 @@ import {
 } from "@mui/material";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -223,6 +226,33 @@ export default function InvoicesPage() {
             Створюй рахунки, надсилай UA/International на email, керуй статусами
             та видаляй інвойси.
           </Typography>
+        </Box>
+
+        {/* ✅ Friendly tip (додано) */}
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Alert
+            icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
+            severity="info"
+            sx={{
+              bgcolor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 3,
+              "& .MuiAlert-message": { width: "100%" },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.8 }}>
+              <AccountBalanceIcon
+                sx={{ fontSize: 18, mt: "2px", color: "#64748b" }}
+              />
+              <Typography
+                variant="body2"
+                sx={{ color: "#334155", lineHeight: 1.55 }}
+              >
+                <strong>Порада:</strong> Для формування повного інвойсу з
+                реквізитами додай платіжні реквізити в профілі організації.
+              </Typography>
+            </Box>
+          </Alert>
         </Box>
 
         <Box sx={{ maxWidth: 1500, mx: "auto" }}>

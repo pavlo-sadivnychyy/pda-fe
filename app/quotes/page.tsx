@@ -27,6 +27,12 @@ import { QuotesCard } from "@/app/quotes/components/QuotesCard";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import * as React from "react";
 
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import BoltIcon from "@mui/icons-material/Bolt";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+
 const quotesKeys = {
   all: ["quotes"] as const,
   list: (organizationId?: string) =>
@@ -119,7 +125,6 @@ export default function QuotesPage() {
 
       const invoiceId = data?.invoice?.id;
       if (invoiceId) {
-        // відкриваємо PDF інвойсу
         window.open(
           `/api/pdf/invoices/${invoiceId}`,
           "_blank",
@@ -144,6 +149,8 @@ export default function QuotesPage() {
     }
   };
 
+  const quotesCount = quotes.length;
+
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
@@ -155,6 +162,7 @@ export default function QuotesPage() {
           >
             Повернутись назад
           </Button>
+
           <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
@@ -184,7 +192,7 @@ export default function QuotesPage() {
             </Stack>
 
             <Chip
-              label={`Всього: ${clients.length}`}
+              label={`Всього: ${quotesCount}`}
               size="small"
               sx={{
                 bgcolor: "#ffffff",
@@ -198,6 +206,79 @@ export default function QuotesPage() {
           <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
             Створюй пропозиції клієнтам і конвертуй в інвойс в один клік.
           </Typography>
+        </Box>
+
+        {/* ✅ Friendly hint block (додано) */}
+        <Box sx={{ mt: 2, mb: 3 }}>
+          <Alert
+            icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
+            severity="info"
+            sx={{
+              bgcolor: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 3,
+              "& .MuiAlert-message": { width: "100%" },
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{ color: "#334155", lineHeight: 1.55 }}
+            >
+              Тут зручно тримати весь процес під контролем:{" "}
+              <strong>змінюй статуси</strong> (в роботі / на погодженні /
+              прийнято / відхилено), щоб у будь-який момент бачити,{" "}
+              <strong>на якому етапі кожна угода</strong>. А коли клієнт погодив
+              пропозицію — можна <strong>перетворити її в інвойс</strong> одним
+              кліком, без дублювання даних і ручного копіювання.
+            </Typography>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              sx={{ mt: 1.25 }}
+            >
+              <Chip
+                size="small"
+                icon={<TimelineIcon />}
+                label="Статуси = прозорий процес"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<AutorenewIcon />}
+                label="Без дублювання даних"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<ReceiptLongIcon />}
+                label="Конвертація в інвойс"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                size="small"
+                icon={<BoltIcon />}
+                label="1 клік → готовий документ"
+                sx={{
+                  bgcolor: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  fontWeight: 600,
+                }}
+              />
+            </Stack>
+          </Alert>
         </Box>
 
         {/* Твій існуючий UI */}
