@@ -14,22 +14,28 @@ import { TodayTasksCard } from "./components/TodayTasksCard";
 import { AiChatCard } from "@/components/Home/components/AiChatCard";
 import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadlinesCard";
 
+import { useRecentActivity } from "@/components/Home/hooks/useRecentActivity";
+import { RecentActivityCard } from "@/components/Home/components/RecentActivityCard";
+
 export default function HomePage() {
   const router = useRouter();
 
   const { data: userData } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
-  // const todayDateString = dayjs().format("YYYY-MM-DD");
-
   const profile = useHomeProfile(currentUserId);
   const today = useTodayTasks(currentUserId);
-  // const ai = useAiPlan(currentUserId, todayDateString);
-
-  // const currentPlanFromApi: PlanId =
-  //   ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
   const organizationId = profile.organization?.id ?? null;
+
+  const activity = useRecentActivity(organizationId, 3);
+
+  const openEntity = (type: "INVOICE" | "ACT" | "QUOTE", id: string) => {
+    // ✅ якщо у тебе інші маршрути деталей — підправ тут
+    if (type === "INVOICE") router.push(`/invoices/${id}`);
+    if (type === "ACT") router.push(`/acts/${id}`);
+    if (type === "QUOTE") router.push(`/quotes/${id}`);
+  };
 
   return (
     <Box
@@ -62,6 +68,14 @@ export default function HomePage() {
 
             <DocumentsCard />
 
+            {/* ✅ NEW: Activity logs card */}
+            <RecentActivityCard
+              items={activity.items}
+              loading={activity.isLoading || activity.isFetching}
+              onOpenHistory={() => router.push("/activity")}
+              onOpenEntity={openEntity}
+            />
+
             <AiChatCard />
 
             <TodayTasksCard
@@ -71,16 +85,12 @@ export default function HomePage() {
               isFetching={today.isFetching}
               onOpenTodo={() => router.push("/todo")}
             />
-
-            {/*<PlanCard currentPlan={currentPlanFromApi} />*/}
-            {/* ✅ NEW: 5 separate cards */}
           </Grid>
 
           {/* Right */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <InvoiceDeadlinesCard
               organizationId={organizationId}
-              onOpenInvoices={() => router.push("/invoices")}
               minDays={1}
               maxDays={2}
             />

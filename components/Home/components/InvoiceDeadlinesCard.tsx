@@ -56,12 +56,10 @@ function formatDueLabel(dueIso: string | null) {
 
 export function InvoiceDeadlinesCard({
   organizationId,
-  onOpenInvoices,
   minDays = 1,
   maxDays = 2,
 }: {
   organizationId: string | null;
-  onOpenInvoices: () => void;
   minDays?: number;
   maxDays?: number;
 }) {
