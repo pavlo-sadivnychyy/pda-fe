@@ -16,17 +16,13 @@ api.interceptors.request.use(
   async (config) => {
     // ✅ додай Clerk JWT у заголовок
     const token = await getClerkToken();
-    console.log(token);
     if (token) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     if (process.env.NODE_ENV === "development") {
-      console.log(
-        `[API] ${config.method?.toUpperCase()} → ${config.url}`,
-        config.data || "",
-      );
+      console.log("dev");
     }
 
     return config;

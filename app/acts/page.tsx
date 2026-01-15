@@ -76,15 +76,19 @@ export default function ActsPage() {
       notes,
     } = form.fields;
 
-    await createFromInvoice.mutateAsync({
-      invoiceId: selectedInvoiceId,
-      number: actNumber.trim(),
-      createdById: currentUserId,
-      title: actTitle.trim() ? actTitle.trim() : undefined,
-      periodFrom: periodFrom || undefined,
-      periodTo: periodTo || undefined,
-      notes: notes || undefined,
-    });
+    await createFromInvoice
+      .mutateAsync({
+        invoiceId: selectedInvoiceId,
+        number: actNumber.trim(),
+        createdById: currentUserId,
+        title: actTitle.trim() ? actTitle.trim() : undefined,
+        periodFrom: periodFrom || undefined,
+        periodTo: periodTo || undefined,
+        notes: notes || undefined,
+      })
+      .catch(() => {
+        openSnack("Акт за цим інвойсом вже існує");
+      });
 
     setCreateDialogOpen(false);
     openSnack("Акт створено");
@@ -278,6 +282,7 @@ export default function ActsPage() {
                       textTransform: "none",
                       borderRadius: 999,
                       bgcolor: "#111827",
+                      color: "white",
                       "&:hover": { bgcolor: "#020617" },
                     }}
                   >

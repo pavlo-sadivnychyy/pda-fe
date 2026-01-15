@@ -48,6 +48,8 @@ export const InvoiceItemsEditor = ({
             <TextField
               label="Назва"
               fullWidth
+              placeholder={"Позиція"}
+              variant="standard"
               InputLabelProps={{ shrink: true }}
               value={item.name}
               onChange={(e) => onItemChange(index, "name", e.target.value)}
@@ -55,6 +57,7 @@ export const InvoiceItemsEditor = ({
             <TextField
               label="Кількість"
               type="number"
+              variant="standard"
               fullWidth
               inputProps={{ min: 0, step: "0.01" }}
               InputLabelProps={{ shrink: true }}
@@ -64,6 +67,7 @@ export const InvoiceItemsEditor = ({
             <TextField
               label="Ціна за одиницю"
               type="number"
+              variant="standard"
               fullWidth
               inputProps={{ min: 0, step: "0.01" }}
               InputLabelProps={{ shrink: true }}
@@ -71,6 +75,7 @@ export const InvoiceItemsEditor = ({
               onChange={(e) => onItemChange(index, "unitPrice", e.target.value)}
             />
             <TextField
+              variant="standard"
               label="ПДВ, %"
               type="number"
               fullWidth
@@ -99,6 +104,7 @@ export const InvoiceItemsEditor = ({
 
             <TextField
               label="Опис"
+              variant="standard"
               fullWidth
               multiline
               minRows={2}
@@ -126,6 +132,7 @@ export const InvoiceItemsEditor = ({
             startIcon={<AddIcon />}
             variant="outlined"
             size="small"
+            color={"primary.contrastText"}
             onClick={onAddItem}
             sx={{ borderRadius: 999, textTransform: "none" }}
           >

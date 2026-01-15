@@ -254,6 +254,7 @@ export function PaymentDetailsCard({
                   textTransform: "none",
                   borderRadius: 999,
                   bgcolor: "#111827",
+                  color: "white",
                   "&:hover": { bgcolor: "#020617" },
                 }}
               >
@@ -266,6 +267,7 @@ export function PaymentDetailsCard({
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  variant={"standard"}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="Beneficiary name"
@@ -278,6 +280,7 @@ export function PaymentDetailsCard({
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
                   fullWidth
+                  variant={"standard"}
                   InputLabelProps={{ shrink: true }}
                   label="Legal name"
                   placeholder="Legal name"
@@ -290,6 +293,7 @@ export function PaymentDetailsCard({
                 <TextField
                   InputLabelProps={{ shrink: true }}
                   fullWidth
+                  variant={"standard"}
                   label="VAT / Tax ID"
                   placeholder="VAT / Tax ID"
                   value={form.vatId}
@@ -301,6 +305,7 @@ export function PaymentDetailsCard({
                 <TextField
                   InputLabelProps={{ shrink: true }}
                   fullWidth
+                  variant={"standard"}
                   label="Registration number"
                   placeholder="Registration number"
                   value={form.registrationNumber}
@@ -311,6 +316,7 @@ export function PaymentDetailsCard({
               <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
                 <TextField
                   fullWidth
+                  variant={"standard"}
                   InputLabelProps={{ shrink: true }}
                   label="Legal address"
                   placeholder="Legal address"
@@ -321,6 +327,7 @@ export function PaymentDetailsCard({
 
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  variant={"standard"}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="IBAN"
@@ -332,6 +339,7 @@ export function PaymentDetailsCard({
 
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  variant={"standard"}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="SWIFT / BIC"
@@ -343,6 +351,7 @@ export function PaymentDetailsCard({
 
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  variant={"standard"}
                   InputLabelProps={{ shrink: true }}
                   fullWidth
                   label="Bank name"
@@ -354,6 +363,7 @@ export function PaymentDetailsCard({
 
               <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
                 <TextField
+                  variant={"standard"}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="Bank address"
@@ -365,6 +375,7 @@ export function PaymentDetailsCard({
 
               <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
                 <TextField
+                  variant={"standard"}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="Payment reference hint"
@@ -408,6 +419,7 @@ export function PaymentDetailsCard({
                   textTransform: "none",
                   borderRadius: 999,
                   bgcolor: "#111827",
+                  color: "white",
                   "&:hover": { bgcolor: "#020617" },
                 }}
               >

@@ -1,20 +1,44 @@
 "use client";
 
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   Button,
   Dialog,
   DialogContent,
-  FormControl,
-  InputLabel,
+  DialogTitle,
+  IconButton,
   MenuItem,
-  Select,
   TextField,
   Typography,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import type { Client, InvoiceStatus } from "../types";
 import { InvoiceItemsEditor } from "./InvoiceItemsEditor";
 import { InvoiceTotals } from "./InvoiceTotals";
+import { INVOICE_STATUS_OPTIONS } from "@/app/invoices/utils";
+
+type InvoiceForm = {
+  clientId: string;
+  issueDate: string; // YYYY-MM-DD
+  dueDate: string; // YYYY-MM-DD
+  currency: string;
+  notes: string;
+  items: any[];
+};
+
+function toDayjs(value: string): Dayjs | null {
+  if (!value) return null;
+  const d = dayjs(value);
+  return d.isValid() ? d : null;
+}
+
+function toISODate(value: Dayjs | null): string {
+  if (!value) return "";
+  return value.format("YYYY-MM-DD");
+}
 
 export const CreateInvoiceDialog = ({
   open,
@@ -40,15 +64,8 @@ export const CreateInvoiceDialog = ({
   formStatus: InvoiceStatus;
   setFormStatus: (s: InvoiceStatus) => void;
 
-  form: {
-    clientId: string;
-    issueDate: string;
-    dueDate: string;
-    currency: string;
-    notes: string;
-    items: any[];
-  };
-  setField: (field: any, value: string) => void;
+  form: InvoiceForm;
+  setField: (field: keyof InvoiceForm, value: string) => void;
   setItemField: (index: number, field: any, value: string) => void;
   addItem: () => void;
   removeItem: (index: number) => void;
@@ -60,115 +77,128 @@ export const CreateInvoiceDialog = ({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={submitting ? undefined : onClose}
       maxWidth="md"
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
     >
-      <DialogContent sx={{ padding: "24px" }}>
-        <Box
-          sx={{
-            display: "inline-flex",
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: "#f3f4f6",
-            mb: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ letterSpacing: 0.8, fontWeight: 600, color: "#6b7280" }}
-          >
-            INVOICES
-          </Typography>
-        </Box>
-
-        <Typography
-          variant="h5"
-          sx={{ fontWeight: 700, mb: 0.5, color: "#020617" }}
-        >
+      {/* ✅ HEADER з кнопкою X */}
+      <DialogTitle
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
+          bgcolor: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <Typography sx={{ fontWeight: 800, fontSize: 18, color: "#020617" }}>
           Створити інвойс
         </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: "#6b7280", mb: 3, maxWidth: 620 }}
-        >
-          Обери клієнта, заповни реквізити рахунку, додай позиції та суми —
-          система автоматично підрахує загальну суму.
-        </Typography>
 
+        <IconButton
+          onClick={onClose}
+          disabled={submitting}
+          size="small"
+          aria-label="Close dialog"
+          sx={{
+            color: "#6b7280",
+            "&:hover": { bgcolor: "#f3f4f6" },
+            "&.Mui-disabled": { color: "#cbd5e1" },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent sx={{ padding: "24px" }}>
         <Box
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
             gap: 2.5,
             mb: 3,
+            paddingTop: "15px",
           }}
         >
-          <FormControl fullWidth>
-            <InputLabel shrink id="client-select-label">
-              Клієнт
-            </InputLabel>
-            <Select
-              labelId="client-select-label"
-              label="Клієнт"
-              value={form.clientId}
-              onChange={(e) => setField("clientId", e.target.value)}
-              disabled={loadingClients}
-              displayEmpty
-            >
-              <MenuItem value="">
-                <em>Без клієнта</em>
+          <TextField
+            select
+            label="Клієнт"
+            fullWidth
+            variant="standard"
+            value={form.clientId}
+            onChange={(e) => setField("clientId", e.target.value)}
+            disabled={loadingClients}
+            InputLabelProps={{ shrink: true }}
+            SelectProps={{ displayEmpty: true }}
+          >
+            <MenuItem value="">
+              <em>Обери клієнта</em>
+            </MenuItem>
+            {clients.map((client) => (
+              <MenuItem key={client.id} value={client.id}>
+                {client.name}
+                {client.contactName ? ` — ${client.contactName}` : ""}
               </MenuItem>
-              {clients.map((client) => (
-                <MenuItem key={client.id} value={client.id}>
-                  {client.name}
-                  {client.contactName ? ` — ${client.contactName}` : ""}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth>
-            <InputLabel shrink id="status-select-label">
-              Статус
-            </InputLabel>
-            <Select
-              labelId="status-select-label"
-              label="Статус"
-              value={formStatus}
-              onChange={(e) => setFormStatus(e.target.value as InvoiceStatus)}
-            >
-              <MenuItem value="DRAFT">Чернетка</MenuItem>
-              <MenuItem value="SENT">Надіслано</MenuItem>
-              <MenuItem value="PAID">Оплачено</MenuItem>
-              <MenuItem value="OVERDUE">Прострочено</MenuItem>
-              <MenuItem value="CANCELLED">Скасовано</MenuItem>
-            </Select>
-          </FormControl>
+            ))}
+          </TextField>
 
           <TextField
-            label="Дата виставлення"
-            type="date"
+            select
+            label="Статус"
             fullWidth
+            variant="standard"
+            value={formStatus}
+            onChange={(e) => setFormStatus(e.target.value as InvoiceStatus)}
             InputLabelProps={{ shrink: true }}
-            value={form.issueDate}
-            onChange={(e) => setField("issueDate", e.target.value)}
+          >
+            {INVOICE_STATUS_OPTIONS.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {/* ✅ MUI DatePicker: issueDate */}
+          <DatePicker
+            variant={"standard"}
+            label="Дата виставлення"
+            value={toDayjs(form.issueDate)}
+            onChange={(d) => setField("issueDate", toISODate(d))}
+            disabled={submitting}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                variant: "standard",
+                InputLabelProps: { shrink: true },
+              },
+            }}
           />
 
-          <TextField
+          {/* ✅ MUI DatePicker: dueDate */}
+          <DatePicker
             label="Кінцевий термін оплати"
-            type="date"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            value={form.dueDate}
-            onChange={(e) => setField("dueDate", e.target.value)}
+            value={toDayjs(form.dueDate)}
+            onChange={(d) => setField("dueDate", toISODate(d))}
+            disabled={submitting}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                variant: "standard",
+                InputLabelProps: { shrink: true },
+              },
+            }}
           />
 
           <TextField
             label="Валюта"
             fullWidth
+            variant="standard"
             InputLabelProps={{ shrink: true }}
             value={form.currency}
             onChange={(e) => setField("currency", e.target.value)}
@@ -177,8 +207,10 @@ export const CreateInvoiceDialog = ({
           <TextField
             label="Нотатки (опціонально)"
             fullWidth
+            variant="standard"
             multiline
-            minRows={2}
+            minRows={1}
+            placeholder={"Введіть нотатки"}
             InputLabelProps={{ shrink: true }}
             value={form.notes}
             onChange={(e) => setField("notes", e.target.value)}
@@ -202,19 +234,12 @@ export const CreateInvoiceDialog = ({
         <Box
           sx={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             alignItems: "center",
             mt: 4,
             gap: 2,
           }}
         >
-          <Button
-            onClick={onClose}
-            sx={{ textTransform: "none", color: "#6b7280" }}
-          >
-            Скасувати
-          </Button>
-
           <Button
             variant="contained"
             onClick={onSubmit}
@@ -224,6 +249,7 @@ export const CreateInvoiceDialog = ({
               borderRadius: 999,
               px: 3,
               bgcolor: "#111827",
+              color: "white",
               "&:hover": { bgcolor: "#020617" },
             }}
           >

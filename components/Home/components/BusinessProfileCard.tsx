@@ -137,6 +137,7 @@ export function BusinessProfileCard({
               borderRadius: 999,
               textTransform: "none",
               fontWeight: 700,
+              border: "none",
               boxShadow: "none",
               bgcolor: "#111827",
               "&:hover": { bgcolor: "#1f2937", boxShadow: "none" },
