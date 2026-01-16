@@ -24,7 +24,6 @@ export function useTodayTasks(currentUserId: string | null) {
 
   const tasks: TodoTask[] = query.data?.items ?? [];
   const count = tasks.length;
-
   return {
     ...query,
     tasks,

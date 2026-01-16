@@ -9,7 +9,6 @@ import {
   CardHeader,
   Chip,
   Divider,
-  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
@@ -21,6 +20,7 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import { InfinitySpin } from "react-loader-spinner";
 
 import type { ActivityLog } from "../hooks/useRecentActivity";
 
@@ -171,14 +171,13 @@ export function RecentActivityCard({
   loading,
   onOpenHistory,
   onOpenEntity,
-  dragHandle, // ✅ NEW
+  dragHandle,
 }: {
   items: ActivityLog[];
   loading: boolean;
   onOpenHistory: () => void;
   onOpenEntity: (type: ActivityLog["entityType"], id: string) => void;
-
-  dragHandle?: React.ReactNode; // ✅ NEW
+  dragHandle?: React.ReactNode;
 }) {
   const empty = !loading && items?.length === 0;
 
@@ -226,7 +225,6 @@ export function RecentActivityCard({
               Перейти
             </Button>
 
-            {/* ✅ Хваталка в хедері */}
             <Box sx={{ mr: 0.5 }}>{dragHandle}</Box>
           </Stack>
         }
@@ -236,11 +234,21 @@ export function RecentActivityCard({
       <CardContent sx={{ pt: 1.25 }}>
         <Stack spacing={1.25}>
           {loading ? (
-            <>
-              <Skeleton height={44} sx={{ borderRadius: 2 }} />
-              <Skeleton height={44} sx={{ borderRadius: 2 }} />
-              <Skeleton height={44} sx={{ borderRadius: 2 }} />
-            </>
+            <Box
+              sx={{
+                py: 4,
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <InfinitySpin width="160" color="#202124" />
+              <Typography
+                variant="body2"
+                sx={{ mt: 1.5, color: "text.secondary" }}
+              >
+                Завантажуємо історію...
+              </Typography>
+            </Box>
           ) : empty ? (
             <Box
               sx={{
