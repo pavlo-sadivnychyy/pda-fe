@@ -149,10 +149,8 @@ function buildDetails(e: ActivityLog) {
   const bits: string[] = [];
 
   if (e.eventType === "STATUS_CHANGED") {
-    // якщо бекенд віддає готовий рядок
     const raw =
       (e as any).status ?? `${e.fromStatus ?? ""} → ${e.toStatus ?? ""}`;
-
     bits.push(uaStatusFromString(raw));
   }
 
@@ -173,16 +171,19 @@ export function RecentActivityCard({
   loading,
   onOpenHistory,
   onOpenEntity,
+  dragHandle, // ✅ NEW
 }: {
   items: ActivityLog[];
   loading: boolean;
   onOpenHistory: () => void;
   onOpenEntity: (type: ActivityLog["entityType"], id: string) => void;
+
+  dragHandle?: React.ReactNode; // ✅ NEW
 }) {
-  const empty = !loading && items.length === 0;
+  const empty = !loading && items?.length === 0;
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         avatar={
           <Box
@@ -209,20 +210,25 @@ export function RecentActivityCard({
           </Typography>
         }
         action={
-          <Button
-            onClick={onOpenHistory}
-            endIcon={<ArrowForwardIosIcon sx={{ fontSize: 14 }} />}
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              color: "#111827",
-              borderRadius: 999,
-              px: 1.5,
-              "&:hover": { bgcolor: "#f3f4f6" },
-            }}
-          >
-            Перейти
-          </Button>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Button
+              onClick={onOpenHistory}
+              endIcon={<ArrowForwardIosIcon sx={{ fontSize: 14 }} />}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                color: "#111827",
+                borderRadius: 999,
+                px: 1.5,
+                "&:hover": { bgcolor: "#f3f4f6" },
+              }}
+            >
+              Перейти
+            </Button>
+
+            {/* ✅ Хваталка в хедері */}
+            <Box sx={{ mr: 0.5 }}>{dragHandle}</Box>
+          </Stack>
         }
         sx={{ pb: 0 }}
       />
@@ -250,7 +256,7 @@ export function RecentActivityCard({
               </Typography>
             </Box>
           ) : (
-            items.map((e, idx) => (
+            items?.map((e, idx) => (
               <Box
                 key={e.id}
                 sx={{

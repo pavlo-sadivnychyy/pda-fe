@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Box,
   Button,
   Card,
   CardContent,
@@ -27,6 +28,7 @@ type Props = {
   isLoading: boolean;
   isFetching: boolean;
   onOpenTodo: () => void;
+  dragHandle?: React.ReactNode; // ✅ NEW
 };
 
 export function TodayTasksCard({
@@ -35,11 +37,12 @@ export function TodayTasksCard({
   isLoading,
   isFetching,
   onOpenTodo,
+  dragHandle,
 }: Props) {
   const showLoader = isLoading || isFetching;
 
   return (
-    <Card data-onb="card-todo" elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card data-onb="card-todo" elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         avatar={<CheckCircleIcon sx={{ color: "#16a34a" }} />}
         title={
@@ -52,6 +55,7 @@ export function TodayTasksCard({
             Короткий огляд запланованих справ на поточний день.
           </Typography>
         }
+        action={<Box sx={{ mr: 0.5 }}>{dragHandle}</Box>}
         sx={{ pb: 0 }}
       />
       <CardContent sx={{ pt: 1.5 }}>
