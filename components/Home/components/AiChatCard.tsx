@@ -61,7 +61,7 @@ export function AiChatCard() {
               fullWidth
               variant="contained"
               startIcon={<AutoAwesomeIcon />}
-              onClick={() => router.push("/ai-chat")}
+              onClick={() => router.push("/chat")}
               sx={{
                 mt: 0.5,
                 borderRadius: 999,

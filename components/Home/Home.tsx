@@ -16,6 +16,7 @@ import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadli
 
 import { useRecentActivity } from "@/components/Home/hooks/useRecentActivity";
 import { RecentActivityCard } from "@/components/Home/components/RecentActivityCard";
+import { PlanCard, PlanId } from "@/components/Home/components/PlanCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -29,6 +30,9 @@ export default function HomePage() {
   const organizationId = profile.organization?.id ?? null;
 
   const activity = useRecentActivity(organizationId, 3);
+
+  const currentPlanFromApi: PlanId =
+    ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
   const openEntity = (type: "INVOICE" | "ACT" | "QUOTE", id: string) => {
     // ✅ якщо у тебе інші маршрути деталей — підправ тут
@@ -94,6 +98,8 @@ export default function HomePage() {
               minDays={1}
               maxDays={2}
             />
+
+            <PlanCard currentPlan={currentPlanFromApi} />
 
             <FinanceShortcutsCards
               onOpenClients={() => router.push("/clients")}
