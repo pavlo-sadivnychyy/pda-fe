@@ -12,6 +12,7 @@ import {
   ListItemText,
   Stack,
   Typography,
+  Box,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -25,6 +26,9 @@ type Props = {
   hasBrandStyle: boolean;
   buttonLabel: string;
   onOpenProfile: () => void;
+
+  // ✅ NEW
+  dragHandle?: React.ReactNode;
 };
 
 export function BusinessProfileCard({
@@ -36,13 +40,10 @@ export function BusinessProfileCard({
   hasBrandStyle,
   buttonLabel,
   onOpenProfile,
+  dragHandle,
 }: Props) {
   return (
-    <Card
-      data-onb="card-organization"
-      elevation={3}
-      sx={{ borderRadius: 3, mb: 3 }}
-    >
+    <Card elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         title={
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -56,6 +57,7 @@ export function BusinessProfileCard({
           </Typography>
         }
         sx={{ pb: 0 }}
+        action={<Box sx={{ mr: 1 }}>{dragHandle}</Box>}
       />
       <CardContent sx={{ pt: 2 }}>
         <Stack spacing={2}>

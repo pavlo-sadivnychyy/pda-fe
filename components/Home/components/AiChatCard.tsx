@@ -13,11 +13,11 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useRouter } from "next/navigation";
 
-export function AiChatCard() {
+export function AiChatCard({ dragHandle }: { dragHandle?: React.ReactNode }) {
   const router = useRouter();
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+    <Card elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         avatar={
           <Box
@@ -43,6 +43,7 @@ export function AiChatCard() {
             Допомагає працювати швидше
           </Typography>
         }
+        action={<Box sx={{ mr: 0.5 }}>{dragHandle}</Box>}
       />
       <CardContent sx={{ pt: 0 }}>
         <Stack spacing={1.25}>

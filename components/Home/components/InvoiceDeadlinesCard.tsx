@@ -58,10 +58,12 @@ export function InvoiceDeadlinesCard({
   organizationId,
   minDays = 1,
   maxDays = 2,
+  dragHandle, // ✅ NEW
 }: {
   organizationId: string | null;
   minDays?: number;
   maxDays?: number;
+  dragHandle?: React.ReactNode; // ✅ NEW
 }) {
   const dueSoon = useDueSoonInvoices({
     organizationId,
@@ -75,7 +77,7 @@ export function InvoiceDeadlinesCard({
 
   const [snack, setSnack] = React.useState<{
     open: boolean;
-    kind: "success" | "error";
+    kind: "success" | "error" | "warning"; // ✅ fixed
     text: string;
   }>({ open: false, kind: "success", text: "" });
 
@@ -95,20 +97,19 @@ export function InvoiceDeadlinesCard({
         text: "Нагадування надіслано на email клієнта.",
       });
     } catch (e: any) {
-      const msg =
+      const already =
         e?.response?.data?.message ===
-        "Reminder was already sent recently. Try later or use force."
-          ? "Ви вже надіслали нагадування цьому клієнту"
-          : e?.response?.data?.message ||
-            e?.message ||
-            "Не вдалося надіслати нагадування.";
+        "Reminder was already sent recently. Try later or use force.";
+
+      const msg = already
+        ? "Ви вже надіслали нагадування цьому клієнту"
+        : e?.response?.data?.message ||
+          e?.message ||
+          "Не вдалося надіслати нагадування.";
+
       setSnack({
         open: true,
-        kind:
-          e?.response?.data?.message ===
-          "Reminder was already sent recently. Try later or use force."
-            ? "warning"
-            : "error",
+        kind: already ? "warning" : "error",
         text: String(msg),
       });
     }
@@ -118,7 +119,7 @@ export function InvoiceDeadlinesCard({
 
   return (
     <>
-      <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
+      <Card elevation={3} sx={{ borderRadius: 3 }}>
         <CardHeader
           avatar={
             <Box
@@ -150,12 +151,14 @@ export function InvoiceDeadlinesCard({
                 onClick={() => dueSoon.refetch()}
                 disabled={dueSoon.isFetching}
                 sx={{
-                  mr: 0.5,
                   "&:hover": { bgcolor: "#f3f4f6" },
                 }}
               >
                 <RefreshIcon fontSize="small" />
               </IconButton>
+
+              {/* ✅ drag handle */}
+              <Box sx={{ ml: 0.25, mr: 0.5 }}>{dragHandle}</Box>
             </Stack>
           }
         />

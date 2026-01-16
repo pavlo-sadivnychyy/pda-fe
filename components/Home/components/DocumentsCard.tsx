@@ -15,15 +15,15 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import SearchIcon from "@mui/icons-material/Search";
 import { useRouter } from "next/navigation";
 
-export function DocumentsCard() {
+type Props = {
+  dragHandle?: React.ReactNode; // ✅ NEW
+};
+
+export function DocumentsCard({ dragHandle }: Props) {
   const router = useRouter();
 
   return (
-    <Card
-      data-onb="card-documents"
-      elevation={3}
-      sx={{ borderRadius: 3, mb: 3 }}
-    >
+    <Card data-onb="card-documents" elevation={3} sx={{ borderRadius: 3 }}>
       <CardHeader
         avatar={<DescriptionIcon sx={{ color: "#6b7280" }} />}
         title={
@@ -36,6 +36,8 @@ export function DocumentsCard() {
             Всі файли та згенеровані документи в одному місці.
           </Typography>
         }
+        // ✅ Хваталка в правому кутку хедера
+        action={<Box sx={{ mr: 1 }}>{dragHandle}</Box>}
       />
 
       <CardContent sx={{ pt: 1 }}>
@@ -84,7 +86,7 @@ export function DocumentsCard() {
           </Typography>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
-            <SearchIcon color={"warning"} sx={{ fontSize: 18 }} />
+            <SearchIcon color="warning" sx={{ fontSize: 18 }} />
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               Жодних пошуків у пошті чи чатах — все впорядковано тут.
             </Typography>
