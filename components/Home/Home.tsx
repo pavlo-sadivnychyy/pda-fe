@@ -610,6 +610,7 @@ import {
   DragStartEvent,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -713,6 +714,13 @@ function DragHandleButton({
           width: 32,
           height: 32,
           color: "#6b7280",
+
+          // ✅ iOS/Telegram WebView: щоб жест не перехоплювався як скрол/зум
+          touchAction: "none",
+          WebkitUserSelect: "none",
+          userSelect: "none",
+          WebkitTouchCallout: "none",
+
           "&:hover": { bgcolor: "rgba(0,0,0,0.05)" },
         }}
       >
@@ -890,14 +898,35 @@ export default function HomePage() {
     saveOrderClient(order);
   }, [order, mounted]);
 
+  const [activeId, setActiveId] = React.useState<CardKey | null>(null);
+
+  // ✅ Telegram/iOS інколи не викликає onDragEnd, а дає cancel/blur — скидаємо activeId
+  React.useEffect(() => {
+    const reset = () => setActiveId(null);
+
+    window.addEventListener("blur", reset);
+
+    const onVis = () => {
+      if (document.hidden) reset();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      window.removeEventListener("blur", reset);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 120, tolerance: 8 }, // ✅ long-press для моб
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
-  const [activeId, setActiveId] = React.useState<CardKey | null>(null);
   const sizesRef = React.useRef<Record<string, { w: number; h: number }>>({});
 
   const onMeasured = React.useCallback(
@@ -909,6 +938,11 @@ export default function HomePage() {
 
   const onDragStart = (e: DragStartEvent) => {
     setActiveId(e.active.id as CardKey);
+  };
+
+  const onDragCancel = () => {
+    // ✅ must-have: прибирає "зависання"
+    setActiveId(null);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
@@ -1084,7 +1118,7 @@ export default function HomePage() {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, // ✅ гарантовано 2 колонки на md+
+        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         gap: 3,
         width: "100%",
       }}
@@ -1122,6 +1156,7 @@ export default function HomePage() {
             collisionDetection={closestCenter}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
+            onDragCancel={onDragCancel}
             measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
           >
             <SortableContext items={order} strategy={rectSortingStrategy}>
