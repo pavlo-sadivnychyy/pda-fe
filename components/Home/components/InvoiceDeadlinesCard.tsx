@@ -120,7 +120,7 @@ export function InvoiceDeadlinesCard({
 
   return (
     <>
-      <Card elevation={3} sx={{ borderRadius: 3 }}>
+      <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
         <CardHeader
           avatar={
             <Box
