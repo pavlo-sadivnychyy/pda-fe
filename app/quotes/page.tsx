@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -9,6 +10,8 @@ import {
   Snackbar,
   Stack,
   Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -32,6 +35,8 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import BoltIcon from "@mui/icons-material/Bolt";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { CreateQuoteDialog } from "@/app/quotes/components/CreateQuoteDialog";
+import BusinessIcon from "@mui/icons-material/Business";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 const quotesKeys = {
   all: ["quotes"] as const,
@@ -63,6 +68,56 @@ async function convertQuoteToInvoice(id: string) {
   return res.data; // { invoice }
 }
 
+function NoOrgState() {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 640,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(25,118,210,0.08)",
+            }}
+          >
+            <BusinessIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Спочатку створи організацію
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            Комерційні пропозиції прив’язані до організації. Створи її — і тоді
+            зможеш створювати quotes та конвертувати їх в інвойс.
+          </Typography>
+
+          <Button
+            component={Link}
+            href="/organization"
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{ borderRadius: 999, px: 2.5 }}
+          >
+            Перейти до створення
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function QuotesPage() {
   const queryClient = useQueryClient();
 
@@ -76,12 +131,19 @@ export default function QuotesPage() {
     return org?.id ?? null;
   }, [orgData]);
 
-  const { clientsQuery } = useClientsQueries(organizationId || undefined);
+  const canWork = Boolean(organizationId);
+
+  const { clientsQuery } = useClientsQueries(
+    canWork ? (organizationId as string) : undefined,
+  );
   const clients = clientsQuery.data ?? [];
 
-  const quotesQuery = useQuotesQuery(organizationId || undefined);
+  const quotesQuery = useQuotesQuery(
+    canWork ? (organizationId as string) : undefined,
+  );
   const quotes = quotesQuery.data ?? [];
   const router = useRouter();
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -95,11 +157,15 @@ export default function QuotesPage() {
 
   const refreshQuotes = async () => {
     await queryClient.invalidateQueries({
-      queryKey: quotesKeys.list(organizationId || undefined),
+      queryKey: quotesKeys.list(
+        canWork ? (organizationId as string) : undefined,
+      ),
     });
   };
 
   const onAction = async (id: string, action: QuoteAction) => {
+    if (!canWork) return;
+
     try {
       setBusyId(id);
       await postQuoteAction(id, action);
@@ -118,6 +184,8 @@ export default function QuotesPage() {
   };
 
   const onConvert = async (id: string) => {
+    if (!canWork) return;
+
     try {
       setBusyId(id);
       const data = await convertQuoteToInvoice(id);
@@ -150,6 +218,89 @@ export default function QuotesPage() {
   };
 
   const quotesCount = quotes.length;
+
+  // ✅ EMPTY-STATE: центр під хедером
+  if (!organizationId) {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              Повернутись назад
+            </Button>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "999px",
+                    bgcolor: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <RequestQuoteIcon sx={{ color: "#0f172a" }} />
+                </Box>
+
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "#0f172a" }}
+                >
+                  Комерційні пропозиції
+                </Typography>
+              </Stack>
+
+              <Chip
+                label="Всього: 0"
+                size="small"
+                sx={{
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+
+            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+              Створюй пропозиції клієнтам і конвертуй в інвойс в один клік.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pb: { xs: 2, sm: 3 },
+            }}
+          >
+            <NoOrgState />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
@@ -208,7 +359,7 @@ export default function QuotesPage() {
           </Typography>
         </Box>
 
-        {/* ✅ Friendly hint block (додано) */}
+        {/* ✅ Friendly hint block */}
         <Box sx={{ mt: 2, mb: 3 }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
@@ -281,7 +432,6 @@ export default function QuotesPage() {
           </Alert>
         </Box>
 
-        {/* Твій існуючий UI */}
         <Box sx={{ maxWidth: 1700, mx: "auto" }}>
           <QuotesCard
             count={clients.length}
@@ -320,6 +470,7 @@ export default function QuotesPage() {
           setSnackbar({ open: true, message: msg, severity: "error" })
         }
       />
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

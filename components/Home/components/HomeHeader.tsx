@@ -230,23 +230,80 @@ export function HomeHeader({
                   textTransform: "none",
                   borderRadius: 999,
                   fontWeight: 900,
-                  color: "#111827",
-                  borderColor: "#e5e7eb",
                   px: 1.25,
                   width: {
                     xs: "100%",
                     sm: "100%",
                     md: "100%",
                     lg: "fit-content",
-                  }, // ✅ tablet = 100%
+                  },
                   whiteSpace: "nowrap",
+
+                  // ✅ default
+                  color: "#111827",
+                  borderColor: "#e5e7eb",
+                  bgcolor: "#fff",
                   "&:hover": {
                     bgcolor: "rgba(17,24,39,0.04)",
                     borderColor: "#e5e7eb",
                   },
+
+                  // ✅ highlight when no org
+                  ...(hasOrganization
+                    ? {}
+                    : {
+                        borderColor: "rgba(245, 158, 11, 0.85)", // amber
+                        bgcolor: "rgba(245, 158, 11, 0.08)",
+                        color: "#92400e",
+                        boxShadow:
+                          "0 0 0 4px rgba(245, 158, 11, 0.14), 0 10px 22px rgba(245, 158, 11, 0.18)",
+                        position: "relative",
+                        "&:hover": {
+                          bgcolor: "rgba(245, 158, 11, 0.14)",
+                          borderColor: "rgba(245, 158, 11, 1)",
+                        },
+                        // subtle pulse ring
+                        "@keyframes orgPulse": {
+                          "0%": {
+                            boxShadow: "0 0 0 0 rgba(245, 158, 11, 0.35)",
+                          },
+                          "70%": {
+                            boxShadow: "0 0 0 10px rgba(245, 158, 11, 0)",
+                          },
+                          "100%": {
+                            boxShadow: "0 0 0 0 rgba(245, 158, 11, 0)",
+                          },
+                        },
+                        animation: "orgPulse 2.2s ease-out infinite",
+                      }),
                 }}
               >
-                Профіль
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    width: "100%",
+                    justifyContent: { xs: "space-between", lg: "center" },
+                  }}
+                >
+                  <span>Профіль організації</span>
+
+                  {!hasOrganization && (
+                    <Chip
+                      size="small"
+                      label="Потрібно"
+                      sx={{
+                        height: 22,
+                        fontWeight: 900,
+                        bgcolor: "rgba(245, 158, 11, 0.18)",
+                        border: "1px solid rgba(245, 158, 11, 0.45)",
+                        color: "#92400e",
+                        "& .MuiChip-label": { px: 1 },
+                      }}
+                    />
+                  )}
+                </Box>
               </Button>
             </Box>
 

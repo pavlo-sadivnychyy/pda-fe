@@ -1,6 +1,7 @@
 "use client";
 
 import axios from "axios";
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -10,6 +11,8 @@ import {
   Snackbar,
   Stack,
   Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import GroupIcon from "@mui/icons-material/Group";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
@@ -18,6 +21,8 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import BusinessIcon from "@mui/icons-material/Business";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -49,15 +54,81 @@ const getErrorMessage = (e: unknown) => {
   return "Помилка";
 };
 
+function NoOrgState() {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: { xs: "calc(100dvh - 220px)", sm: "calc(100dvh - 200px)" },
+        width: "100%",
+      }}
+    >
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 640,
+          borderRadius: 4,
+          border: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <Stack spacing={2.2} alignItems="center" textAlign="center">
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: 999,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: "rgba(25,118,210,0.08)",
+              }}
+            >
+              <BusinessIcon />
+            </Box>
+
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              Спочатку створи організацію
+            </Typography>
+
+            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+              Клієнти належать організації. Створи організацію — і тоді зможеш
+              додавати контакти, компанії та реквізити.
+            </Typography>
+
+            <Button
+              component={Link}
+              href="/organization"
+              variant="contained"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ borderRadius: 999, px: 2.5 }}
+            >
+              Перейти до створення
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
+
 export default function ClientsPage() {
   const { currentUserId, organizationId } = useOrganizationContext();
   const snackbar = useSnackbar();
   const formState = useClientForm();
   const router = useRouter();
 
-  const { clientsQuery } = useClientsQueries(organizationId);
-  const { createClient, updateClient, deleteClient } =
-    useClientMutations(organizationId);
+  // ✅ IMPORTANT: якщо нема org — не запускаємо бізнес-логіку/запити (але хуки викликаємо як є)
+  const canWork = Boolean(organizationId) && Boolean(currentUserId);
+
+  const { clientsQuery } = useClientsQueries(
+    canWork ? organizationId : undefined,
+  );
+  const { createClient, updateClient, deleteClient } = useClientMutations(
+    canWork ? organizationId : undefined,
+  );
 
   const clients = clientsQuery.data ?? [];
   const loading = clientsQuery.isLoading || clientsQuery.isFetching;
@@ -72,7 +143,7 @@ export default function ClientsPage() {
   const submit = async () => {
     try {
       if (!organizationId || !currentUserId) {
-        snackbar.show("Немає organizationId або currentUserId", "error");
+        snackbar.show("Спочатку створи організацію", "error");
         return;
       }
 
@@ -124,6 +195,57 @@ export default function ClientsPage() {
   };
 
   const submitting = createClient.isPending || updateClient.isPending;
+
+  // ✅ якщо нема org — показуємо той самий екран як в Documents/Chat
+  if (!organizationId) {
+    return (
+      <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{ px: { xs: 2, sm: 3 }, minHeight: "calc(100vh - 64px)" }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "#0f172a", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              Повернутись назад
+            </Button>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <GroupIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Клієнти
+              </Typography>
+            </Stack>
+
+            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+              Контакти, компанії та реквізити в одному місці.
+            </Typography>
+          </Box>
+
+          <NoOrgState />
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: 4 }}>

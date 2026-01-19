@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-
-import { api } from "@/libs/axios"; // <-- твій axios instance з інтерсепторами
+import { api } from "@/libs/axios";
+import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 
 export type KbApiUser = {
   id: string;
@@ -21,10 +21,8 @@ export type KbApiOrganization = {
 
 type BootstrapResult = {
   apiUser: KbApiUser;
-  organization: KbApiOrganization;
+  organization: KbApiOrganization | null; // ✅ allow null when user has no org
 };
-
-type SyncUserResponse = { user: KbApiUser };
 
 type OrganizationsForUserResponse = {
   items: Array<{
@@ -32,40 +30,25 @@ type OrganizationsForUserResponse = {
   }>;
 };
 
-type CreateOrgResponse = {
-  organization: any;
-};
-
 export function useKnowledgeBaseBootstrap() {
-  const { user, isLoaded } = useUser();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+
+  const {
+    data: userData,
+    isLoading: isUserDataLoading,
+    error: userDataError,
+  } = useCurrentUser();
 
   const query = useQuery<BootstrapResult>({
-    queryKey: ["kb-bootstrap", user?.id],
-    enabled: isLoaded && !!user,
+    queryKey: ["kb-bootstrap", clerkUser?.id, (userData as any)?.id],
+    enabled: isClerkLoaded && !!clerkUser && !!(userData as any)?.id,
     queryFn: async () => {
-      if (!user) throw new Error("User is not available");
+      const apiUser = userData as KbApiUser;
 
-      // 1) sync user
-      const syncRes = await api.post<SyncUserResponse>("/users/sync", {
-        authProvider: "clerk",
-        authUserId: user.id,
-        email: user.primaryEmailAddress?.emailAddress,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatarUrl: user.imageUrl,
-        locale: user.locale,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        jobTitle: (user.publicMetadata as any)?.jobTitle ?? null,
-      });
-
-      const dbUser = syncRes.data.user;
-
-      // 2) get organizations for user
+      // ✅ get organizations for user
       const orgListRes = await api.get<OrganizationsForUserResponse>(
         "/organizations",
-        {
-          params: { userId: dbUser.id },
-        },
+        { params: { userId: apiUser.id } },
       );
 
       const items = orgListRes.data.items ?? [];
@@ -84,49 +67,23 @@ export function useKnowledgeBaseBootstrap() {
             country: first.country ?? null,
           };
         }
-      } else {
-        // 3) create organization if none exists
-        const defaultName =
-          (user as any)?.organization?.name ||
-          (user.firstName ? `${user.firstName}'s Business` : "My Business");
-
-        const createOrgRes = await api.post<CreateOrgResponse>(
-          "/organizations",
-          {
-            name: defaultName,
-            ownerId: dbUser.id,
-            description:
-              "Автоматично створений бізнес-профіль для нового користувача.",
-            industry: "other",
-            country: "Ukraine",
-            city: "Lviv",
-            tagline: "AI-асистент для мого бізнесу",
-            niche: "малий бізнес / послуги",
-          },
-        );
-
-        const createdOrg = createOrgRes.data.organization;
-
-        org = {
-          id: createdOrg.id,
-          name: createdOrg.name,
-          slug: createdOrg.slug,
-          description: createdOrg.description ?? null,
-          industry: createdOrg.industry ?? null,
-          city: createdOrg.city ?? null,
-          country: createdOrg.country ?? null,
-        };
       }
 
-      if (!org) throw new Error("Organization not resolved");
-
-      return { apiUser: dbUser, organization: org };
+      // ✅ NO auto-create, NO throwing
+      return { apiUser, organization: org };
     },
+    retry: 1,
+    staleTime: 30_000,
   });
 
   return {
-    clerkUser: user,
-    isUserLoaded: isLoaded,
+    clerkUser,
+    isUserLoaded: isClerkLoaded,
+
+    userData,
+    isUserDataLoading,
+    userDataError,
+
     ...query,
   };
 }

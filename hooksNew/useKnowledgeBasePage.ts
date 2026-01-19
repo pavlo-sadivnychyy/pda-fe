@@ -2,13 +2,13 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 import {
   useDeleteKnowledgeBaseDocument,
   useKnowledgeBaseDocuments,
   useUploadKnowledgeBaseDocument,
 } from "@/hooks/useKnowledgeBaseDocuments";
 import { useKnowledgeBaseSearch } from "@/hooks/useKnowledgeBaseSearch";
+import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 
 type SnackbarState = {
   open: boolean;
@@ -22,16 +22,22 @@ export function useKnowledgeBasePage() {
     data: bootstrapData,
     isLoading: isBootstrapLoading,
     error: bootstrapError,
+    isUserLoaded,
+    isUserDataLoading,
+    userDataError,
   } = useKnowledgeBaseBootstrap();
 
   const organization = bootstrapData?.organization ?? null;
   const apiUser = bootstrapData?.apiUser ?? null;
 
+  const hasOrg = !!organization?.id;
+
+  // ✅ only fetch docs if org exists
   const {
     data: docsData,
     isLoading: docsLoading,
     error: docsError,
-  } = useKnowledgeBaseDocuments(organization?.id);
+  } = useKnowledgeBaseDocuments(hasOrg ? organization.id : undefined);
 
   const documents = useMemo(() => docsData?.data?.items ?? [], [docsData]);
 
@@ -53,11 +59,16 @@ export function useKnowledgeBasePage() {
     return () => clearTimeout(id);
   }, [search]);
 
+  const canSearch = hasOrg && !!searchQuery;
+
   const {
     data: searchData,
     isLoading: isSearchLoading,
     error: searchError,
-  } = useKnowledgeBaseSearch(organization?.id, searchQuery);
+  } = useKnowledgeBaseSearch(
+    canSearch ? organization.id : undefined,
+    searchQuery,
+  );
 
   const searchResults = useMemo(() => searchData?.items ?? [], [searchData]);
 
@@ -68,11 +79,10 @@ export function useKnowledgeBasePage() {
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  // ✅ стабільний file picker для модалки
+  // ✅ stable file picker refs
   const dialogInputRef = useRef<HTMLInputElement | null>(null);
   const openDialogPicker = () => dialogInputRef.current?.click();
 
-  // ---- quick upload input ----
   const quickInputRef = useRef<HTMLInputElement | null>(null);
   const openQuickPicker = () => quickInputRef.current?.click();
 
@@ -90,6 +100,7 @@ export function useKnowledgeBasePage() {
 
   // ---- dialog handlers ----
   const openDialog = () => setIsDialogOpen(true);
+
   const closeDialog = () => {
     if (isUploading) return;
     setIsDialogOpen(false);
@@ -98,9 +109,7 @@ export function useKnowledgeBasePage() {
   const onDialogFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
     setFile(f);
-
-    // ✅ критично: дозволяє вибирати той самий файл повторно
-    e.target.value = "";
+    e.target.value = ""; // ✅ allows picking same file again
   };
 
   const resetDialog = () => {
@@ -111,7 +120,7 @@ export function useKnowledgeBasePage() {
   };
 
   const handleCreate = () => {
-    if (!organization || !apiUser || !file) return;
+    if (!hasOrg || !apiUser || !file) return;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -147,7 +156,7 @@ export function useKnowledgeBasePage() {
 
   // ---- quick upload ----
   const uploadOneQuick = (f: File) => {
-    if (!organization || !apiUser) return;
+    if (!hasOrg || !apiUser) return;
 
     const formData = new FormData();
     formData.append("file", f);
@@ -185,7 +194,7 @@ export function useKnowledgeBasePage() {
 
   // ---- delete ----
   const handleDelete = (id: string) => {
-    if (!organization) return;
+    if (!hasOrg) return;
 
     deleteDocument(
       { id, organizationId: organization.id },
@@ -203,12 +212,21 @@ export function useKnowledgeBasePage() {
     );
   };
 
+  // ✅ single loading flag for the page gate
+  const isGateLoading =
+    !isUserLoaded || isUserDataLoading || isBootstrapLoading;
+
   return {
     clerkUser,
     organization,
     apiUser,
+
+    hasOrg,
+    isGateLoading,
+
     isBootstrapLoading,
     bootstrapError,
+    userDataError,
 
     documents,
     docsLoading,
@@ -236,11 +254,9 @@ export function useKnowledgeBasePage() {
     isUploading,
     uploadError,
 
-    // ✅ dialog picker
     dialogInputRef,
     openDialogPicker,
 
-    // quick upload
     quickInputRef,
     openQuickPicker,
     onQuickFilesSelected,

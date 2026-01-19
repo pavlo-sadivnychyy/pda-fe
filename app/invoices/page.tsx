@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -9,11 +10,15 @@ import {
   Snackbar,
   Stack,
   Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import BusinessIcon from "@mui/icons-material/Business";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,15 +35,70 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 
 import type { InvoiceAction, CreateInvoicePayload } from "./types";
 
+function NoOrgState() {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 640,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(25,118,210,0.08)",
+            }}
+          >
+            <BusinessIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Спочатку створи організацію
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            Інвойси прив’язані до організації. Створи її — і тоді зможеш
+            створювати рахунки, керувати статусами та відправляти їх клієнтам.
+          </Typography>
+
+          <Button
+            component={Link}
+            href="/organization"
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{ borderRadius: 999, px: 2.5 }}
+          >
+            Перейти до створення
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function InvoicesPage() {
   const { organizationId } = useOrganizationContext();
 
-  const { clientsQuery, invoicesQuery } = useInvoicesQueries(organizationId);
+  const canWork = Boolean(organizationId);
+
+  // ✅ якщо нема org — не даємо хукам робити запити (передаємо undefined)
+  const { clientsQuery, invoicesQuery } = useInvoicesQueries(
+    canWork ? organizationId : undefined,
+  );
   const {
     createInvoiceMutation,
     invoiceActionMutation,
     deleteInvoiceMutation,
-  } = useInvoiceMutations(organizationId);
+  } = useInvoiceMutations(canWork ? organizationId : undefined);
 
   const {
     invoiceForm,
@@ -79,7 +139,7 @@ export default function InvoicesPage() {
 
   // ✅ actionBusyKey: `${id}:${action}`
   const actionBusyKey = useMemo(() => {
-    const v = invoiceActionMutation.variables;
+    const v = invoiceActionMutation.variables as any;
     if (!invoiceActionMutation.isPending || !v?.id || !v?.action) return null;
     return `${v.id}:${v.action}`;
   }, [invoiceActionMutation.isPending, invoiceActionMutation.variables]);
@@ -114,7 +174,7 @@ export default function InvoicesPage() {
   const handleSubmit = async () => {
     try {
       if (!organizationId) {
-        showSnackbar("Немає organizationId", "error");
+        showSnackbar("Спочатку створи організацію", "error");
         return;
       }
       if (!invoiceForm.items.length) {
@@ -122,7 +182,6 @@ export default function InvoicesPage() {
         return;
       }
 
-      // ✅ createdById не треба (бек бере з Clerk)
       const payload: CreateInvoicePayload = {
         organizationId,
         clientId: invoiceForm.clientId || undefined,
@@ -168,6 +227,92 @@ export default function InvoicesPage() {
       showSnackbar("Помилка видалення інвойсу", "error");
     }
   };
+
+  // ✅ EMPTY-STATE: немає org -> показати centered, як домовлялись
+  if (!organizationId) {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              Повернутись назад
+            </Button>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "999px",
+                    bgcolor: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <ReceiptLongIcon sx={{ color: "#0f172a" }} />
+                </Box>
+
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "#0f172a" }}
+                >
+                  Інвойси
+                </Typography>
+              </Stack>
+
+              <Chip
+                label="Всього: 0"
+                size="small"
+                sx={{
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+
+            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+              Створюй рахунки, надсилай UA/International на email, керуй
+              статусами та видаляй інвойси.
+            </Typography>
+          </Box>
+
+          {/* ✅ Center area */}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pb: { xs: 2, sm: 3 }, // щоб було симетрично з header spacing
+            }}
+          >
+            <NoOrgState />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
@@ -228,7 +373,7 @@ export default function InvoicesPage() {
           </Typography>
         </Box>
 
-        {/* ✅ Friendly tip (додано) */}
+        {/* ✅ Friendly tip */}
         <Box sx={{ mt: 2, mb: 3 }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}

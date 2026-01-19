@@ -2,6 +2,7 @@
 
 import { Box, Grid } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { InfinitySpin } from "react-loader-spinner";
 
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useHomeProfile } from "@/components/Home/hooks/useHomeProfile";
@@ -26,7 +27,7 @@ import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortc
 export default function HomePage() {
   const router = useRouter();
 
-  const { data: userData } = useCurrentUser();
+  const { data: userData, isLoading } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
   const profile = useHomeProfile(currentUserId);
@@ -43,6 +44,23 @@ export default function HomePage() {
     if (type === "ACT") router.push(`/acts/${id}`);
     if (type === "QUOTE") router.push(`/quotes/${id}`);
   };
+
+  // ✅ FULLSCREEN LOADER while user or org is loading
+  if (isLoading || profile.isOrgLoading) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "#f3f4f6",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <InfinitySpin width="200" color="#202124" />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -65,7 +83,7 @@ export default function HomePage() {
         />
 
         <Grid container spacing={3}>
-          {/* LEFT: найтерміновіше + короткий контекст */}
+          {/* LEFT */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <TodayTasksCard
               tasks={today.tasks}
@@ -87,18 +105,17 @@ export default function HomePage() {
               onOpenHistory={() => router.push("/activity")}
               onOpenEntity={openEntity}
             />
-            <AnalyticsShortcutCard onClick={() => router.push("/analytics")} />
 
+            <AnalyticsShortcutCard onClick={() => router.push("/analytics")} />
             <AiChatCard />
           </Grid>
 
-          {/* RIGHT: швидкі дії + інструменти */}
+          {/* RIGHT */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <ClientsShortcutCard onClick={() => router.push("/clients")} />
             <InvoicesShortcutCard onClick={() => router.push("/invoices")} />
             <QuotesShortcutCard onClick={() => router.push("/quotes")} />
             <ActsShortcutCard onClick={() => router.push("/acts")} />
-
             <DocumentsCard />
           </Grid>
         </Grid>
