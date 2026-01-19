@@ -182,7 +182,7 @@ export function RecentActivityCard({
   const empty = !loading && items?.length === 0;
 
   return (
-    <Card elevation={3} sx={{ borderRadius: 3 }}>
+    <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
       <CardHeader
         avatar={
           <Box

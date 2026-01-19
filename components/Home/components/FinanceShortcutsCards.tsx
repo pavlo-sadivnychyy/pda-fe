@@ -43,7 +43,7 @@ function ShortcutCard({
   dragHandle?: React.ReactNode;
 }) {
   return (
-    <Card data-onb={dataOnb} elevation={3} sx={{ borderRadius: 3 }}>
+    <Card data-onb={dataOnb} elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
       <CardHeader
         avatar={
           <Box

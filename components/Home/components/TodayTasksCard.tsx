@@ -43,7 +43,7 @@ export function TodayTasksCard({
   const showLoader = isLoading || isFetching;
 
   return (
-    <Card data-onb="card-todo" elevation={3} sx={{ borderRadius: 3 }}>
+    <Card data-onb="card-todo" elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
       <CardHeader
         avatar={<CheckCircleIcon sx={{ color: "#16a34a" }} />}
         title={
