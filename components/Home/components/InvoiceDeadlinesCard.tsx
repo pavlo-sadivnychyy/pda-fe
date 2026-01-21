@@ -20,6 +20,7 @@ import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EmailIcon from "@mui/icons-material/Email";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import LockIcon from "@mui/icons-material/Lock";
 import { InfinitySpin } from "react-loader-spinner";
 
 import { useDueSoonInvoices } from "@/components/Home/hooks/useDueSoonInvoices";
@@ -59,12 +60,12 @@ export function InvoiceDeadlinesCard({
   organizationId,
   minDays = 1,
   maxDays = 2,
-  dragHandle,
+  notAvailiable,
 }: {
   organizationId: string | null;
   minDays?: number;
   maxDays?: number;
-  dragHandle?: React.ReactNode;
+  notAvailiable: boolean;
 }) {
   const dueSoon = useDueSoonInvoices({
     organizationId,
@@ -72,9 +73,11 @@ export function InvoiceDeadlinesCard({
     maxDays,
     includeDraft: false,
     includeOverdue: false,
+    notAvailiable,
   });
 
-  const remind = useSendInvoiceDeadlineReminder();
+  // IMPORTANT: pass notAvailiable so mutation won't run too (your hook should guard)
+  const remind = useSendInvoiceDeadlineReminder(notAvailiable);
 
   const [snack, setSnack] = React.useState<{
     open: boolean;
@@ -85,6 +88,16 @@ export function InvoiceDeadlinesCard({
   const closeSnack = () => setSnack((s) => ({ ...s, open: false }));
 
   const handleSend = async (invoiceId: string) => {
+    // extra hard guard in UI (even if someone miswired the hook)
+    if (notAvailiable) {
+      setSnack({
+        open: true,
+        kind: "warning",
+        text: "Функція недоступна на поточному плані.",
+      });
+      return;
+    }
+
     try {
       await remind.mutateAsync({
         invoiceId,
@@ -116,231 +129,307 @@ export function InvoiceDeadlinesCard({
     }
   };
 
-  const items = dueSoon.invoices;
+  // When feature is not available, keep UI empty (and query is disabled anyway)
+  const items = notAvailiable ? [] : dueSoon.invoices;
 
   return (
     <>
-      <Card elevation={3} sx={{ borderRadius: 3, mb: 3 }}>
-        <CardHeader
-          avatar={
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: 999,
-                bgcolor: "#fef3c7",
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              <AccessTimeIcon sx={{ color: "#b45309" }} />
-            </Box>
-          }
-          title={
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Дедлайни оплати ваших інвойсів
-            </Typography>
-          }
-          subheader={
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Інвойси, у яких до дедлайну залишилось {minDays}–{maxDays} дні.
-            </Typography>
-          }
-          action={
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <IconButton
-                onClick={() => dueSoon.refetch()}
-                disabled={dueSoon.isFetching}
-                sx={{ "&:hover": { bgcolor: "#f3f4f6" } }}
+      <Card
+        elevation={3}
+        sx={{
+          borderRadius: 3,
+          mb: 3,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Content wrapper to blur/disable */}
+        <Box
+          sx={{
+            filter: notAvailiable ? "blur(1.6px)" : "none",
+            opacity: notAvailiable ? 0.55 : 1,
+            pointerEvents: notAvailiable ? "none" : "auto",
+            transition: "filter 160ms ease, opacity 160ms ease",
+          }}
+        >
+          <CardHeader
+            avatar={
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 999,
+                  bgcolor: "#fef3c7",
+                  display: "grid",
+                  placeItems: "center",
+                }}
               >
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-
-              <Box sx={{ ml: 0.25, mr: 0.5 }}>{dragHandle}</Box>
-            </Stack>
-          }
-        />
-
-        <CardContent sx={{ pt: 0 }}>
-          {dueSoon.isLoading ? (
-            <Box
-              sx={{
-                py: 4,
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              <InfinitySpin width="160" color="#202124" />
-              <Typography
-                variant="body2"
-                sx={{ mt: 1.5, color: "text.secondary" }}
-              >
-                Завантажую інвойси з дедлайнами…
+                <AccessTimeIcon sx={{ color: "#b45309" }} />
+              </Box>
+            }
+            title={
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Дедлайни оплати ваших інвойсів
               </Typography>
-            </Box>
-          ) : (
-            <Stack spacing={1.2}>
-              {items.length === 0 ? (
-                <Box
-                  sx={{
-                    p: 1.2,
-                    borderRadius: 2,
-                    border: "1px dashed #e5e7eb",
-                    bgcolor: "#ffffff",
-                  }}
+            }
+            subheader={
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Інвойси, у яких до дедлайну залишилось {minDays}–{maxDays} дні.
+              </Typography>
+            }
+            action={
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <IconButton
+                  onClick={() => dueSoon.refetch()}
+                  disabled={dueSoon.isFetching}
+                  sx={{ "&:hover": { bgcolor: "#f3f4f6" } }}
                 >
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    На найближчі {minDays}–{maxDays} дні немає інвойсів з
-                    дедлайном.
-                  </Typography>
-                </Box>
-              ) : (
-                <>
-                  {items.map((inv, idx) => {
-                    const clientName =
-                      inv.client?.contactName?.trim() ||
-                      inv.client?.name?.trim() ||
-                      "Клієнт не вказаний";
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            }
+          />
 
-                    const email = inv.client?.email?.trim() || "";
-                    const hasEmail = Boolean(email);
+          <CardContent sx={{ pt: 0 }}>
+            {dueSoon.isLoading ? (
+              <Box
+                sx={{
+                  py: 4,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <InfinitySpin width="160" color="#202124" />
+                <Typography
+                  variant="body2"
+                  sx={{ mt: 1.5, color: "text.secondary" }}
+                >
+                  Завантажую інвойси з дедлайнами…
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={1.2}>
+                {items.length === 0 ? (
+                  <Box
+                    sx={{
+                      p: 1.2,
+                      borderRadius: 2,
+                      border: "1px dashed #e5e7eb",
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      На найближчі {minDays}–{maxDays} дні немає інвойсів з
+                      дедлайном.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    {items.map((inv, idx) => {
+                      const clientName =
+                        inv.client?.contactName?.trim() ||
+                        inv.client?.name?.trim() ||
+                        "Клієнт не вказаний";
 
-                    const lastSentAt = inv.reminders?.[0]?.sentAt
-                      ? dayjs(inv.reminders[0].sentAt).format(
-                          "YYYY-MM-DD HH:mm",
-                        )
-                      : null;
+                      const email = inv.client?.email?.trim() || "";
+                      const hasEmail = Boolean(email);
 
-                    return (
-                      <React.Fragment key={inv.id}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            justifyContent: "space-between",
-                            gap: 1.2,
-                          }}
-                        >
-                          <Box sx={{ minWidth: 0 }}>
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              alignItems="center"
-                            >
+                      const lastSentAt = inv.reminders?.[0]?.sentAt
+                        ? dayjs(inv.reminders[0].sentAt).format(
+                            "YYYY-MM-DD HH:mm",
+                          )
+                        : null;
+
+                      return (
+                        <React.Fragment key={inv.id}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                              gap: 1.2,
+                            }}
+                          >
+                            <Box sx={{ minWidth: 0 }}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                alignItems="center"
+                              >
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: "#111827",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {inv.number}
+                                </Typography>
+
+                                <Chip
+                                  size="small"
+                                  icon={
+                                    <NotificationsActiveIcon
+                                      sx={{ fontSize: 16 }}
+                                    />
+                                  }
+                                  label={formatDueLabel(inv.dueDate)}
+                                  sx={{
+                                    borderRadius: 999,
+                                    fontWeight: 700,
+                                    bgcolor: "#fff7ed",
+                                    color: "#9a3412",
+                                    "& .MuiChip-icon": { color: "#9a3412" },
+                                  }}
+                                />
+                              </Stack>
+
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  fontWeight: 700,
-                                  color: "#111827",
+                                  color: "text.secondary",
+                                  lineHeight: 1.5,
+                                  mt: 0.4,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                   whiteSpace: "nowrap",
                                 }}
+                                title={clientName}
                               >
-                                {inv.number}
+                                {clientName}
+                                {inv.dueDate ? (
+                                  <>
+                                    {" "}
+                                    • дедлайн{" "}
+                                    {dayjs(inv.dueDate).format("YYYY-MM-DD")}
+                                  </>
+                                ) : null}{" "}
+                                • {money(inv.total)} {inv.currency || "UAH"}
                               </Typography>
 
-                              <Chip
-                                size="small"
-                                icon={
-                                  <NotificationsActiveIcon
-                                    sx={{ fontSize: 16 }}
-                                  />
-                                }
-                                label={formatDueLabel(inv.dueDate)}
-                                sx={{
-                                  borderRadius: 999,
-                                  fontWeight: 700,
-                                  bgcolor: "#fff7ed",
-                                  color: "#9a3412",
-                                  "& .MuiChip-icon": { color: "#9a3412" },
-                                }}
-                              />
-                            </Stack>
+                              {lastSentAt ? (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Останнє нагадування: {lastSentAt}
+                                </Typography>
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Нагадування ще не надсилалось
+                                </Typography>
+                              )}
+                            </Box>
 
-                            <Typography
-                              variant="body2"
+                            <Button
+                              onClick={() => handleSend(inv.id)}
+                              disabled={!hasEmail || remind.isPending}
+                              startIcon={<EmailIcon />}
                               sx={{
-                                color: "text.secondary",
-                                lineHeight: 1.5,
-                                mt: 0.4,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
+                                textTransform: "none",
+                                fontWeight: 700,
+                                borderRadius: 999,
+                                px: 1.4,
+                                color: "#111827",
+                                bgcolor: "#f3f4f6",
+                                "&:hover": { bgcolor: "#e5e7eb" },
+                                "&.Mui-disabled": {
+                                  bgcolor: "#f3f4f6",
+                                  color: "rgba(17,24,39,0.35)",
+                                },
                                 whiteSpace: "nowrap",
+                                flexShrink: 0,
                               }}
-                              title={clientName}
                             >
-                              {clientName}
-                              {inv.dueDate ? (
-                                <>
-                                  {" "}
-                                  • дедлайн{" "}
-                                  {dayjs(inv.dueDate).format("YYYY-MM-DD")}
-                                </>
-                              ) : null}{" "}
-                              • {money(inv.total)} {inv.currency || "UAH"}
-                            </Typography>
-
-                            {lastSentAt ? (
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "text.secondary" }}
-                              >
-                                Останнє нагадування: {lastSentAt}
-                              </Typography>
-                            ) : (
-                              <Typography
-                                variant="caption"
-                                sx={{ color: "text.secondary" }}
-                              >
-                                Нагадування ще не надсилалось
-                              </Typography>
-                            )}
+                              Нагадати
+                            </Button>
                           </Box>
 
-                          <Button
-                            onClick={() => handleSend(inv.id)}
-                            disabled={!hasEmail || remind.isPending}
-                            startIcon={<EmailIcon />}
-                            sx={{
-                              textTransform: "none",
-                              fontWeight: 700,
-                              borderRadius: 999,
-                              px: 1.4,
-                              color: "#111827",
-                              bgcolor: "#f3f4f6",
-                              "&:hover": { bgcolor: "#e5e7eb" },
-                              "&.Mui-disabled": {
-                                bgcolor: "#f3f4f6",
-                                color: "rgba(17,24,39,0.35)",
-                              },
-                              whiteSpace: "nowrap",
-                              flexShrink: 0,
-                            }}
-                          >
-                            Нагадати
-                          </Button>
-                        </Box>
+                          {!hasEmail ? (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "text.secondary", ml: 0.2 }}
+                            >
+                              Email клієнта не заповнений — нагадування
+                              надіслати не можна.
+                            </Typography>
+                          ) : null}
 
-                        {!hasEmail ? (
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "text.secondary", ml: 0.2 }}
-                          >
-                            Email клієнта не заповнений — нагадування надіслати
-                            не можна.
-                          </Typography>
-                        ) : null}
+                          {idx !== items.length - 1 ? (
+                            <Divider sx={{ my: 1 }} />
+                          ) : null}
+                        </React.Fragment>
+                      );
+                    })}
+                  </>
+                )}
+              </Stack>
+            )}
+          </CardContent>
+        </Box>
 
-                        {idx !== items.length - 1 ? (
-                          <Divider sx={{ my: 1 }} />
-                        ) : null}
-                      </React.Fragment>
-                    );
-                  })}
-                </>
-              )}
-            </Stack>
-          )}
-        </CardContent>
+        {/* Overlay lock when unavailable */}
+        {notAvailiable ? (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              p: 2,
+              pointerEvents: "auto",
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.85))",
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                px: 1.5,
+                py: 1,
+                borderRadius: 2,
+                border: "1px solid #e5e7eb",
+                bgcolor: "rgba(255,255,255,0.9)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                maxWidth: 520,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  display: "grid",
+                  placeItems: "center",
+                  bgcolor: "#111827",
+                  color: "white",
+                  flexShrink: 0,
+                }}
+              >
+                <LockIcon fontSize="small" />
+              </Box>
+
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontWeight: 800, color: "#111827" }}>
+                  Недоступно на поточному плані
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Оновіть підписку, щоб бачити інвойси з дедлайнами та надсилати
+                  нагадування клієнтам.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        ) : null}
       </Card>
 
       <Snackbar
