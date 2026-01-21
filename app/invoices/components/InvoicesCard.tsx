@@ -3,15 +3,18 @@
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Button, LinearProgress, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import LockIcon from "@mui/icons-material/Lock";
 
 export const InvoicesCard = ({
   invoicesCount,
   children,
   onCreate,
+  isLimitReached,
 }: {
   invoicesCount: number;
   children: ReactNode;
   onCreate: () => void;
+  isLimitReached: boolean;
 }) => {
   return (
     <Box
@@ -20,6 +23,10 @@ export const InvoicesCard = ({
         bgcolor: "background.paper",
         boxShadow: "0px 18px 45px rgba(15,23,42,0.11)",
         p: { xs: 3, md: 4 },
+        height: { xs: "auto", md: "100%" }, // ✅ allow inner sizing on desktop layout
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
       }}
     >
       <Box
@@ -79,37 +86,65 @@ export const InvoicesCard = ({
 
       <Box sx={{ borderBottom: "1px solid rgba(148,163,184,0.4)", mb: 2.5 }} />
 
-      {children}
+      {/* ✅ content area: on desktop let grid own the scroll */}
+      <Box sx={{ flex: { xs: "unset", md: 1 }, minHeight: 0 }}>{children}</Box>
 
       <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid rgba(148,163,184,0.2)" }}>
         <Button
           fullWidth
           onClick={onCreate}
-          startIcon={<AddIcon />}
+          disabled={isLimitReached}
+          startIcon={isLimitReached ? <LockIcon /> : <AddIcon />}
           sx={{
             borderRadius: 999,
             py: 1.4,
-            fontWeight: 500,
+            fontWeight: 800,
+            textTransform: "none",
+
             bgcolor: "#020617",
             color: "#f9fafb",
-            textTransform: "none",
-            "&:hover": { bgcolor: "#020617" },
+            "&.Mui-disabled": {
+              bgcolor: "rgba(2,6,23,0.08)",
+              color: "rgba(2,6,23,0.45)",
+              border: "1px solid rgba(2,6,23,0.10)",
+              boxShadow: "none",
+              cursor: "not-allowed",
+            },
+            "&.Mui-disabled .MuiButton-startIcon": {
+              color: "rgba(2,6,23,0.45)",
+            },
           }}
         >
-          Створити інвойс
+          {isLimitReached ? "Ліміт досягнуто" : "Створити інвойс"}
         </Button>
 
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            mt: 1.5,
-            textAlign: "center",
-            color: "#9ca3af",
-          }}
-        >
-          Інформація про інвойси зберігається у вашому акаунті
-        </Typography>
+        {isLimitReached ? (
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 1,
+              textAlign: "center",
+              color: "#b45309",
+              fontWeight: 700,
+            }}
+          >
+            Ліміт плану вичерпано — підвищіть план, щоб створювати більше
+            інвойсів
+          </Typography>
+        ) : (
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 1.5,
+              textAlign: "center",
+              color: "#9ca3af",
+            }}
+          >
+            Інформація про інвойси зберігається у вашому акаунті
+          </Typography>
+        )}
       </Box>
     </Box>
   );
