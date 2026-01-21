@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import {
@@ -22,6 +23,8 @@ import {
   Stack,
   TextField,
   Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
@@ -29,6 +32,8 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import MenuIcon from "@mui/icons-material/Menu";
+import BusinessIcon from "@mui/icons-material/Business";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -66,6 +71,66 @@ const scrollBarSx = {
   },
 } as const;
 
+function NoOrgState() {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        display: "grid",
+        placeItems: "center",
+        minHeight: 0,
+        height: "100%",
+      }}
+    >
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 640,
+          borderRadius: 4,
+          border: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <Stack spacing={2.2} alignItems="center" textAlign="center">
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: 999,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: "rgba(25,118,210,0.08)",
+              }}
+            >
+              <BusinessIcon />
+            </Box>
+
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              Спочатку створи організацію
+            </Typography>
+
+            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+              AI-чат працює в контексті організації (профіль + документи).
+              Створи організацію — і тоді зможеш користуватись асистентом.
+            </Typography>
+
+            <Button
+              component={Link}
+              href="/organization"
+              variant="contained"
+              endIcon={<ArrowForwardIcon />}
+              sx={{ borderRadius: 999, px: 2.5 }}
+            >
+              Перейти до створення
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
+
 export default function ChatClient() {
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => setHasMounted(true), []);
@@ -85,16 +150,28 @@ export default function ChatClient() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { data: bootstrapData } = useKnowledgeBaseBootstrap();
+  // ✅ bootstrap (organization може бути null)
+  const {
+    data: bootstrapData,
+    isLoading: isBootstrapLoading,
+    error: bootstrapError,
+  } = useKnowledgeBaseBootstrap();
 
   const organization = bootstrapData?.organization ?? null;
   const apiUser = bootstrapData?.apiUser ?? null;
 
+  const hasOrg = !!organization?.id;
+  const canUseChat = hasOrg && !!apiUser?.id;
+
+  // ✅ IMPORTANT: не робимо запити, якщо нема організації
   const {
     data: sessionsData,
     isLoading: isSessionsLoading,
     error: sessionsError,
-  } = useChatSessions(organization?.id, apiUser?.id);
+  } = useChatSessions(
+    canUseChat ? organization.id : undefined,
+    canUseChat ? apiUser.id : undefined,
+  );
 
   const sessions = sessionsData?.items ?? [];
 
@@ -103,6 +180,11 @@ export default function ChatClient() {
   >(undefined);
 
   useEffect(() => {
+    if (!canUseChat) {
+      if (selectedSessionId !== undefined) setSelectedSessionId(undefined);
+      return;
+    }
+
     if (sessions.length === 0) {
       if (selectedSessionId !== undefined) setSelectedSessionId(undefined);
       return;
@@ -110,28 +192,50 @@ export default function ChatClient() {
     if (!selectedSessionId) {
       setSelectedSessionId(sessions[0].id);
     }
-  }, [sessions, selectedSessionId]);
+  }, [canUseChat, sessions, selectedSessionId]);
 
   const {
     data: sessionData,
     isLoading: isSessionLoading,
     refetch: refetchSession,
-  } = useChatSession(selectedSessionId, apiUser?.id) as any;
+  } = useChatSession(
+    canUseChat ? selectedSessionId : undefined,
+    canUseChat ? apiUser.id : undefined,
+  ) as any;
 
-  const serverMessages = sessionData?.session?.messages ?? [];
+  // const serverMessages = sessionData?.session?.messages ?? [];
 
   const [localMessages, setLocalMessages] = useState<any[]>([]);
 
+  // ✅ стабільний "key" для повідомлень (міняється тільки коли реально змінився список)
+  const serverMessagesKey = useMemo(() => {
+    const msgs = sessionData?.session?.messages ?? [];
+    // якщо у меседжів є id + createdAt — цього більш ніж досить
+    return msgs.map((m: any) => `${m.id}:${m.createdAt ?? ""}`).join("|");
+  }, [sessionData?.session?.messages]);
+
+  // ✅ 1) очищаємо локальні меседжі ТІЛЬКИ коли чат недоступний
   useEffect(() => {
-    setLocalMessages(serverMessages);
-  }, [selectedSessionId, sessionData]);
+    if (canUseChat) return;
+    setLocalMessages((prev) => (prev.length ? [] : prev)); // ✅ не сетимо стейт якщо вже порожньо
+  }, [canUseChat]);
+
+  // ✅ 2) синхронізуємо з сервером ТІЛЬКИ коли реально змінились повідомлення/сесія
+  useEffect(() => {
+    if (!canUseChat) return;
+
+    const msgs = sessionData?.session?.messages ?? [];
+    setLocalMessages(msgs);
+  }, [canUseChat, selectedSessionId, serverMessagesKey]);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [localMessages.length]);
 
   const createSessionMutation = useCreateChatSession();
-  const sendMessageMutation = useSendChatMessage(organization?.id);
+  const sendMessageMutation = useSendChatMessage(
+    canUseChat ? organization.id : undefined,
+  );
   const deleteSessionMutation = useDeleteChatSession();
 
   const [draft, setDraft] = useState("");
@@ -142,7 +246,7 @@ export default function ChatClient() {
   >(null);
 
   const handleCreateSession = (title?: string) => {
-    if (!organization || !apiUser) return;
+    if (!canUseChat) return;
 
     createSessionMutation.mutate(
       {
@@ -153,16 +257,16 @@ export default function ChatClient() {
       {
         onSuccess: (data: any) => {
           setSelectedSessionId(data.session.id);
-          setSidebarOpen(false); // ✅ on mobile close drawer
+          setSidebarOpen(false);
           setTimeout(() => inputRef.current?.focus(), 50);
         },
       },
     );
   };
 
-  // ✅ auto-create first empty dialog if none exists
+  // ✅ auto-create first empty dialog if none exists (only when org exists)
   useEffect(() => {
-    if (!organization || !apiUser) return;
+    if (!canUseChat) return;
     if (isSessionsLoading || sessionsError) return;
     if (didAutoCreateEmptySessionRef.current) return;
     if (shouldCreateNew) return;
@@ -189,6 +293,7 @@ export default function ChatClient() {
       );
     }
   }, [
+    canUseChat,
     organization,
     apiUser,
     sessions.length,
@@ -198,11 +303,11 @@ export default function ChatClient() {
     createSessionMutation.isPending,
   ]);
 
-  // ✅ deep-link
+  // ✅ deep-link (only when org exists)
   useEffect(() => {
     if (!hasMounted) return;
     if (didHandleDeepLinkRef.current) return;
-    if (!organization || !apiUser) return;
+    if (!canUseChat) return;
 
     const hasAction = shouldCreateNew || !!prefillParam;
     if (!hasAction) return;
@@ -239,6 +344,7 @@ export default function ChatClient() {
     router.replace("/chat");
   }, [
     hasMounted,
+    canUseChat,
     organization,
     apiUser,
     shouldCreateNew,
@@ -294,7 +400,8 @@ export default function ChatClient() {
   };
 
   const handleSend = () => {
-    if (!draft.trim() || !selectedSessionId || !apiUser || isSending) return;
+    if (!canUseChat) return;
+    if (!draft.trim() || !selectedSessionId || isSending) return;
 
     const content = draft.trim();
     setDraft("");
@@ -357,11 +464,13 @@ export default function ChatClient() {
 
   const handlePickSession = (id: string) => {
     setSelectedSessionId(id);
-    setSidebarOpen(false); // ✅ mobile UX
+    setSidebarOpen(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   if (!hasMounted) return null;
+
+  const showNoOrg = !isBootstrapLoading && !bootstrapError && !hasOrg;
 
   const SidebarContent = (
     <Box sx={styles.sidebar}>
@@ -378,9 +487,7 @@ export default function ChatClient() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleCreateSession()}
-          disabled={
-            !organization || !apiUser || createSessionMutation.isPending
-          }
+          disabled={!canUseChat || createSessionMutation.isPending}
           sx={{
             textTransform: "none",
             borderRadius: 999,
@@ -469,7 +576,7 @@ export default function ChatClient() {
           </List>
         )}
 
-        {!isSessionsLoading && sessions.length === 0 && (
+        {!isSessionsLoading && canUseChat && sessions.length === 0 && (
           <Typography variant="body2" sx={{ mt: 1, color: "#6b7280" }}>
             Створюємо перший діалог…
           </Typography>
@@ -487,7 +594,7 @@ export default function ChatClient() {
             sx={{ color: "black", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack
@@ -546,191 +653,214 @@ export default function ChatClient() {
           </SignedOut>
 
           <SignedIn>
-            <Box sx={styles.chatShell}>
-              {/* ✅ top bar inside paper */}
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                gap={1}
-                sx={styles.innerHeader}
-              >
-                <Stack direction="row" gap={1} alignItems="center">
-                  {/* ✅ mobile hamburger */}
-                  <IconButton
-                    onClick={() => setSidebarOpen(true)}
-                    sx={{
-                      display: { xs: "inline-flex", md: "none" },
-                      border: "1px solid #e5e7eb",
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <MenuIcon />
-                  </IconButton>
-
-                  <Typography
-                    variant="h6"
-                    sx={{ fontWeight: 700, color: "#111827" }}
-                  >
-                    {selectedSessionTitle || "Діалог"}
+            {isBootstrapLoading && (
+              <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <CircularProgress size={20} />
+                  <Typography variant="body2" sx={{ color: "#4b5563" }}>
+                    Готуємо середовище для чату…
                   </Typography>
                 </Stack>
+              </Box>
+            )}
 
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleCreateSession()}
-                  disabled={
-                    !organization || !apiUser || createSessionMutation.isPending
-                  }
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: 999,
-                    bgcolor: "#111827",
-                    boxShadow: "none",
-                    color: "white",
-                    "&:hover": { bgcolor: "#000000", boxShadow: "none" },
-                  }}
+            {bootstrapError && !isBootstrapLoading && (
+              <Box
+                sx={{ flex: 1, display: "grid", placeItems: "center", px: 2 }}
+              >
+                <Typography color="#b91c1c">
+                  Помилка ініціалізації: {(bootstrapError as any)?.message}
+                </Typography>
+              </Box>
+            )}
+
+            {showNoOrg && (
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <NoOrgState />
+              </Box>
+            )}
+
+            {!isBootstrapLoading && !bootstrapError && !showNoOrg && (
+              <Box sx={styles.chatShell}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  gap={1}
+                  sx={styles.innerHeader}
                 >
-                  Новий діалог
-                </Button>
-              </Stack>
+                  <Stack direction="row" gap={1} alignItems="center">
+                    <IconButton
+                      onClick={() => setSidebarOpen(true)}
+                      sx={{
+                        display: { xs: "inline-flex", md: "none" },
+                        border: "1px solid #e5e7eb",
+                        bgcolor: "#ffffff",
+                      }}
+                    >
+                      <MenuIcon />
+                    </IconButton>
 
-              {/* ✅ desktop grid */}
-              <Box sx={styles.grid}>
-                <Box
-                  sx={{ display: { xs: "none", md: "block" }, minHeight: 0 }}
-                >
-                  <Paper variant="outlined" sx={styles.sidebarPaper}>
-                    {SidebarContent}
-                  </Paper>
-                </Box>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 700, color: "#111827" }}
+                    >
+                      {selectedSessionTitle || "Діалог"}
+                    </Typography>
+                  </Stack>
 
-                <Paper sx={styles.chatPanel} variant="outlined">
-                  <Box sx={styles.messagesScroll}>
-                    {isSessionLoading && selectedSessionId && (
-                      <Stack
-                        flex={1}
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        <CircularProgress size={22} />
-                      </Stack>
-                    )}
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleCreateSession()}
+                    disabled={!canUseChat || createSessionMutation.isPending}
+                    sx={{
+                      textTransform: "none",
+                      borderRadius: 999,
+                      bgcolor: "#111827",
+                      boxShadow: "none",
+                      color: "white",
+                      "&:hover": { bgcolor: "#000000", boxShadow: "none" },
+                    }}
+                  >
+                    Новий діалог
+                  </Button>
+                </Stack>
 
-                    {!selectedSessionId && (
-                      <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                        Обери діалог або створи новий.
-                      </Typography>
-                    )}
+                <Box sx={styles.grid}>
+                  <Box
+                    sx={{ display: { xs: "none", md: "block" }, minHeight: 0 }}
+                  >
+                    <Paper variant="outlined" sx={styles.sidebarPaper}>
+                      {SidebarContent}
+                    </Paper>
+                  </Box>
 
-                    {!isSessionLoading &&
-                      selectedSessionId &&
-                      localMessages.length === 0 && (
+                  <Paper sx={styles.chatPanel} variant="outlined">
+                    <Box sx={styles.messagesScroll}>
+                      {isSessionLoading && selectedSessionId && (
+                        <Stack
+                          flex={1}
+                          alignItems="center"
+                          justifyContent="center"
+                        >
+                          <CircularProgress size={22} />
+                        </Stack>
+                      )}
+
+                      {!selectedSessionId && (
                         <Typography variant="body2" sx={{ color: "#6b7280" }}>
-                          Напиши перше повідомлення, щоб почати діалог.
+                          Обери діалог або створи новий.
                         </Typography>
                       )}
 
-                    {!isSessionLoading &&
-                      localMessages.map((m: any) => {
-                        const isUser = m.role === "USER";
-                        const align = isUser ? "flex-end" : "flex-start";
-                        const bg = isUser ? "#111827" : "#f3f4f6";
-                        const borderColor = isUser ? "#111827" : "#e5e7eb";
-                        const textColor = isUser ? "#f9fafb" : "#111827";
-                        const metaColor = isUser ? "#e5e7eb" : "#9ca3af";
-
-                        return (
-                          <Box
-                            key={m.id}
-                            sx={{ display: "flex", justifyContent: align }}
-                          >
-                            <Box
-                              sx={{
-                                maxWidth: "86%",
-                                bgcolor: bg,
-                                border: `1px solid ${borderColor}`,
-                                borderRadius: 2,
-                                px: 1.5,
-                                py: 1,
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  display: "block",
-                                  mb: 0.5,
-                                  color: metaColor,
-                                }}
-                              >
-                                {isUser ? "Ти" : "Асистент"} ·{" "}
-                                {formatDateStable(m.createdAt)}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: textColor,
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {m.content}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-
-                    <div ref={chatBottomRef} />
-                  </Box>
-
-                  <Box sx={styles.composer}>
-                    <Stack direction="row" alignItems="flex-end" gap={1}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={1}
-                        maxRows={4}
-                        placeholder="Напиши повідомлення"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        size="small"
-                        inputRef={inputRef}
-                        InputProps={{
-                          sx: { bgcolor: "#f9fafb", color: "#111827" },
-                        }}
-                      />
-                      <IconButton
-                        onClick={handleSend}
-                        disabled={
-                          !selectedSessionId ||
-                          !apiUser ||
-                          !draft.trim() ||
-                          isSending
-                        }
-                        sx={{
-                          bgcolor: "#111827",
-                          color: "#f9fafb",
-                          "&:hover": { bgcolor: "#000000" },
-                        }}
-                      >
-                        {isSending ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          <SendIcon />
+                      {!isSessionLoading &&
+                        selectedSessionId &&
+                        localMessages.length === 0 && (
+                          <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                            Напиши перше повідомлення, щоб почати діалог.
+                          </Typography>
                         )}
-                      </IconButton>
-                    </Stack>
-                  </Box>
-                </Paper>
+
+                      {!isSessionLoading &&
+                        localMessages.map((m: any) => {
+                          const isUser = m.role === "USER";
+                          const align = isUser ? "flex-end" : "flex-start";
+                          const bg = isUser ? "#111827" : "#f3f4f6";
+                          const borderColor = isUser ? "#111827" : "#e5e7eb";
+                          const textColor = isUser ? "#f9fafb" : "#111827";
+                          const metaColor = isUser ? "#e5e7eb" : "#9ca3af";
+
+                          return (
+                            <Box
+                              key={m.id}
+                              sx={{ display: "flex", justifyContent: align }}
+                            >
+                              <Box
+                                sx={{
+                                  maxWidth: "86%",
+                                  bgcolor: bg,
+                                  border: `1px solid ${borderColor}`,
+                                  borderRadius: 2,
+                                  px: 1.5,
+                                  py: 1,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: "block",
+                                    mb: 0.5,
+                                    color: metaColor,
+                                  }}
+                                >
+                                  {isUser ? "Ти" : "Асистент"} ·{" "}
+                                  {formatDateStable(m.createdAt)}
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: textColor,
+                                    whiteSpace: "pre-wrap",
+                                  }}
+                                >
+                                  {m.content}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+
+                      <div ref={chatBottomRef} />
+                    </Box>
+
+                    <Box sx={styles.composer}>
+                      <Stack direction="row" alignItems="flex-end" gap={1}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={1}
+                          maxRows={4}
+                          placeholder="Напиши повідомлення"
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          size="small"
+                          inputRef={inputRef}
+                          InputProps={{
+                            sx: { bgcolor: "#f9fafb", color: "#111827" },
+                          }}
+                        />
+                        <IconButton
+                          onClick={handleSend}
+                          disabled={
+                            !canUseChat ||
+                            !selectedSessionId ||
+                            !draft.trim() ||
+                            isSending
+                          }
+                          sx={{
+                            bgcolor: "#111827",
+                            color: "#f9fafb",
+                            "&:hover": { bgcolor: "#000000" },
+                          }}
+                        >
+                          {isSending ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <SendIcon />
+                          )}
+                        </IconButton>
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Box>
               </Box>
-            </Box>
+            )}
           </SignedIn>
         </Paper>
       </Container>
 
-      {/* ✅ MOBILE SIDEBAR DRAWER */}
       <Drawer
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

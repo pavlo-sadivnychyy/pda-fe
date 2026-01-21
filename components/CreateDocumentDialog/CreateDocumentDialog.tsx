@@ -233,6 +233,7 @@ const styles = {
     borderRadius: 999,
     bgcolor: "#111827",
     boxShadow: "none",
+    color: "white",
     "&:hover": {
       bgcolor: "#000000",
       boxShadow: "none",

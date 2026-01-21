@@ -1,7 +1,9 @@
 "use client";
 
+import * as React from "react";
 import { Box, Grid } from "@mui/material";
 import { useRouter } from "next/navigation";
+import { InfinitySpin } from "react-loader-spinner";
 
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useHomeProfile } from "@/components/Home/hooks/useHomeProfile";
@@ -23,10 +25,13 @@ import {
 } from "./components/FinanceShortcutsCards";
 import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortcutsCards";
 
+import { completeOnboarding } from "@/components/Onboarding/api";
+import { OrgGateModal } from "@/components/Onboarding/OrgGateModal";
+
 export default function HomePage() {
   const router = useRouter();
 
-  const { data: userData } = useCurrentUser();
+  const { data: userData, isLoading } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
   const profile = useHomeProfile(currentUserId);
@@ -43,6 +48,62 @@ export default function HomePage() {
     if (type === "ACT") router.push(`/acts/${id}`);
     if (type === "QUOTE") router.push(`/quotes/${id}`);
   };
+
+  const [dismissed, setDismissed] = React.useState(false);
+
+  const onboardingValueRaw =
+    (userData as any)?.onboardingCompleted ??
+    (userData as any)?.onBoardingCompleted;
+
+  const onboardingKnown = typeof onboardingValueRaw === "boolean";
+  const onboardingCompleted = onboardingKnown ? onboardingValueRaw : false;
+
+  React.useEffect(() => {
+    if (onboardingKnown && onboardingCompleted) setDismissed(false);
+  }, [onboardingKnown, onboardingCompleted]);
+
+  if (isLoading || profile.isOrgLoading || !onboardingKnown) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          bgcolor: "#f3f4f6",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <InfinitySpin width="200" color="#202124" />
+      </Box>
+    );
+  }
+
+  const shouldOpenOrgGate = !onboardingCompleted && !dismissed;
+
+  if (shouldOpenOrgGate) {
+    const safeComplete = async () => {
+      try {
+        await completeOnboarding();
+      } catch (e) {
+        console.error("completeOnboarding failed:", e);
+      }
+    };
+
+    return (
+      <OrgGateModal
+        open
+        allowClose
+        onLater={async () => {
+          await safeComplete();
+          setDismissed(true);
+        }}
+        onCreateOrg={async () => {
+          await safeComplete();
+          router.push("/organization");
+        }}
+      />
+    );
+  }
 
   return (
     <Box
@@ -65,7 +126,7 @@ export default function HomePage() {
         />
 
         <Grid container spacing={3}>
-          {/* LEFT: найтерміновіше + короткий контекст */}
+          {/* LEFT */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <TodayTasksCard
               tasks={today.tasks}
@@ -87,18 +148,17 @@ export default function HomePage() {
               onOpenHistory={() => router.push("/activity")}
               onOpenEntity={openEntity}
             />
-            <AnalyticsShortcutCard onClick={() => router.push("/analytics")} />
 
+            <AnalyticsShortcutCard onClick={() => router.push("/analytics")} />
             <AiChatCard />
           </Grid>
 
-          {/* RIGHT: швидкі дії + інструменти */}
+          {/* RIGHT */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <ClientsShortcutCard onClick={() => router.push("/clients")} />
             <InvoicesShortcutCard onClick={() => router.push("/invoices")} />
             <QuotesShortcutCard onClick={() => router.push("/quotes")} />
             <ActsShortcutCard onClick={() => router.push("/acts")} />
-
             <DocumentsCard />
           </Grid>
         </Grid>

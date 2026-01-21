@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -10,6 +11,8 @@ import {
   Container,
   Stack,
   Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 import InsightsIcon from "@mui/icons-material/Insights";
 
@@ -24,8 +27,152 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import BusinessIcon from "@mui/icons-material/Business";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+
+import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
+
+function NoOrgState() {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 640,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(25,118,210,0.08)",
+            }}
+          >
+            <BusinessIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Спочатку створи організацію
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            Фінансова аналітика прив’язана до організації та її інвойсів. Створи
+            організацію — і тут з’являться KPI та графіки по оплатах.
+          </Typography>
+
+          <Button
+            component={Link}
+            href="/organization"
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{ borderRadius: 999, px: 2.5 }}
+          >
+            Перейти до створення
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
 
 const FinancialAnalyticsPage: React.FC = () => {
+  const router = useRouter();
+  const { organizationId } = useOrganizationContext();
+
+  // ✅ якщо нема org — показуємо empty state
+  if (!organizationId) {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="lg"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              на головну
+            </Button>
+
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: "999px",
+                    bgcolor: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    display: "grid",
+                    placeItems: "center",
+                  }}
+                >
+                  <InsightsIcon sx={{ color: "#0f172a" }} />
+                </Box>
+
+                <Typography
+                  variant="h5"
+                  sx={{ fontWeight: 800, color: "#0f172a" }}
+                >
+                  Фінансова аналітика
+                </Typography>
+              </Stack>
+
+              <Chip
+                label="Період"
+                size="small"
+                sx={{
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+
+            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+              Огляд фінансового стану: отримані кошти, заборгованість,
+              прострочені платежі та загальна картина по інвойсах.
+            </Typography>
+          </Box>
+
+          {/* Center */}
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pb: { xs: 2, sm: 3 },
+            }}
+          >
+            <NoOrgState />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ✅ тепер можна безпечно вантажити аналітику
   const {
     data,
     currency,
@@ -34,8 +181,7 @@ const FinancialAnalyticsPage: React.FC = () => {
     periodLabel,
     showSpinner,
     errorText,
-  } = useFinancialAnalytics();
-  const router = useRouter();
+  } = useFinancialAnalytics(organizationId);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
@@ -47,7 +193,7 @@ const FinancialAnalyticsPage: React.FC = () => {
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack
@@ -95,7 +241,7 @@ const FinancialAnalyticsPage: React.FC = () => {
             платежі та загальна картина по інвойсах.
           </Typography>
 
-          {/* ✅ Friendly hint block (додано) */}
+          {/* ✅ Friendly hint block */}
           <Box sx={{ mt: 2 }}>
             <Alert
               icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
@@ -169,7 +315,6 @@ const FinancialAnalyticsPage: React.FC = () => {
             p: { xs: 3, md: 4 },
           }}
         >
-          {/* внутрішній header (періоди / фільтри) */}
           <AnalyticsHeader periodLabel={periodLabel} />
 
           {showSpinner && (

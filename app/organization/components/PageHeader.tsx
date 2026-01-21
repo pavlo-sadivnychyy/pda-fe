@@ -28,7 +28,7 @@ export function PageHeader({ mode, profileCompletion }: Props) {
         sx={{ color: "black", marginBottom: "20px" }}
         startIcon={<KeyboardReturnIcon fontSize="inherit" />}
       >
-        Повернутись назад
+        на головну
       </Button>
       <Stack
         direction={{ xs: "column", sm: "row" }}

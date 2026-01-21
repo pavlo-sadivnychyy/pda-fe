@@ -109,7 +109,7 @@ export default function OrganizationProfilePage() {
         open={vm.snackbar.open}
         autoHideDuration={3000}
         onClose={vm.actions.closeSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "rigth" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
           severity={vm.snackbar.severity}
