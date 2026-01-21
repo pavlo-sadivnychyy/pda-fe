@@ -2,6 +2,7 @@
 
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
+import { PlanId } from "@/components/Home/components/PlanCard";
 
 export const useOrganizationContext = () => {
   const { data: userData } = useCurrentUser();
@@ -14,5 +15,8 @@ export const useOrganizationContext = () => {
     (orgData as any)?.items?.[0]?.organization?.id ??
     undefined;
 
-  return { currentUserId, organizationId };
+  const currentPlanFromApi: PlanId =
+    ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
+
+  return { currentUserId, organizationId, planId: currentPlanFromApi };
 };

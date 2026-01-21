@@ -8,16 +8,14 @@ export type DueSoonInvoice = {
   number: string;
   dueDate: string | null;
   currency: string;
-  total: any; // Prisma Decimal / number / string — покажемо як є або форматнемо у UI
+  total: any;
   status: string;
-
   client: null | {
     id: string;
     name: string;
     contactName?: string | null;
     email?: string | null;
   };
-
   reminders?: { id: string; sentAt: string }[];
 };
 
@@ -29,6 +27,7 @@ export function useDueSoonInvoices(params: {
   maxDays?: number;
   includeDraft?: boolean;
   includeOverdue?: boolean;
+  notAvailiable: boolean;
 }) {
   const {
     organizationId,
@@ -36,7 +35,10 @@ export function useDueSoonInvoices(params: {
     maxDays = 2,
     includeDraft = false,
     includeOverdue = false,
+    notAvailiable,
   } = params;
+
+  const enabled = Boolean(organizationId) && !notAvailiable;
 
   const query = useQuery<Response>({
     queryKey: [
@@ -48,7 +50,7 @@ export function useDueSoonInvoices(params: {
       includeDraft,
       includeOverdue,
     ],
-    enabled: !!organizationId,
+    enabled,
     staleTime: 30_000,
     keepPreviousData: true,
     queryFn: async () => {
@@ -65,10 +67,8 @@ export function useDueSoonInvoices(params: {
     },
   });
 
-  const invoices = query.data?.invoices ?? [];
-
   return {
     ...query,
-    invoices,
+    invoices: query.data?.invoices ?? [],
   };
 }

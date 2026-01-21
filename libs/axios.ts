@@ -45,7 +45,7 @@ api.interceptors.response.use(
     }
 
     if (status === 403) {
-      alert("У вас немає доступу");
+      console.log("У вас немає доступу"); //TODO
     }
 
     if (status === 500) {

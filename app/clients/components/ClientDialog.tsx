@@ -43,6 +43,10 @@ export const ClientDialog = ({
   submitting,
   canSubmit,
   tagOptions,
+
+  // ✅ from hook
+  errors,
+  submitAttempted,
 }: {
   open: boolean;
   onClose: () => void;
@@ -52,15 +56,27 @@ export const ClientDialog = ({
     k: K,
     v: ClientFormValues[K],
   ) => void;
+
+  // ✅ onSubmit should already be wrapped with handleSubmit in ClientsPage
   onSubmit: () => void;
+
   submitting: boolean;
   canSubmit: boolean;
   tagOptions: string[];
+
+  errors: Partial<Record<keyof ClientFormValues, string>>;
+  submitAttempted: boolean;
 }) => {
   const options = useMemo(
     () => (tagOptions ?? []).map((t) => t.trim()).filter(Boolean),
     [tagOptions],
   );
+
+  const fieldError = (k: keyof ClientFormValues) =>
+    Boolean(submitAttempted && errors?.[k]);
+
+  const fieldHelper = (k: keyof ClientFormValues) =>
+    submitAttempted ? (errors?.[k] ?? "") : "";
 
   return (
     <Dialog
@@ -70,7 +86,6 @@ export const ClientDialog = ({
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
     >
-      {/* ✅ HEADER з кнопкою X */}
       <DialogTitle
         sx={{
           position: "sticky",
@@ -121,6 +136,8 @@ export const ClientDialog = ({
             value={form.name}
             onChange={(e) => setField("name", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("name")}
+            helperText={fieldHelper("name")}
           />
 
           <TextField
@@ -139,7 +156,6 @@ export const ClientDialog = ({
             ))}
           </TextField>
 
-          {/* ✅ ТЕГИ: ТІЛЬКИ ВИБІР З АВТОКОМПЛІТУ */}
           <Autocomplete
             multiple
             options={options}
@@ -169,6 +185,8 @@ export const ClientDialog = ({
                 variant="standard"
                 placeholder="Обери теги…"
                 InputLabelProps={{ shrink: true }}
+                error={fieldError("tags")}
+                helperText={fieldHelper("tags")}
               />
             )}
           />
@@ -181,36 +199,46 @@ export const ClientDialog = ({
             value={form.contactName}
             onChange={(e) => setField("contactName", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("contactName")}
+            helperText={fieldHelper("contactName")}
           />
 
           <TextField
             variant="standard"
-            label="Email"
+            label="Email *"
             fullWidth
-            placeholder="Введіть email"
+            placeholder="name@company.com"
             value={form.email}
             onChange={(e) => setField("email", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("email")}
+            helperText={fieldHelper("email")}
+            autoComplete="email"
           />
 
           <TextField
             variant="standard"
             label="Телефон"
-            placeholder="Введіть номер телефону"
+            placeholder="+380..."
             fullWidth
             value={form.phone}
             onChange={(e) => setField("phone", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("phone")}
+            helperText={fieldHelper("phone")}
+            autoComplete="tel"
           />
 
           <TextField
             variant="standard"
             label="Податковий номер / ЄДРПОУ"
             fullWidth
-            placeholder="Введіть податковий номер"
+            placeholder="8 або 10 цифр"
             value={form.taxNumber}
             onChange={(e) => setField("taxNumber", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("taxNumber")}
+            helperText={fieldHelper("taxNumber")}
           />
 
           <TextField
@@ -221,6 +249,8 @@ export const ClientDialog = ({
             value={form.address}
             onChange={(e) => setField("address", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("address")}
+            helperText={fieldHelper("address")}
           />
 
           <TextField
@@ -232,6 +262,8 @@ export const ClientDialog = ({
             value={form.notes}
             onChange={(e) => setField("notes", e.target.value)}
             InputLabelProps={{ shrink: true }}
+            error={fieldError("notes")}
+            helperText={fieldHelper("notes")}
           />
         </Box>
 
@@ -255,6 +287,10 @@ export const ClientDialog = ({
               bgcolor: "#111827",
               color: "white",
               "&:hover": { bgcolor: "#020617" },
+              "&.Mui-disabled": {
+                bgcolor: "rgba(17,24,39,0.35)",
+                color: "rgba(255,255,255,0.85)",
+              },
             }}
           >
             {submitting ? "Зберігаємо..." : "Зберегти клієнта"}

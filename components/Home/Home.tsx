@@ -12,7 +12,6 @@ import { HomeHeader } from "@/components/Home/components/HomeHeader";
 import { DocumentsCard } from "@/components/Home/components/DocumentsCard";
 import { TodayTasksCard } from "./components/TodayTasksCard";
 import { AiChatCard } from "@/components/Home/components/AiChatCard";
-import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadlinesCard";
 
 import { useRecentActivity } from "@/components/Home/hooks/useRecentActivity";
 import { RecentActivityCard } from "@/components/Home/components/RecentActivityCard";
@@ -27,6 +26,7 @@ import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortc
 
 import { completeOnboarding } from "@/components/Onboarding/api";
 import { OrgGateModal } from "@/components/Onboarding/OrgGateModal";
+import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadlinesCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -137,6 +137,9 @@ export default function HomePage() {
             />
 
             <InvoiceDeadlinesCard
+              notAvailiable={
+                currentPlanFromApi === "FREE" || currentPlanFromApi === "BASIC"
+              }
               organizationId={organizationId}
               minDays={1}
               maxDays={2}
@@ -149,7 +152,12 @@ export default function HomePage() {
               onOpenEntity={openEntity}
             />
 
-            <AnalyticsShortcutCard onClick={() => router.push("/analytics")} />
+            <AnalyticsShortcutCard
+              onClick={() => router.push("/analytics")}
+              notAvailiable={
+                currentPlanFromApi === "FREE" || currentPlanFromApi === "BASIC"
+              }
+            />
             <AiChatCard />
           </Grid>
 
@@ -157,8 +165,14 @@ export default function HomePage() {
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <ClientsShortcutCard onClick={() => router.push("/clients")} />
             <InvoicesShortcutCard onClick={() => router.push("/invoices")} />
-            <QuotesShortcutCard onClick={() => router.push("/quotes")} />
-            <ActsShortcutCard onClick={() => router.push("/acts")} />
+            <QuotesShortcutCard
+              onClick={() => router.push("/quotes")}
+              notAvailiable={currentPlanFromApi === "FREE"}
+            />
+            <ActsShortcutCard
+              onClick={() => router.push("/acts")}
+              notAvailiable={currentPlanFromApi === "FREE"}
+            />
             <DocumentsCard />
           </Grid>
         </Grid>
