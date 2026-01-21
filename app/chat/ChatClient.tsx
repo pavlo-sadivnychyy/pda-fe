@@ -594,7 +594,7 @@ export default function ChatClient() {
             sx={{ color: "black", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack

@@ -190,7 +190,7 @@ export default function ActsPage() {
               sx={{ color: "black", mb: 2 }}
               startIcon={<KeyboardReturnIcon fontSize="inherit" />}
             >
-              Повернутись назад
+              на головну
             </Button>
 
             <Stack
@@ -265,7 +265,7 @@ export default function ActsPage() {
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack
@@ -491,7 +491,7 @@ export default function ActsPage() {
         autoHideDuration={2500}
         onClose={() => setSnackOpen(false)}
         message={snackText}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       />
     </Box>
   );

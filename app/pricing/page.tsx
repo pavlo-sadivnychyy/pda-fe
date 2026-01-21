@@ -104,7 +104,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         sx={{ color: "black", marginBottom: "20px" }}
         startIcon={<KeyboardReturnIcon fontSize="inherit" />}
       >
-        Повернутись назад
+        на головну
       </Button>
 
       <Stack spacing={1} sx={{ mb: 3 }}>
@@ -290,8 +290,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                   spacing={2}
                 >
                   <Typography sx={{ fontWeight: 800, fontSize: 18 }}>
-                    {plan.currency}
-                    {formatPrice(plan.priceMonthly)}
+                    {formatPrice(plan.priceMonthly)} {plan.currency}
                     <Typography
                       component="span"
                       sx={{ color: "text.secondary", fontWeight: 500 }}

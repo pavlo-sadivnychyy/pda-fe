@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Box, Grid } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { InfinitySpin } from "react-loader-spinner";
@@ -24,6 +25,9 @@ import {
 } from "./components/FinanceShortcutsCards";
 import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortcutsCards";
 
+import { completeOnboarding } from "@/components/Onboarding/api";
+import { OrgGateModal } from "@/components/Onboarding/OrgGateModal";
+
 export default function HomePage() {
   const router = useRouter();
 
@@ -45,8 +49,20 @@ export default function HomePage() {
     if (type === "QUOTE") router.push(`/quotes/${id}`);
   };
 
-  // ✅ FULLSCREEN LOADER while user or org is loading
-  if (isLoading || profile.isOrgLoading) {
+  const [dismissed, setDismissed] = React.useState(false);
+
+  const onboardingValueRaw =
+    (userData as any)?.onboardingCompleted ??
+    (userData as any)?.onBoardingCompleted;
+
+  const onboardingKnown = typeof onboardingValueRaw === "boolean";
+  const onboardingCompleted = onboardingKnown ? onboardingValueRaw : false;
+
+  React.useEffect(() => {
+    if (onboardingKnown && onboardingCompleted) setDismissed(false);
+  }, [onboardingKnown, onboardingCompleted]);
+
+  if (isLoading || profile.isOrgLoading || !onboardingKnown) {
     return (
       <Box
         sx={{
@@ -59,6 +75,33 @@ export default function HomePage() {
       >
         <InfinitySpin width="200" color="#202124" />
       </Box>
+    );
+  }
+
+  const shouldOpenOrgGate = !onboardingCompleted && !dismissed;
+
+  if (shouldOpenOrgGate) {
+    const safeComplete = async () => {
+      try {
+        await completeOnboarding();
+      } catch (e) {
+        console.error("completeOnboarding failed:", e);
+      }
+    };
+
+    return (
+      <OrgGateModal
+        open
+        allowClose
+        onLater={async () => {
+          await safeComplete();
+          setDismissed(true);
+        }}
+        onCreateOrg={async () => {
+          await safeComplete();
+          router.push("/organization");
+        }}
+      />
     );
   }
 

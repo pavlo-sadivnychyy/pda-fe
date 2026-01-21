@@ -29,7 +29,7 @@ export default function KnowledgeBasePage() {
             sx={styles.backBtn}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack

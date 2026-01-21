@@ -168,7 +168,7 @@ export default function TodoPage() {
               sx={{ color: "black", mb: 2 }}
               startIcon={<KeyboardReturnIcon fontSize="inherit" />}
             >
-              Повернутись назад
+              на головну
             </Button>
 
             <Stack
@@ -244,7 +244,7 @@ export default function TodoPage() {
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack

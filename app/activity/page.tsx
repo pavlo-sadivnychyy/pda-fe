@@ -128,7 +128,7 @@ export default function ActivityPage() {
               sx={{ color: "#0f172a", mb: 2 }}
               startIcon={<KeyboardReturnIcon fontSize="inherit" />}
             >
-              Повернутись назад
+              на головну
             </Button>
 
             <Stack
@@ -204,7 +204,7 @@ export default function ActivityPage() {
             sx={{ color: "#0f172a", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack

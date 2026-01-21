@@ -3,7 +3,7 @@ export const PLANS: Plan[] = [
     id: "FREE",
     title: "FREE",
     subtitle: "Спробуй систему і звикни до порядку",
-    priceMonthly: "",
+    priceMonthly: "0",
     currency: "грн",
     ctaLabel: "Почати безкоштовно",
     features: [

@@ -106,7 +106,7 @@ const FinancialAnalyticsPage: React.FC = () => {
               sx={{ color: "black", mb: 2 }}
               startIcon={<KeyboardReturnIcon fontSize="inherit" />}
             >
-              Повернутись назад
+              на головну
             </Button>
 
             <Stack
@@ -193,7 +193,7 @@ const FinancialAnalyticsPage: React.FC = () => {
             sx={{ color: "black", marginBottom: "20px" }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack

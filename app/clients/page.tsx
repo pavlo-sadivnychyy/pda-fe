@@ -210,7 +210,7 @@ export default function ClientsPage() {
               sx={{ color: "#0f172a", mb: 2 }}
               startIcon={<KeyboardReturnIcon fontSize="inherit" />}
             >
-              Повернутись назад
+              на головну
             </Button>
 
             <Stack direction="row" spacing={1} alignItems="center">
@@ -257,7 +257,7 @@ export default function ClientsPage() {
             sx={{ color: "#0f172a", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            Повернутись назад
+            на головну
           </Button>
 
           <Stack
