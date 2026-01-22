@@ -12,15 +12,21 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
+  Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
 import {
   DataGrid,
   type GridColDef,
   type GridRenderCellParams,
 } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+
+import * as XLSX from "xlsx";
 
 import type { Client, Invoice, InvoiceStatus, InvoiceAction } from "../types";
 import { formatDate, formatMoney, getClientDisplayName } from "../utils";
@@ -42,6 +48,22 @@ function getClientEmail(inv: Invoice, clients: Client[]) {
   const found = clients.find((c) => c.id === clientId);
   const email = (found as any)?.email;
   return typeof email === "string" && email.trim() ? email.trim() : null;
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvCell(value: unknown) {
+  const s = value == null ? "" : String(value);
+  // UA/EU Excel часто чекає ';' як розділювач, але лапки все одно потрібні
+  if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  return s;
 }
 
 /* ---------------- mobile card ---------------- */
@@ -134,6 +156,7 @@ export const InvoicesGrid = ({
   actionBusyKey,
   onDelete,
   deleteBusyId,
+  disbaleExport,
 }: {
   invoices: Invoice[];
   clients: Client[];
@@ -142,11 +165,21 @@ export const InvoicesGrid = ({
   actionBusyKey: string | null;
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
+  disbaleExport: boolean;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [query, setQuery] = useState("");
+
+  // export menu (desktop only used, but safe regardless)
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+  const exportMenuOpen = Boolean(exportAnchorEl);
+  const openExportMenu = (e: React.MouseEvent<HTMLElement>) =>
+    setExportAnchorEl(e.currentTarget);
+  const closeExportMenu = () => setExportAnchorEl(null);
 
   const rows = useMemo(
     () =>
@@ -160,7 +193,9 @@ export const InvoicesGrid = ({
           clientEmail,
           issueDate: formatDate(inv.issueDate),
           dueDate: formatDate(inv.dueDate ?? null),
-          total: `${formatMoney(inv.total)} ${inv.currency}`,
+          totalValue: inv.total, // для експорту числом
+          currency: inv.currency,
+          total: `${formatMoney(inv.total)} ${inv.currency}`, // для UI
           status: inv.status,
           hasPdf: Boolean(inv.pdfDocumentId),
           hasInternationalPdf: Boolean(inv.pdfInternationalDocumentId),
@@ -187,6 +222,66 @@ export const InvoicesGrid = ({
         .includes(q),
     );
   }, [rows, query]);
+
+  // ---- Export data (desktop)
+  const getExportData = useCallback(() => {
+    return filteredRows.map((r) => ({
+      ID: r.id,
+      Номер: r.number,
+      Клієнт: r.clientName,
+      "Email клієнта": r.clientEmail ?? "",
+      Дата: r.issueDate,
+      "Оплатити до": r.dueDate,
+      Сума: r.totalValue, // числом, щоб Excel міг рахувати
+      Валюта: r.currency,
+      Статус: r.status,
+      PDF: r.hasPdf ? "Так" : "Ні",
+      "PDF (International)": r.hasInternationalPdf ? "Так" : "Ні",
+    }));
+  }, [filteredRows]);
+
+  const exportCsv = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const sep = ";";
+
+    const lines = [
+      headers.map(escapeCsvCell).join(sep),
+      ...data.map((row) =>
+        headers.map((h) => escapeCsvCell((row as any)[h])).join(sep),
+      ),
+    ];
+
+    // BOM for Excel UTF-8 UA chars
+    const csv = "\uFEFF" + lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const filename = `invoices_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadBlob(blob, filename);
+
+    closeExportMenu();
+  }, [getExportData]);
+
+  const exportXlsx = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+
+    const filename = `invoices_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+
+    closeExportMenu();
+  }, [getExportData]);
 
   /* ---------- Mobile ---------- */
   if (isMobile) {
@@ -308,33 +403,76 @@ export const InvoicesGrid = ({
         "& .MuiDataGrid-root": { border: "none" },
       }}
     >
-      {/* search */}
-      <Box sx={{ px: 1.5, pt: 1, pb: 1 }}>
-        <TextField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Пошук по інвойсах…"
-          fullWidth
-          size="small"
-          sx={{
-            bgcolor: "#fff",
-            "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: query ? (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setQuery("")}>
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-        />
+      {/* header: search + export (desktop only) */}
+      <Box
+        sx={{
+          px: 1.5,
+          pt: 1,
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <TextField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Пошук по інвойсах…"
+            fullWidth
+            size="small"
+            sx={{
+              bgcolor: "#fff",
+              "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+              endAdornment: query ? (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setQuery("")}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            }}
+          />
+        </Box>
+
+        {!disbaleExport && (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={openExportMenu}
+              disabled={loading || filteredRows.length === 0}
+              sx={{
+                flexShrink: 0,
+                flexGrow: 1,
+                maxWidth: "150px",
+                whiteSpace: "nowrap",
+                color: "black",
+                borderColor: "black",
+              }}
+            >
+              Експорт
+            </Button>
+
+            <Menu
+              anchorEl={exportAnchorEl}
+              open={exportMenuOpen}
+              onClose={closeExportMenu}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem onClick={exportCsv}>CSV</MenuItem>
+              <MenuItem onClick={exportXlsx}>Excel (.xlsx)</MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
 
       <DataGrid

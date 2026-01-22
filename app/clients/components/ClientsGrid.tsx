@@ -9,6 +9,9 @@ import {
   Typography,
   Stack,
   Divider,
+  Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -17,13 +20,15 @@ import {
   type GridColDef,
   type GridRowParams,
 } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { Client } from "../types";
 import { CRM_STATUS_COLOR, CRM_STATUS_LABELS, formatDate } from "../utils";
 import { ClientDeleteButton } from "./ClientDeleteButton";
 import { ClientEditButton } from "@/app/clients/components/ClientEditButton";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import * as XLSX from "xlsx";
+import DownloadIcon from "@mui/icons-material/Download";
 
 /* =======================
    Tag styles
@@ -313,20 +318,34 @@ function MobileClientsGrid({
    Desktop component (table)
 ======================= */
 
+// ... твої імпорти (DataGrid, SearchBar, StatusChip, TagChip, кнопки, форматери і т.д.)
+
 function DesktopClientsGrid({
   clients,
   loading,
   onEdit,
   onDelete,
   deleteBusyId,
+  disbaleExport,
 }: {
   clients: Client[];
   loading: boolean;
   onEdit: (client: Client) => void;
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
+  disbaleExport: boolean;
 }) {
   const [query, setQuery] = useState("");
+
+  // --- export menu state
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+  const exportMenuOpen = Boolean(exportAnchorEl);
+
+  const openExportMenu = (e: React.MouseEvent<HTMLElement>) =>
+    setExportAnchorEl(e.currentTarget);
+  const closeExportMenu = () => setExportAnchorEl(null);
 
   const rows = useMemo(
     () =>
@@ -454,6 +473,79 @@ function DesktopClientsGrid({
     [onDelete, deleteBusyId, clients],
   );
 
+  // ---------- Export helpers ----------
+  const getExportData = useCallback(() => {
+    // Мапа "людські заголовки" + нормалізація значень
+    return filteredRows.map((r) => ({
+      ID: r.id,
+      "Назва клієнта": r.name,
+      Статус: CRM_STATUS_LABELS[r.crmStatus as any] ?? r.crmStatus,
+      Теги: (r.tags ?? []).join(", "),
+      "Контактна особа": r.contactName,
+      Email: r.email,
+      Телефон: r.phone,
+      "Податковий номер": r.taxNumber,
+      Створено: r.createdAt,
+    }));
+  }, [filteredRows]);
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const escapeCsvCell = (value: unknown) => {
+    const s = value == null ? "" : String(value);
+    // CSV-safe: wrap if contains quotes, comma, newline
+    if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+    return s;
+  };
+
+  const exportCsv = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    // В UA Excel часто краще з ; як роздільником
+    const sep = ";";
+
+    const lines = [
+      headers.map(escapeCsvCell).join(sep),
+      ...data.map((row) => headers.map((h) => escapeCsvCell(row[h])).join(sep)),
+    ];
+
+    // BOM щоб Excel нормально відкривав UTF-8 (укр символи)
+    const csv = "\uFEFF" + lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+
+    const filename = `clients_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadBlob(blob, filename);
+    closeExportMenu();
+  }, [getExportData]);
+
+  const exportXlsx = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clients");
+
+    const filename = `clients_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    closeExportMenu();
+  }, [getExportData]);
+
   return (
     <Box
       sx={{
@@ -471,8 +563,52 @@ function DesktopClientsGrid({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
-      <Box sx={{ px: 1.5, pt: 1.25, pb: 1, flexShrink: 0 }}>
-        <SearchBar query={query} setQuery={setQuery} />
+      <Box
+        sx={{
+          px: 1.5,
+          pt: 1.25,
+          pb: 1,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <SearchBar query={query} setQuery={setQuery} />
+        </Box>
+
+        {!disbaleExport && (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={openExportMenu}
+              disabled={loading || filteredRows.length === 0}
+              sx={{
+                flexShrink: 0,
+                flexGrow: 1,
+                maxWidth: "150px",
+                whiteSpace: "nowrap",
+                color: "black",
+                borderColor: "black",
+              }}
+            >
+              Експорт
+            </Button>
+
+            <Menu
+              anchorEl={exportAnchorEl}
+              open={exportMenuOpen}
+              onClose={closeExportMenu}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem onClick={exportCsv}>CSV</MenuItem>
+              <MenuItem onClick={exportXlsx}>Excel (.xlsx)</MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0 }}>
@@ -518,12 +654,14 @@ export const ClientsGrid = ({
   onEdit,
   onDelete,
   deleteBusyId,
+  disbaleExport,
 }: {
   clients: Client[];
   loading: boolean;
   onEdit: (client: Client) => void;
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
+  disbaleExport: boolean;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -539,6 +677,7 @@ export const ClientsGrid = ({
     />
   ) : (
     <DesktopClientsGrid
+      disbaleExport={disbaleExport}
       clients={clients}
       loading={loading}
       onEdit={onEdit}

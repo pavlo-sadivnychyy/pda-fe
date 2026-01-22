@@ -10,15 +10,37 @@ import {
   Stack,
   TextField,
   Typography,
+  Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import DownloadIcon from "@mui/icons-material/Download";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Act } from "../types";
 import { formatMoney, formatPeriod } from "../utils";
 import { ActStatusChip } from "./ActStatusChip";
 import { ActRowActions } from "./ActRowActions";
+
+import * as XLSX from "xlsx";
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsvCell(value: unknown) {
+  const s = value == null ? "" : String(value);
+  // wrap if contains quotes, newline, comma, semicolon
+  if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
+  return s;
+}
 
 export const ActsGrid = ({
   acts,
@@ -28,12 +50,14 @@ export const ActsGrid = ({
   sendBusyId,
   mobile,
   desktopGridHeight = 560,
+  disbaleExport,
 }: {
   acts: Act[];
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
   onSend: (id: string) => Promise<void> | void;
   sendBusyId: string | null;
+  disbaleExport: boolean;
 
   // ✅ responsive behavior controlled by parent page
   mobile: boolean;
@@ -43,6 +67,15 @@ export const ActsGrid = ({
 }) => {
   const [query, setQuery] = useState("");
 
+  // export menu (desktop only in UI)
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
+  const exportMenuOpen = Boolean(exportAnchorEl);
+  const openExportMenu = (e: React.MouseEvent<HTMLElement>) =>
+    setExportAnchorEl(e.currentTarget);
+  const closeExportMenu = () => setExportAnchorEl(null);
+
   const rows = useMemo(() => {
     return acts.map((a: any) => {
       const clientName = a?.client?.name ?? "—";
@@ -51,8 +84,15 @@ export const ActsGrid = ({
         ? `№ ${a.relatedInvoice.number}`
         : "—";
       const period = formatPeriod(a?.periodFrom, a?.periodTo);
-      const total = formatMoney(a?.total, a?.currency);
-      const status = String(a?.status ?? "");
+
+      // для UI (рядок)
+      const totalFormatted = formatMoney(a?.total, a?.currency);
+
+      // для експорту (число + валюта окремо)
+      const totalValue = Number(a?.total ?? 0);
+      const currency = String(a?.currency ?? "");
+
+      const statusText = String(a?.status ?? "");
 
       return {
         ...a,
@@ -60,8 +100,10 @@ export const ActsGrid = ({
         clientEmail,
         invoiceNumber,
         period,
-        totalFormatted: total,
-        statusText: status,
+        totalFormatted,
+        totalValue,
+        currency,
+        statusText,
       };
     });
   }, [acts]);
@@ -159,6 +201,63 @@ export const ActsGrid = ({
     ],
     [onDelete, deleteBusyId, onSend, sendBusyId],
   );
+
+  // ---- Export (desktop only in UI)
+  const getExportData = useCallback(() => {
+    return filteredRows.map((r: any) => ({
+      ID: r.id ?? "",
+      "№ акта": r.number ?? "",
+      Клієнт: r.clientName ?? "",
+      "Email клієнта": r.clientEmail ?? "",
+      Інвойс: r.invoiceNumber ?? "",
+      Період: r.period ?? "",
+      Сума: r.totalValue ?? 0, // numeric for Excel
+      Валюта: r.currency ?? "",
+      Статус: r.statusText ?? "",
+    }));
+  }, [filteredRows]);
+
+  const exportCsv = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const sep = ";";
+
+    const lines = [
+      headers.map(escapeCsvCell).join(sep),
+      ...data.map((row) =>
+        headers.map((h) => escapeCsvCell((row as any)[h])).join(sep),
+      ),
+    ];
+
+    const csv = "\uFEFF" + lines.join("\n"); // BOM for Excel UTF-8
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const filename = `acts_${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadBlob(blob, filename);
+
+    closeExportMenu();
+  }, [getExportData]);
+
+  const exportXlsx = useCallback(() => {
+    const data = getExportData();
+    if (!data.length) {
+      closeExportMenu();
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Acts");
+
+    const filename = `acts_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+
+    closeExportMenu();
+  }, [getExportData]);
 
   const SearchBar = (
     <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
@@ -295,7 +394,51 @@ export const ActsGrid = ({
         flexDirection: "column",
       }}
     >
-      {SearchBar}
+      {/* Desktop header: search + export */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1.5,
+          pt: 1.25,
+          pb: 1,
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>{SearchBar}</Box>
+
+        {!disbaleExport && (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={openExportMenu}
+              disabled={filteredRows.length === 0}
+              sx={{
+                flexShrink: 0,
+                flexGrow: 1,
+                maxWidth: "150px",
+                whiteSpace: "nowrap",
+                color: "black",
+                borderColor: "black",
+              }}
+            >
+              Експорт
+            </Button>
+
+            <Menu
+              anchorEl={exportAnchorEl}
+              open={exportMenuOpen}
+              onClose={closeExportMenu}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem onClick={exportCsv}>CSV</MenuItem>
+              <MenuItem onClick={exportXlsx}>Excel (.xlsx)</MenuItem>
+            </Menu>
+          </>
+        )}
+      </Box>
 
       {/* ✅ critical: parent must have height, child must have minHeight:0 */}
       <Box sx={{ flex: 1, minHeight: 0 }}>

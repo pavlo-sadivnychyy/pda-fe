@@ -97,7 +97,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ padding: "32px 0" }}>
+    <Container maxWidth="lg" sx={{ padding: "32px 20px" }}>
       {/* Header */}
       <Button
         onClick={() => router.push("/dashboard")}
@@ -302,7 +302,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
                   <Button
                     size="small"
-                    variant={isPopular ? "contained" : "outlined"}
+                    variant={"contained"}
                     onClick={() => handleChoosePlan(plan.id)}
                     disabled={isCurrent || isBusy || !userId}
                     sx={{
@@ -311,12 +311,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       fontSize: 12,
                       px: 2.5,
                       whiteSpace: "nowrap",
-                      ...(isPopular
-                        ? {
-                            bgcolor: "#202124",
-                            "&:hover": { bgcolor: "#111827" },
-                          }
-                        : {}),
                     }}
                   >
                     {isCurrent
