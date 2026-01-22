@@ -410,12 +410,12 @@ export function InvoiceDeadlinesCard({
                   borderRadius: 999,
                   display: "grid",
                   placeItems: "center",
-                  bgcolor: "#111827",
+                  bgcolor: "#ffbf57",
                   color: "white",
                   flexShrink: 0,
                 }}
               >
-                <LockIcon fontSize="small" />
+                <LockIcon fontSize="small" sx={{ color: "white" }} />
               </Box>
 
               <Box sx={{ minWidth: 0 }}>
