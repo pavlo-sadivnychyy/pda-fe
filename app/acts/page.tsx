@@ -201,6 +201,8 @@ export default function ActsPage() {
 
   const { createFromInvoice, deleteAct, sendAct } = useActMutations(
     canWork ? organizationId : undefined,
+    (text) => openSnack(text), // onError
+    (text) => openSnack(text), // onSuccess
   );
 
   const form = useActForm();
@@ -224,22 +226,17 @@ export default function ActsPage() {
       notes,
     } = form.fields;
 
-    await createFromInvoice
-      .mutateAsync({
-        invoiceId: selectedInvoiceId,
-        number: actNumber.trim(),
-        createdById: currentUserId,
-        title: actTitle.trim() ? actTitle.trim() : undefined,
-        periodFrom: periodFrom || undefined,
-        periodTo: periodTo || undefined,
-        notes: notes || undefined,
-      })
-      .catch(() => {
-        openSnack("Акт за цим інвойсом вже існує");
-      });
+    await createFromInvoice.mutateAsync({
+      invoiceId: selectedInvoiceId,
+      number: actNumber.trim(),
+      createdById: currentUserId,
+      title: actTitle.trim() ? actTitle.trim() : undefined,
+      periodFrom: periodFrom || undefined,
+      periodTo: periodTo || undefined,
+      notes: notes || undefined,
+    });
 
     setCreateDialogOpen(false);
-    openSnack("Акт створено");
   };
 
   const requestDelete = (id: string) => setDeleteId(id);
