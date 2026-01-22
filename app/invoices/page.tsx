@@ -461,8 +461,8 @@ export default function InvoicesPage() {
   return (
     <Box
       sx={{
-        height: { xs: "auto", md: "100dvh" }, // ✅ desktop fixed height
-        overflow: { xs: "auto", md: "hidden" }, // ✅ desktop no page scroll
+        height: "100dvh",
+        overflow: "auto",
         bgcolor: "#f3f4f6",
         py: 4,
       }}
@@ -569,17 +569,12 @@ export default function InvoicesPage() {
         </Box>
 
         {/* ✅ Main area: desktop should not grow beyond viewport */}
-        <Box
-          sx={{
-            flex: { xs: "unset", md: 1 }, // ✅ desktop: fill remaining space
-            minHeight: 0, // ✅ IMPORTANT for inner scroll
-          }}
-        >
+        <Box>
           <Box
             sx={{
               maxWidth: 1500,
               mx: "auto",
-              height: { xs: "auto", md: "100%" },
+              height: "auto",
             }}
           >
             <InvoicesCard

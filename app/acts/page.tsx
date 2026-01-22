@@ -415,11 +415,10 @@ export default function ActsPage() {
   return (
     <Box
       sx={{
-        height: { xs: "auto", md: "100dvh" },
-        minHeight: "100dvh",
+        height: "100dvh",
         bgcolor: "#f3f4f6",
         py: { xs: 3, md: 4 },
-        overflowY: { xs: "auto", md: "hidden" }, // 🔥 ключ
+        overflowY: "auto", // 🔥 ключ
       }}
     >
       <Container
@@ -562,12 +561,7 @@ export default function ActsPage() {
             onCreate={openCreate}
           >
             {/* Desktop: fixed height + internal scroll only */}
-            <Box
-              sx={{
-                height: { xs: "auto", md: "100%" },
-                minHeight: { xs: "auto", md: 0 },
-              }}
-            >
+            <Box>
               {isTableLoading ? (
                 <Box
                   sx={{

@@ -330,9 +330,7 @@ export default function ClientsPage() {
   return (
     <Box
       sx={{
-        // ✅ Mobile: page scroll (cards)
-        // ✅ Desktop: fixed height + inner scroll (table)
-        height: isMobile ? "auto" : "100dvh",
+        height: "auto",
         minHeight: "100dvh",
         bgcolor: "#f3f4f6",
         overflow: isMobile ? "visible" : "hidden",
