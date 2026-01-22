@@ -527,8 +527,8 @@ export default function QuotesPage() {
   return (
     <Box
       sx={{
-        height: { xs: "auto", md: "100dvh" },
-        overflow: { xs: "auto", md: "hidden" },
+        height: "100dvh",
+        overflow: "auto",
         bgcolor: "#f3f4f6",
         py: 4,
       }}
@@ -676,12 +676,11 @@ export default function QuotesPage() {
         </Box>
 
         {/* Main */}
-        <Box sx={{ flex: { xs: "unset", md: 1 }, minHeight: 0 }}>
+        <Box>
           <Box
             sx={{
               maxWidth: 1700,
               mx: "auto",
-              height: { xs: "auto", md: "100%" },
             }}
           >
             <QuotesCard
