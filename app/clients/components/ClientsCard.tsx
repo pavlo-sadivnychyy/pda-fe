@@ -1,12 +1,10 @@
 "use client";
 
 import { Box, Button, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import LockIcon from "@mui/icons-material/Lock";
 import type { ReactNode } from "react";
 
 export const ClientsCard = ({
-  count,
   onCreate,
   children,
   isLimitReached,
@@ -24,11 +22,8 @@ export const ClientsCard = ({
         boxShadow: "0px 18px 45px rgba(15,23,42,0.11)",
         p: { xs: 3, md: 4 },
 
-        // ✅ make it a vertical layout container
         display: "flex",
         flexDirection: "column",
-
-        // ✅ IMPORTANT for nested scroll
         minHeight: 0,
         height: "100%",
       }}
@@ -39,89 +34,28 @@ export const ClientsCard = ({
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
           justifyContent: "space-between",
+          alignItems: { xs: "flex-start", md: "center" },
           gap: 2,
           mb: 3,
           flexShrink: 0,
         }}
       >
-        <Box>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 600, mb: 0.5, color: "#020617" }}
-          >
-            Зберігай дані клієнтів, щоб швидко підставляти їх в інвойси та
-            комунікацію.
-          </Typography>
-        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: "#020617" }}>
+          Зберігай дані клієнтів, щоб швидко підставляти їх в інвойси та
+          комунікацію.
+        </Typography>
 
-        <Box
-          sx={{
-            minWidth: 220,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: { xs: "flex-start", md: "flex-end" },
-            gap: 0.5,
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{ color: "#6b7280", textTransform: "uppercase" }}
-          >
-            Усього клієнтів
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 600, color: "#020617" }}
-          >
-            {count}
-          </Typography>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          borderBottom: "1px solid rgba(148,163,184,0.4)",
-          mb: 2.5,
-          flexShrink: 0,
-        }}
-      />
-
-      {/* ✅ Scroll area for table/rows */}
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          overflow: "auto",
-
-          // optional: nicer scroll on iOS/mac
-          WebkitOverflowScrolling: "touch",
-
-          // optional: keep some padding for shadows etc.
-          pr: { xs: 0.5, md: 1 },
-        }}
-      >
-        {children}
-      </Box>
-
-      {/* Footer */}
-      <Box
-        sx={{
-          mt: 2.5,
-          pt: 2,
-          borderTop: "1px solid rgba(148,163,184,0.2)",
-          flexShrink: 0,
-        }}
-      >
+        {/* 👉 Кнопка тепер тут */}
         <Button
-          fullWidth
           onClick={onCreate}
           disabled={isLimitReached}
-          startIcon={isLimitReached ? <LockIcon /> : <AddIcon />}
+          startIcon={isLimitReached ? <LockIcon /> : null}
           sx={{
             borderRadius: 999,
-            py: 1.4,
+            px: 3,
             fontWeight: 700,
             textTransform: "none",
+            whiteSpace: "nowrap",
 
             bgcolor: "#020617",
             color: "#f9fafb",
@@ -141,22 +75,44 @@ export const ClientsCard = ({
         >
           {isLimitReached ? "Ліміт досягнуто" : "Додати клієнта"}
         </Button>
-
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            mt: 1.5,
-            textAlign: "center",
-            color: isLimitReached ? "#991b1b" : "#9ca3af",
-            fontWeight: isLimitReached ? 700 : 500,
-          }}
-        >
-          {isLimitReached
-            ? "Недоступно на поточному плані — підвищіть план, щоб додати більше клієнтів."
-            : "Клієнти повʼязані з вашим акаунтом та організацією"}
-        </Typography>
       </Box>
+
+      <Box
+        sx={{
+          borderBottom: "1px solid rgba(148,163,184,0.4)",
+          mb: 2.5,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Scroll area */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+          WebkitOverflowScrolling: "touch",
+          pr: { xs: 0.5, md: 1 },
+        }}
+      >
+        {children}
+      </Box>
+
+      {/* Пояснюючий текст знизу залишив — корисний */}
+      <Typography
+        variant="caption"
+        sx={{
+          display: "block",
+          mt: 2,
+          textAlign: "center",
+          color: isLimitReached ? "#991b1b" : "#9ca3af",
+          fontWeight: isLimitReached ? 700 : 500,
+        }}
+      >
+        {isLimitReached
+          ? "Недоступно на поточному плані — підвищіть план, щоб додати більше клієнтів."
+          : "Клієнти повʼязані з вашим акаунтом та організацією"}
+      </Typography>
     </Box>
   );
 };
