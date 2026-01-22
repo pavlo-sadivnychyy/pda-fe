@@ -622,6 +622,7 @@ export default function ActsPage() {
                 </Box>
               ) : (
                 <ActsGrid
+                  disbaleExport={planId !== "PRO"}
                   acts={acts}
                   onDelete={requestDelete}
                   deleteBusyId={deleteAct.isPending ? deleteBusyId : null}

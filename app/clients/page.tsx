@@ -473,6 +473,7 @@ export default function ClientsPage() {
             }}
           >
             <ClientsGrid
+              disbaleExport={planId !== "PRO"}
               clients={clients}
               loading={loading}
               onEdit={formState.openEdit}

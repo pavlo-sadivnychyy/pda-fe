@@ -597,6 +597,7 @@ export default function InvoicesPage() {
               isLimitReached={isLimitReached} // ✅ pass down
             >
               <InvoicesGrid
+                disbaleExport={planId !== "PRO"}
                 invoices={invoicesQuery.data ?? []}
                 clients={clientsQuery.data ?? []}
                 loading={invoicesQuery.isFetching}

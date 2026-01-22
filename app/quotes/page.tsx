@@ -702,6 +702,7 @@ export default function QuotesPage() {
               isLimitReached={isLimitReached} // ✅ додай у QuotesCard так само як у Clients/Invoices
             >
               <QuotesGrid
+                disbaleExport={planId !== "PRO"}
                 quotes={quotes as any}
                 clients={clients as any}
                 loading={quotesQuery.isLoading || clientsQuery.isLoading}
