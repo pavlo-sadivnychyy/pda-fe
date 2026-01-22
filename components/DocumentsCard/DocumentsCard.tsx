@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { DocumentItem } from "@/components/DocumentItem/DocumentItem";
+import LockIcon from "@mui/icons-material/Lock";
 
 type Doc = {
   id: string;
@@ -45,6 +46,7 @@ type Props = {
 
   onDelete: (id: string) => void;
   isDeleting: boolean;
+  isLimitReached: boolean;
 };
 
 export function DocumentsCard(props: Props) {
@@ -57,6 +59,7 @@ export function DocumentsCard(props: Props) {
     docsError,
     onDelete,
     isDeleting,
+    isLimitReached,
   } = props;
 
   return (
@@ -81,12 +84,32 @@ export function DocumentsCard(props: Props) {
           <Stack direction="row" gap={1} flexWrap="wrap">
             <Button
               variant="contained"
-              startIcon={<AddIcon />}
+              startIcon={isLimitReached ? <LockIcon /> : <AddIcon />}
               onClick={onOpenCreate}
-              disabled={!organization || isBootstrapLoading}
-              sx={styles.addBtn}
+              disabled={!organization || isBootstrapLoading || isLimitReached}
+              sx={{
+                borderRadius: 999,
+                py: 1.4,
+                fontWeight: 700,
+                textTransform: "none",
+
+                bgcolor: "#020617",
+                color: "#f9fafb",
+                "&:hover": { bgcolor: "#0b1220" },
+
+                "&.Mui-disabled": {
+                  bgcolor: "rgba(2,6,23,0.08)",
+                  color: "rgba(2,6,23,0.45)",
+                  border: "1px solid rgba(2,6,23,0.10)",
+                  boxShadow: "none",
+                  cursor: "not-allowed",
+                },
+                "&.Mui-disabled .MuiButton-startIcon": {
+                  color: "rgba(2,6,23,0.45)",
+                },
+              }}
             >
-              Додати документ
+              {isLimitReached ? "Ліміт досягнуто" : "Додати документ"}
             </Button>
           </Stack>
         </Stack>

@@ -17,7 +17,6 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { DocumentsCard } from "@/components/DocumentsCard/DocumentsCard";
-import { useKnowledgeBasePage } from "@/hooksNew/useKnowledgeBasePage";
 import { CreateDocumentDialog } from "@/components/CreateDocumentDialog/CreateDocumentDialog";
 
 function KnowledgeBaseNoOrgState() {
@@ -72,16 +71,21 @@ function KnowledgeBaseNoOrgState() {
   );
 }
 
-export function KnowledgeBaseShell() {
-  const vm = useKnowledgeBasePage();
-
-  const shouldShowNoOrg = !vm.isGateLoading && !vm.bootstrapError && !vm.hasOrg;
+export function KnowledgeBaseShell({
+  isLimitReached,
+  vm,
+}: {
+  isLimitReached: boolean;
+  vm: object;
+}) {
+  const shouldShowNoOrg =
+    !vm?.isGateLoading && !vm?.bootstrapError && !vm?.hasOrg;
 
   return (
     <>
       <Box sx={styles.shell}>
         <Stack sx={styles.content} gap={3}>
-          {vm.isGateLoading && (
+          {vm?.isGateLoading && (
             <Paper sx={styles.bootstrapInfo}>
               <Stack direction="row" spacing={2} alignItems="center">
                 <CircularProgress size={20} />
@@ -92,12 +96,11 @@ export function KnowledgeBaseShell() {
             </Paper>
           )}
 
-          {(vm.bootstrapError || vm.userDataError) && (
+          {(vm?.bootstrapError || vm?.userDataError) && (
             <Paper sx={styles.bootstrapError}>
               <Typography variant="body2" color="#b91c1c">
                 Помилка ініціалізації:{" "}
-                {(vm.bootstrapError as any)?.message ||
-                  (vm.userDataError as any)?.message}
+                {vm?.bootstrapError?.message || vm?.userDataError?.message}
               </Typography>
             </Paper>
           )}
@@ -107,23 +110,24 @@ export function KnowledgeBaseShell() {
               <KnowledgeBaseNoOrgState />
             ) : (
               <DocumentsCard
-                organization={vm.organization}
-                apiUser={vm.apiUser}
-                isBootstrapLoading={vm.isGateLoading}
-                isUploading={vm.isUploading}
-                onOpenCreate={vm.openDialog}
-                onOpenQuick={vm.openQuickPicker}
-                documents={vm.documents}
-                docsLoading={vm.docsLoading}
-                docsError={vm.docsError}
-                search={vm.search}
-                setSearch={vm.setSearch}
-                searchQuery={vm.searchQuery}
-                searchResults={vm.searchResults}
-                isSearchLoading={vm.isSearchLoading}
-                searchError={vm.searchError}
-                onDelete={vm.handleDelete}
-                isDeleting={vm.isDeleting}
+                isLimitReached={isLimitReached}
+                organization={vm?.organization}
+                apiUser={vm?.apiUser}
+                isBootstrapLoading={vm?.isGateLoading}
+                isUploading={vm?.isUploading}
+                onOpenCreate={vm?.openDialog}
+                onOpenQuick={vm?.openQuickPicker}
+                documents={vm?.documents}
+                docsLoading={vm?.docsLoading}
+                docsError={vm?.docsError}
+                search={vm?.search}
+                setSearch={vm?.setSearch}
+                searchQuery={vm?.searchQuery}
+                searchResults={vm?.searchResults}
+                isSearchLoading={vm?.isSearchLoading}
+                searchError={vm?.searchError}
+                onDelete={vm?.handleDelete}
+                isDeleting={vm?.isDeleting}
               />
             )}
           </Box>

@@ -56,7 +56,7 @@ const PLAN_LIMITS: Record<string, number> = {
    UI blocks
 ======================= */
 
-function FullscreenLoader({ text }: { text?: string }) {
+export function FullscreenLoader({ text }: { text?: string }) {
   return (
     <Box
       sx={{

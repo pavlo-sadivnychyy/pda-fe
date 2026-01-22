@@ -33,6 +33,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
 import LockIcon from "@mui/icons-material/Lock";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import { FullscreenLoader } from "@/app/clients/page";
 
 function NoOrgState() {
   return (
@@ -143,9 +144,18 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
 
 const FinancialAnalyticsPage: React.FC = () => {
   const router = useRouter();
-  const { organizationId, planId } = useOrganizationContext();
+  const { currentUserId, organizationId, planId } = useOrganizationContext();
 
   // ✅ якщо нема org — показуємо empty state
+
+  const isBootstrapping =
+    typeof currentUserId === "undefined" ||
+    typeof organizationId === "undefined" ||
+    typeof planId === "undefined";
+
+  if (isBootstrapping) {
+    return <FullscreenLoader text="Завантажую..." />;
+  }
 
   if (planId !== "PRO") {
     return (
