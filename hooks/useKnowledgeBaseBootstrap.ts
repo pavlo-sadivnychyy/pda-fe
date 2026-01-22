@@ -2,6 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
+import { PlanId } from "@/components/Home/components/PlanCard";
 
 export type KbApiUser = {
   id: string;
@@ -76,10 +77,13 @@ export function useKnowledgeBaseBootstrap() {
     staleTime: 30_000,
   });
 
+  const currentPlanFromApi: PlanId =
+    ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
+
   return {
     clerkUser,
     isUserLoaded: isClerkLoaded,
-
+    planId: currentPlanFromApi,
     userData,
     isUserDataLoading,
     userDataError,
