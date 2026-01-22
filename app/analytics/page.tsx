@@ -31,6 +31,8 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
+import LockIcon from "@mui/icons-material/Lock";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 
 function NoOrgState() {
   return (
@@ -82,11 +84,133 @@ function NoOrgState() {
   );
 }
 
+function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 680,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(245, 158, 11, 0.14)",
+              color: "#111827",
+            }}
+          >
+            <LockIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 900 }}>
+            Аналітика не доступна на вашому плані
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            Підвищіть план, щоб аналітику ваших доходів за місяць.
+          </Typography>
+
+          <Button
+            onClick={onUpgrade}
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{
+              borderRadius: 999,
+              fontWeight: 900,
+              bgcolor: "#f59e0b",
+              color: "white",
+              boxShadow:
+                "0 10px 22px rgba(245, 158, 11, 0.30), 0 0 0 4px rgba(245, 158, 11, 0.18)",
+              "&:hover": { bgcolor: "#fbbf24" },
+            }}
+          >
+            Підвищити план
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 const FinancialAnalyticsPage: React.FC = () => {
   const router = useRouter();
-  const { organizationId } = useOrganizationContext();
+  const { organizationId, planId } = useOrganizationContext();
 
   // ✅ якщо нема org — показуємо empty state
+
+  if (planId !== "PRO") {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              на головну
+            </Button>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <RequestQuoteIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Аналітика
+              </Typography>
+
+              <Chip
+                label="Доступно на PRO"
+                size="small"
+                sx={{
+                  bgcolor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#7c2d12",
+                  fontWeight: 800,
+                }}
+              />
+            </Stack>
+          </Box>
+
+          <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
+            <PaywallState onUpgrade={() => router.push("/pricing")} />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
   if (!organizationId) {
     return (
       <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>

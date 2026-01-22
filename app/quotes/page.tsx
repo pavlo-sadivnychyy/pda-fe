@@ -184,7 +184,7 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
           </Box>
 
           <Typography variant="h5" sx={{ fontWeight: 900 }}>
-            Quotes доступні лише на платних планах
+            Комерційні пропозиції доступні лише на платних планах
           </Typography>
 
           <Typography variant="body1" sx={{ color: "text.secondary" }}>
@@ -200,7 +200,7 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
               borderRadius: 999,
               fontWeight: 900,
               bgcolor: "#f59e0b",
-              color: "#111827",
+              color: "white",
               boxShadow:
                 "0 10px 22px rgba(245, 158, 11, 0.30), 0 0 0 4px rgba(245, 158, 11, 0.18)",
               "&:hover": { bgcolor: "#fbbf24" },

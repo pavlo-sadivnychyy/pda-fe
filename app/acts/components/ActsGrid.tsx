@@ -1,6 +1,16 @@
 "use client";
 
-import { Box, IconButton, InputAdornment, TextField } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
@@ -16,25 +26,33 @@ export const ActsGrid = ({
   deleteBusyId,
   onSend,
   sendBusyId,
+  mobile,
+  desktopGridHeight = 560,
 }: {
   acts: Act[];
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
   onSend: (id: string) => Promise<void> | void;
   sendBusyId: string | null;
+
+  // ✅ responsive behavior controlled by parent page
+  mobile: boolean;
+
+  // ✅ required to avoid "0px height" error on desktop
+  desktopGridHeight?: number;
 }) => {
   const [query, setQuery] = useState("");
 
   const rows = useMemo(() => {
-    return acts.map((a) => {
-      const clientName = (a as any)?.client?.name ?? "—";
-      const clientEmail = (a as any)?.client?.email ?? null;
-      const invoiceNumber = (a as any)?.relatedInvoice?.number
-        ? `№ ${(a as any).relatedInvoice.number}`
+    return acts.map((a: any) => {
+      const clientName = a?.client?.name ?? "—";
+      const clientEmail = a?.client?.email ?? null;
+      const invoiceNumber = a?.relatedInvoice?.number
+        ? `№ ${a.relatedInvoice.number}`
         : "—";
-      const period = formatPeriod((a as any)?.periodFrom, (a as any)?.periodTo);
-      const total = formatMoney((a as any)?.total, (a as any)?.currency);
-      const status = String((a as any)?.status ?? "");
+      const period = formatPeriod(a?.periodFrom, a?.periodTo);
+      const total = formatMoney(a?.total, a?.currency);
+      const status = String(a?.status ?? "");
 
       return {
         ...a,
@@ -77,40 +95,29 @@ export const ActsGrid = ({
         headerName: "Клієнт",
         flex: 1.6,
         minWidth: 180,
-        valueGetter: (_, row: any) => row?.client?.name ?? "—",
-        renderCell: (params) => params.row?.client?.name ?? "—",
+        renderCell: (params) => params.row?.clientName ?? "—",
       },
       {
         field: "relatedInvoice",
         headerName: "Інвойс",
         flex: 1,
         minWidth: 140,
-        valueGetter: (_, row: any) =>
-          row?.relatedInvoice?.number ? `№ ${row.relatedInvoice.number}` : "—",
-        renderCell: (params) =>
-          params.row?.relatedInvoice?.number
-            ? `№ ${params.row.relatedInvoice.number}`
-            : "—",
+        renderCell: (params) => params.row?.invoiceNumber ?? "—",
       },
       {
         field: "period",
         headerName: "Період",
         flex: 1.2,
         minWidth: 160,
-        valueGetter: (_, row: any) =>
-          formatPeriod(row?.periodFrom, row?.periodTo),
-        renderCell: (params) =>
-          formatPeriod(params.row?.periodFrom, params.row?.periodTo),
         sortable: false,
+        renderCell: (params) => params.row?.period ?? "—",
       },
       {
         field: "total",
         headerName: "Сума",
         flex: 1,
         minWidth: 140,
-        valueGetter: (_, row: any) => formatMoney(row?.total, row?.currency),
-        renderCell: (params) =>
-          formatMoney(params.row?.total, params.row?.currency),
+        renderCell: (params) => params.row?.totalFormatted ?? "—",
       },
       {
         field: "status",
@@ -153,55 +160,178 @@ export const ActsGrid = ({
     [onDelete, deleteBusyId, onSend, sendBusyId],
   );
 
-  return (
-    <Box>
-      <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
-        <TextField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Пошук по актах… (номер, клієнт, інвойс, період, сума, статус)"
-          fullWidth
-          size="small"
-          sx={{
-            bgcolor: "#fff",
-            "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: query ? (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="clear search"
-                  size="small"
-                  onClick={() => setQuery("")}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-        />
-      </Box>
-
-      <DataGrid
-        rows={filteredRows}
-        columns={columns}
-        getRowId={(row) => row.id}
-        disableRowSelectionOnClick
-        localeText={{
-          noRowsLabel: query.trim()
-            ? "Нічого не знайдено за вашим запитом"
-            : "Актів поки немає",
-        }}
+  const SearchBar = (
+    <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
+      <TextField
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Пошук по актах… (номер, клієнт, інвойс, період, сума, статус)"
+        fullWidth
+        size="small"
         sx={{
-          border: "none",
-          "& .MuiDataGrid-columnHeaders": { bgcolor: "#f9fafb" },
+          bgcolor: "#fff",
+          "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+        }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
+            </InputAdornment>
+          ),
+          endAdornment: query ? (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="clear search"
+                size="small"
+                onClick={() => setQuery("")}
+              >
+                <ClearIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
         }}
       />
     </Box>
   );
+
+  // ✅ MOBILE: карточки + page scroll
+  if (mobile) {
+    return (
+      <Box>
+        {SearchBar}
+
+        <Stack spacing={1.2} sx={{ px: 1.5, pb: 1.5 }}>
+          {filteredRows.map((a: any) => {
+            const id = a.id as string;
+            const busyDelete = deleteBusyId === id;
+            const busySend = sendBusyId === id;
+
+            return (
+              <Card
+                key={id}
+                sx={{
+                  borderRadius: 3,
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+                  overflow: "hidden",
+                }}
+              >
+                <CardContent sx={{ p: 2 }}>
+                  <Stack spacing={1}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="flex-start"
+                      spacing={1}
+                    >
+                      <Box>
+                        <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+                          Акт № {a.number ?? "—"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#64748b" }}>
+                          {a.clientName ?? "—"}{" "}
+                          {a.invoiceNumber ? `• ${a.invoiceNumber}` : ""}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ flexShrink: 0 }}>
+                        <ActStatusChip status={a.status} />
+                      </Box>
+                    </Stack>
+
+                    <Divider />
+
+                    <Stack spacing={0.6}>
+                      <Row label="Період" value={a.period ?? "—"} />
+                      <Row label="Сума" value={a.totalFormatted ?? "—"} />
+                      {a.clientEmail ? (
+                        <Row label="Email" value={a.clientEmail} />
+                      ) : null}
+                    </Stack>
+
+                    <Divider />
+
+                    {/* actions */}
+                    <ActRowActions
+                      act={a}
+                      onOpenPdf={() =>
+                        window.open(
+                          `/api/pdf/acts/${id}`,
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
+                      onSend={() => onSend(id)}
+                      onDelete={() => onDelete(id)}
+                      busyDelete={busyDelete}
+                      busySend={busySend}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {!filteredRows.length ? (
+            <Box sx={{ py: 3, textAlign: "center", color: "#64748b" }}>
+              <Typography variant="body2">
+                {query.trim()
+                  ? "Нічого не знайдено за вашим запитом"
+                  : "Актів поки немає"}
+              </Typography>
+            </Box>
+          ) : null}
+        </Stack>
+      </Box>
+    );
+  }
+
+  // ✅ DESKTOP: page NOT scroll, grid scrolls
+  return (
+    <Box
+      sx={{
+        height: desktopGridHeight,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {SearchBar}
+
+      {/* ✅ critical: parent must have height, child must have minHeight:0 */}
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <DataGrid
+          rows={filteredRows}
+          columns={columns}
+          getRowId={(row) => row.id}
+          disableRowSelectionOnClick
+          localeText={{
+            noRowsLabel: query.trim()
+              ? "Нічого не знайдено за вашим запитом"
+              : "Актів поки немає",
+          }}
+          sx={{
+            height: "100%",
+            border: "none",
+            "& .MuiDataGrid-columnHeaders": { bgcolor: "#f9fafb" },
+          }}
+        />
+      </Box>
+    </Box>
+  );
 };
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack direction="row" justifyContent="space-between" spacing={2}>
+      <Typography variant="body2" sx={{ color: "#64748b" }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: "#0f172a", fontWeight: 700, textAlign: "right" }}
+      >
+        {value}
+      </Typography>
+    </Stack>
+  );
+}
