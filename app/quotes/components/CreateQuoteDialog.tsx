@@ -489,7 +489,7 @@ export function CreateQuoteDialog({
                 color: "white",
               }}
             >
-              {isLoading ? "Зберігаю..." : "Зберегти Quote"}
+              {isLoading ? "Зберігаю..." : "Зберегти пропозицію"}
             </Button>
           </Stack>
         </Box>
