@@ -13,6 +13,7 @@ import {
   Snackbar,
   Card,
   CardContent,
+  useMediaQuery,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { useMemo, useState } from "react";
@@ -35,6 +36,29 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LockIcon from "@mui/icons-material/Lock";
+
+function FullscreenLoader({ text }: { text?: string }) {
+  return (
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        bgcolor: "#f3f4f6",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        px: 2,
+      }}
+    >
+      <Stack spacing={1.2} alignItems="center">
+        <CircularProgress />
+        <Typography variant="body2" sx={{ color: "#6b7280" }}>
+          {text ?? "Завантажуємо..."}
+        </Typography>
+      </Stack>
+    </Box>
+  );
+}
 
 function NoOrgState() {
   return (
@@ -86,8 +110,67 @@ function NoOrgState() {
   );
 }
 
+function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 680,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(245, 158, 11, 0.14)",
+              color: "#111827",
+            }}
+          >
+            <LockIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 900 }}>
+            Акти доступні лише на платних планах
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            На FREE плані цей розділ недоступний. Підвищіть план, щоб створювати
+            акти.
+          </Typography>
+
+          <Button
+            onClick={onUpgrade}
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{
+              borderRadius: 999,
+              fontWeight: 900,
+              bgcolor: "#f59e0b",
+              color: "white",
+              boxShadow:
+                "0 10px 22px rgba(245, 158, 11, 0.30), 0 0 0 4px rgba(245, 158, 11, 0.18)",
+              "&:hover": { bgcolor: "#fbbf24" },
+            }}
+          >
+            Підвищити план
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ActsPage() {
-  const { currentUserId, organizationId } = useOrganizationContext();
+  const { currentUserId, organizationId, planId } = useOrganizationContext();
+  const isMobile = useMediaQuery("(max-width:900px)");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -101,6 +184,12 @@ export default function ActsPage() {
   };
 
   const router = useRouter();
+
+  // ✅ щоб не "блимало": поки контекст не ініціалізувався — лоадер
+  const isBootstrapping =
+    typeof planId === "undefined" ||
+    typeof organizationId === "undefined" ||
+    typeof currentUserId === "undefined";
 
   // ✅ guard: якщо нема org — не грузимо дані
   const canWork = Boolean(organizationId);
@@ -170,7 +259,75 @@ export default function ActsPage() {
   const acts = actsQuery.data ?? [];
   const isTableLoading = actsQuery.isLoading || actsQuery.isFetching;
 
-  // ✅ EMPTY-STATE: центр під хедером
+  if (isBootstrapping) {
+    return <FullscreenLoader text="Завантажуємо доступ і організацію..." />;
+  }
+
+  if (planId === "FREE") {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              на головну
+            </Button>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <DescriptionIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Акти
+              </Typography>
+
+              <Chip
+                label="Недоступно на FREE"
+                size="small"
+                sx={{
+                  bgcolor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#7c2d12",
+                  fontWeight: 800,
+                }}
+              />
+            </Stack>
+          </Box>
+
+          <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
+            <PaywallState onUpgrade={() => router.push("/pricing")} />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ✅ EMPTY-STATE
   if (!organizationId) {
     return (
       <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
@@ -183,7 +340,6 @@ export default function ActsPage() {
             flexDirection: "column",
           }}
         >
-          {/* Header */}
           <Box sx={{ mb: 2.5 }}>
             <Button
               onClick={() => router.push("/dashboard")}
@@ -255,14 +411,32 @@ export default function ActsPage() {
     );
   }
 
+  // ✅ MAIN LAYOUT: mobile scrolls page, desktop locks page and scrolls only grid
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
-      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* ✅ Уніфікований хедер */}
-        <Box sx={{ mb: 2.5 }}>
+    <Box
+      sx={{
+        height: { xs: "auto", md: "100dvh" },
+        minHeight: "100dvh",
+        bgcolor: "#f3f4f6",
+        py: { xs: 3, md: 4 },
+        overflowY: { xs: "auto", md: "hidden" }, // 🔥 ключ
+      }}
+    >
+      <Container
+        maxWidth="lg"
+        sx={{
+          px: { xs: 2, sm: 3 },
+          height: { xs: "auto", md: "100%" },
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ mb: 2.5, flex: "0 0 auto" }}>
           <Button
             onClick={() => router.push("/dashboard")}
-            sx={{ color: "black", marginBottom: "20px" }}
+            sx={{ color: "black", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
             на головну
@@ -314,8 +488,8 @@ export default function ActsPage() {
           </Typography>
         </Box>
 
-        {/* ✅ Friendly hint block */}
-        <Box sx={{ mt: 2, mb: 3 }}>
+        {/* Hint */}
+        <Box sx={{ mt: 0, mb: 2.5, flex: "0 0 auto" }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
             severity="info"
@@ -375,20 +549,32 @@ export default function ActsPage() {
           </Alert>
         </Box>
 
-        <Box sx={{ maxWidth: 1200, mx: "auto" }}>
+        {/* Content area */}
+        <Box
+          sx={{
+            flex: { xs: "0 0 auto", md: "1 1 auto" },
+            minHeight: 0,
+          }}
+        >
           <ActsCard
             organizationId={organizationId}
             count={acts.length}
             onCreate={openCreate}
           >
-            <Box sx={{ height: 520, width: "100%" }}>
+            {/* Desktop: fixed height + internal scroll only */}
+            <Box
+              sx={{
+                height: { xs: "auto", md: "100%" },
+                minHeight: { xs: "auto", md: 0 },
+              }}
+            >
               {isTableLoading ? (
                 <Box
                   sx={{
+                    height: { xs: "180px", md: "100%" },
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    height: "100%",
                   }}
                 >
                   <Stack spacing={1} alignItems="center">
@@ -401,17 +587,18 @@ export default function ActsPage() {
               ) : acts.length === 0 ? (
                 <Box
                   sx={{
+                    height: { xs: "auto", md: "100%" },
+                    py: { xs: 2, md: 0 },
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
-                    height: "100%",
+                    justifyContent: { xs: "flex-start", md: "center" },
                     textAlign: "center",
                     color: "#6b7280",
                     gap: 1.5,
                   }}
                 >
-                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     Акти ще не створювалися
                   </Typography>
                   <Typography variant="body2">
@@ -447,43 +634,45 @@ export default function ActsPage() {
                       ? ((sendAct.variables as any) ?? null)
                       : null
                   }
+                  // ✅ важливо: прокидуємо, щоб всередині вирішити cards/grid
+                  mobile={isMobile}
+                  // ✅ desktop: таблиця має мати висоту і скролитися
+                  desktopGridHeight={560}
                 />
               )}
             </Box>
           </ActsCard>
-
-          <CreateActDialog
-            open={createDialogOpen}
-            onClose={closeCreate}
-            invoices={invoicesQuery.data ?? []}
-            loadingInvoices={
-              invoicesQuery.isLoading || invoicesQuery.isFetching
-            }
-            fields={form.fields}
-            setTitle={form.setters.setActTitle}
-            setNumber={form.setters.setActNumber}
-            setPeriodFrom={form.setters.setPeriodFrom}
-            setPeriodTo={form.setters.setPeriodTo}
-            setNotes={form.setters.setNotes}
-            onSelectInvoice={(id) =>
-              form.selectInvoice(id, invoicesQuery.data ?? [])
-            }
-            onSubmit={submit}
-            submitting={createFromInvoice.isPending}
-            canSubmit={Boolean(currentUserId) && form.isValid}
-          />
-
-          <ConfirmDialog
-            open={Boolean(deleteId)}
-            title="Видалити акт?"
-            description="Цю дію неможливо відмінити."
-            confirmText="Видалити"
-            confirmColor="error"
-            loading={deleteAct.isPending}
-            onClose={() => setDeleteId(null)}
-            onConfirm={confirmDelete}
-          />
         </Box>
+
+        <CreateActDialog
+          open={createDialogOpen}
+          onClose={closeCreate}
+          invoices={invoicesQuery.data ?? []}
+          loadingInvoices={invoicesQuery.isLoading || invoicesQuery.isFetching}
+          fields={form.fields}
+          setTitle={form.setters.setActTitle}
+          setNumber={form.setters.setActNumber}
+          setPeriodFrom={form.setters.setPeriodFrom}
+          setPeriodTo={form.setters.setPeriodTo}
+          setNotes={form.setters.setNotes}
+          onSelectInvoice={(id) =>
+            form.selectInvoice(id, invoicesQuery.data ?? [])
+          }
+          onSubmit={submit}
+          submitting={createFromInvoice.isPending}
+          canSubmit={Boolean(currentUserId) && form.isValid}
+        />
+
+        <ConfirmDialog
+          open={Boolean(deleteId)}
+          title="Видалити акт?"
+          description="Цю дію неможливо відмінити."
+          confirmText="Видалити"
+          confirmColor="error"
+          loading={deleteAct.isPending}
+          onClose={() => setDeleteId(null)}
+          onConfirm={confirmDelete}
+        />
       </Container>
 
       <Snackbar

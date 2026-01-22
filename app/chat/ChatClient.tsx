@@ -25,6 +25,8 @@ import {
   Typography,
   Card,
   CardContent,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
@@ -43,6 +45,7 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
 import { useDeleteChatSession } from "@/hooksNew/useDeleteChatSession";
+import { useSnackbar } from "@/app/clients/components/useSnackbar";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -134,6 +137,7 @@ function NoOrgState() {
 export default function ChatClient() {
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => setHasMounted(true), []);
+  const snackbar = useSnackbar();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -440,7 +444,11 @@ export default function ChatClient() {
           queryClient.invalidateQueries({ queryKey: ["chat-session"] });
           queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
         },
-        onError: () => {
+        onError: (error) => {
+          if (error?.status === 403) {
+            snackbar.show("Ліміт повідомлень вичерпано", "error");
+          }
+
           setDraft(content);
           setLocalMessages((prev) =>
             prev.filter(
@@ -937,6 +945,20 @@ export default function ChatClient() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={snackbar.close}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={snackbar.close}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
