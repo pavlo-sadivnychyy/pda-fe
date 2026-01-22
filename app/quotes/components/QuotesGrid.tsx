@@ -30,10 +30,10 @@ import { useCallback, useMemo, useState } from "react";
 
 import * as XLSX from "xlsx";
 
-import type { Client, Quote, QuoteAction, QuoteStatus } from "../types";
-import { formatDate, formatMoney, getClientDisplayName } from "../utils";
-import { QuoteStatusChip } from "./QuoteStatusChip";
+import type { Quote, QuoteAction, QuoteStatus } from "../types";
+import { mapToStatus, QuoteStatusChip } from "./QuoteStatusChip";
 import { QuoteRowActions } from "./QuoteRowActions";
+import dayjs from "dayjs";
 
 type Row = {
   id: string;
@@ -70,11 +70,15 @@ function QuoteMobileCard({
   busy,
   onAction,
   onConvert,
+  hasClient,
+  clientHasEmail,
 }: {
   row: Row;
   busy: boolean;
   onAction: (id: string, action: QuoteAction) => void;
   onConvert: (id: string) => void;
+  hasClient: boolean;
+  clientHasEmail: boolean;
 }) {
   return (
     <Card
@@ -100,7 +104,7 @@ function QuoteMobileCard({
                 {row.number}
               </Typography>
               <Typography variant="body2" sx={{ color: "#475569", mt: 0.25 }}>
-                {row.clientName}
+                {row?.client?.contactName}
               </Typography>
             </Box>
 
@@ -111,10 +115,10 @@ function QuoteMobileCard({
 
           <Divider sx={{ borderColor: "#eef2f7" }} />
 
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack direction="row" gap={"5px"} flexWrap="wrap">
             <Chip
               size="small"
-              label={`Дата: ${row.issueDate}`}
+              label={`Дата: ${row.issueDate ? dayjs(row.issueDate).format("DD.MM.YYYY") : "--"}`}
               sx={{
                 bgcolor: "#f8fafc",
                 border: "1px solid #e2e8f0",
@@ -123,7 +127,7 @@ function QuoteMobileCard({
             />
             <Chip
               size="small"
-              label={`Дійсний до: ${row.validUntil}`}
+              label={`Дійсний до: ${row.validUntil ? dayjs(row.validUntil).format("DD.MM.YYYY") : "--"}`}
               sx={{
                 bgcolor: "#f8fafc",
                 border: "1px solid #e2e8f0",
@@ -148,6 +152,8 @@ function QuoteMobileCard({
               hasInvoice={row.hasInvoice}
               onAction={(a) => onAction(row.id, a)}
               onConvert={() => onConvert(row.id)}
+              hasClient={hasClient}
+              clientHasEmail={clientHasEmail}
             />
           </Box>
 
@@ -181,7 +187,6 @@ function QuoteMobileCard({
 
 export const QuotesGrid = ({
   quotes,
-  clients,
   loading,
   onAction,
   onConvert,
@@ -189,7 +194,6 @@ export const QuotesGrid = ({
   disbaleExport,
 }: {
   quotes: Quote[];
-  clients: Client[];
   loading: boolean;
   onAction: (id: string, action: QuoteAction) => void;
   onConvert: (id: string) => void;
@@ -210,23 +214,7 @@ export const QuotesGrid = ({
     setExportAnchorEl(e.currentTarget);
   const closeExportMenu = () => setExportAnchorEl(null);
 
-  const rows: Row[] = useMemo(
-    () =>
-      quotes.map((q) => ({
-        id: q.id,
-        number: q.number,
-        clientName: getClientDisplayName(q, clients),
-        issueDate: formatDate(q.issueDate),
-        validUntil: formatDate(q.validUntil ?? null),
-        totalValue: Number(q.total ?? 0),
-        currency: q.currency,
-        total: `${formatMoney(q.total)} ${q.currency}`,
-        status: q.status,
-        hasInvoice: Boolean(q.convertedInvoiceId),
-        invoiceId: q.convertedInvoiceId ?? null,
-      })),
-    [quotes, clients],
-  );
+  const rows: Row[] = quotes;
 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -235,11 +223,11 @@ export const QuotesGrid = ({
     return rows.filter((r) => {
       const haystack = [
         r.number,
-        r.clientName,
-        r.issueDate,
-        r.validUntil,
+        r?.client?.contactName,
+        dayjs(r.issueDate).format("DD.MM.YYYY"),
+        dayjs(r.validUntil).format("DD.MM.YYYY"),
         r.total,
-        String(r.status ?? ""),
+        mapToStatus(r.status).label,
       ]
         .join(" ")
         .toLowerCase();
@@ -253,12 +241,14 @@ export const QuotesGrid = ({
     return filteredRows.map((r) => ({
       ID: r.id,
       Номер: r.number,
-      Клієнт: r.clientName,
-      Дата: r.issueDate,
-      "Дійсний до": r.validUntil,
-      Сума: r.totalValue, // numeric for Excel
+      Клієнт: r.client?.contactName || "--",
+      Дата: r.issueDate ? dayjs(r.issueDate).format("DD.MM.YYYY") : "--",
+      "Дійсний до": r.validUntil
+        ? dayjs(r.validUntil).format("DD.MM.YYYY")
+        : "--",
+      Сума: r.total || 0,
       Валюта: r.currency,
-      Статус: r.status,
+      Статус: mapToStatus(r.status).label,
       "Конвертовано в інвойс": r.hasInvoice ? "Так" : "Ні",
       "Invoice ID": r.invoiceId ?? "",
     }));
@@ -310,13 +300,35 @@ export const QuotesGrid = ({
   const columns: GridColDef[] = useMemo(
     () => [
       { field: "number", headerName: "Номер", flex: 1, minWidth: 130 },
-      { field: "clientName", headerName: "Клієнт", flex: 1.5, minWidth: 180 },
-      { field: "issueDate", headerName: "Дата", flex: 0.8, minWidth: 120 },
+      {
+        field: "clientName",
+        headerName: "Клієнт",
+        flex: 1.5,
+        minWidth: 180,
+        valueGetter: (_, row) => row?.client?.contactName ?? "--",
+        renderCell: (params) => <>{params?.row?.client?.contactName || "--"}</>,
+      },
+      {
+        field: "issueDate",
+        headerName: "Дата",
+        flex: 0.8,
+        minWidth: 120,
+        renderCell: (params) => (
+          <>{dayjs(params?.row?.issueDate).format("DD.MM.YYYY")}</>
+        ),
+      },
       {
         field: "validUntil",
         headerName: "Дійсний до",
         flex: 0.9,
         minWidth: 140,
+        renderCell: (params) => (
+          <>
+            {params?.row?.validUntil
+              ? dayjs(params?.row?.validUntil).format("DD.MM.YYYY")
+              : "--"}
+          </>
+        ),
       },
       { field: "total", headerName: "Сума", flex: 0.9, minWidth: 130 },
       {
@@ -324,9 +336,14 @@ export const QuotesGrid = ({
         headerName: "Статус",
         flex: 0.9,
         minWidth: 150,
-        renderCell: (params: GridRenderCellParams<QuoteStatus>) => (
-          <QuoteStatusChip status={params.value as QuoteStatus} />
-        ),
+        valueGetter: (_, row) => {
+          return mapToStatus(row?.status).label;
+        },
+        renderCell: (params: GridRenderCellParams<QuoteStatus>) => {
+          return (
+            <QuoteStatusChip status={params?.row?.status as QuoteStatus} />
+          );
+        },
       },
       {
         field: "actions",
@@ -340,9 +357,13 @@ export const QuotesGrid = ({
           const status = params.row.status as QuoteStatus;
           const busy = actionBusyId === id;
           const hasInvoice = params.row.hasInvoice as boolean;
+          const hasClient = params.row.client?.contactName as boolean;
+          const clientHasEmail = params.row.client?.email as boolean;
 
           return (
             <QuoteRowActions
+              hasClient={hasClient}
+              clientHasEmail={clientHasEmail}
               status={status}
               busy={busy}
               hasInvoice={hasInvoice}
@@ -471,6 +492,8 @@ export const QuotesGrid = ({
                   busy={actionBusyId === row.id}
                   onAction={onAction}
                   onConvert={onConvert}
+                  hasClient={row?.client?.contactName as boolean}
+                  clientHasEmail={row?.client?.email as boolean}
                 />
               ))}
             </Stack>
