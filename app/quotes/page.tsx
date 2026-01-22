@@ -13,21 +13,20 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 
-import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
-import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
 import { api } from "@/libs/axios";
 
 import { useClientsQueries } from "@/app/clients/hooks/useClientsQueries";
+
 import type { Quote, QuoteAction } from "./types";
+
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import { useRouter } from "next/navigation";
 import { QuotesGrid } from "@/app/quotes/components/QuotesGrid";
 import { QuotesCard } from "@/app/quotes/components/QuotesCard";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
-import * as React from "react";
 
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import TimelineIcon from "@mui/icons-material/Timeline";
@@ -37,6 +36,20 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import { CreateQuoteDialog } from "@/app/quotes/components/CreateQuoteDialog";
 import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LockIcon from "@mui/icons-material/Lock";
+import { InfinitySpin } from "react-loader-spinner";
+import { useOrganizationContext } from "@/app/clients/hooks/useOrganizationContext";
+
+/* =======================
+   Config: plan limits (постав свої)
+======================= */
+
+const PLAN_LIMITS: Record<string, number> = {
+  BASIC: 20,
+  PRO: 200,
+  BUSINESS: 1000,
+  // FREE не має доступу взагалі
+};
 
 const quotesKeys = {
   all: ["quotes"] as const,
@@ -46,10 +59,10 @@ const quotesKeys = {
 
 type QuotesListResponse = { quotes: Quote[] };
 
-function useQuotesQuery(organizationId?: string) {
+function useQuotesQuery(organizationId?: string, enabled: boolean) {
   return useQuery<Quote[]>({
     queryKey: quotesKeys.list(organizationId),
-    enabled: !!organizationId,
+    enabled: Boolean(organizationId) && enabled,
     queryFn: async () => {
       const res = await api.get<QuotesListResponse>("/quotes", {
         params: { organizationId },
@@ -66,6 +79,31 @@ async function postQuoteAction(id: string, action: QuoteAction) {
 async function convertQuoteToInvoice(id: string) {
   const res = await api.post(`/quotes/${id}/convert-to-invoice`);
   return res.data; // { invoice }
+}
+
+/* =======================
+   UI blocks
+======================= */
+
+function FullscreenLoader({ text }: { text?: string }) {
+  return (
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        bgcolor: "#f3f4f6",
+        display: "grid",
+        placeItems: "center",
+        px: 2,
+      }}
+    >
+      <Box sx={{ textAlign: "center" }}>
+        <InfinitySpin width="200" color="#202124" />
+        <Typography variant="body2" sx={{ mt: 1.5, color: "text.secondary" }}>
+          {text ?? "Завантажую…"}
+        </Typography>
+      </Box>
+    </Box>
+  );
 }
 
 function NoOrgState() {
@@ -118,31 +156,152 @@ function NoOrgState() {
   );
 }
 
+function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <Card
+      sx={{
+        width: "100%",
+        maxWidth: 680,
+        borderRadius: 4,
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+      }}
+    >
+      <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        <Stack spacing={2.2} alignItems="center" textAlign="center">
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "rgba(245, 158, 11, 0.14)",
+              color: "#111827",
+            }}
+          >
+            <LockIcon />
+          </Box>
+
+          <Typography variant="h5" sx={{ fontWeight: 900 }}>
+            Quotes доступні лише на платних планах
+          </Typography>
+
+          <Typography variant="body1" sx={{ color: "text.secondary" }}>
+            На FREE плані цей розділ недоступний. Підвищіть план, щоб створювати
+            комерційні пропозиції та конвертувати їх в інвойси.
+          </Typography>
+
+          <Button
+            onClick={onUpgrade}
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{
+              borderRadius: 999,
+              fontWeight: 900,
+              bgcolor: "#f59e0b",
+              color: "#111827",
+              boxShadow:
+                "0 10px 22px rgba(245, 158, 11, 0.30), 0 0 0 4px rgba(245, 158, 11, 0.18)",
+              "&:hover": { bgcolor: "#fbbf24" },
+            }}
+          >
+            Підвищити план
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanLimitBanner({
+  current,
+  limit,
+  onUpgrade,
+}: {
+  current: number;
+  limit: number;
+  onUpgrade: () => void;
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 2.5,
+        p: 2,
+        borderRadius: 3,
+        border: "1px solid #fecaca",
+        bgcolor: "#fff1f2",
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 2,
+        alignItems: { xs: "flex-start", sm: "center" },
+      }}
+    >
+      <Stack spacing={0.3}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              bgcolor: "#111827",
+              color: "white",
+            }}
+          >
+            <LockIcon fontSize="small" />
+          </Box>
+
+          <Typography sx={{ fontWeight: 900, color: "#991b1b" }}>
+            Ліміт quotes вичерпано
+          </Typography>
+        </Stack>
+
+        <Typography variant="body2" sx={{ color: "#7f1d1d" }}>
+          Використано {current} / {limit}. Щоб створювати більше — підвищіть
+          план.
+        </Typography>
+      </Stack>
+
+      <Button
+        onClick={onUpgrade}
+        variant="contained"
+        endIcon={<ArrowForwardIcon />}
+        sx={{
+          borderRadius: 999,
+          fontWeight: 900,
+          bgcolor: "#f59e0b",
+          color: "#111827",
+          boxShadow:
+            "0 10px 22px rgba(245, 158, 11, 0.30), 0 0 0 4px rgba(245, 158, 11, 0.18)",
+          "&:hover": { bgcolor: "#fbbf24" },
+        }}
+      >
+        Підвищити план
+      </Button>
+    </Box>
+  );
+}
+
+/* =======================
+   Page
+======================= */
+
 export default function QuotesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: userData } = useCurrentUser();
-  const currentUserId = (userData as any)?.id ?? null;
+  // ✅ один контекст як джерело правди
+  const { currentUserId, organizationId, planId } = useOrganizationContext();
 
-  const { data: orgData } = useOrganization(currentUserId || undefined);
+  const canWork = true;
 
-  const organizationId = useMemo(() => {
-    const org = (orgData as any)?.items?.[0]?.organization;
-    return org?.id ?? null;
-  }, [orgData]);
-
-  const canWork = Boolean(organizationId);
-
-  const { clientsQuery } = useClientsQueries(
-    canWork ? (organizationId as string) : undefined,
-  );
+  const { clientsQuery } = useClientsQueries(organizationId);
   const clients = clientsQuery.data ?? [];
 
-  const quotesQuery = useQuotesQuery(
-    canWork ? (organizationId as string) : undefined,
-  );
+  const quotesQuery = useQuotesQuery(organizationId, planId !== "FREE");
   const quotes = quotesQuery.data ?? [];
-  const router = useRouter();
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -155,11 +314,153 @@ export default function QuotesPage() {
 
   const closeSnackbar = () => setSnackbar((p) => ({ ...p, open: false }));
 
+  // ✅ loader щоб не миготів noOrg/paywall
+  const isBootstrapping =
+    typeof currentUserId === "undefined" ||
+    typeof organizationId === "undefined" ||
+    typeof planId === "undefined";
+
+  if (isBootstrapping) {
+    return <FullscreenLoader text="Завантажую..." />;
+  }
+
+  // ✅ Paywall: quotes only if planId !== FREE
+  if (planId === "FREE") {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              на головну
+            </Button>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <RequestQuoteIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Комерційні пропозиції
+              </Typography>
+
+              <Chip
+                label="Недоступно на FREE"
+                size="small"
+                sx={{
+                  bgcolor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  color: "#7c2d12",
+                  fontWeight: 800,
+                }}
+              />
+            </Stack>
+          </Box>
+
+          <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
+            <PaywallState onUpgrade={() => router.push("/pricing")} />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ✅ No org (тільки після bootstrap)
+  if (!organizationId) {
+    return (
+      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
+        <Container
+          maxWidth="xl"
+          sx={{
+            px: { xs: 2, sm: 3 },
+            minHeight: "100dvh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ mb: 2.5 }}>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              sx={{ color: "black", mb: 2 }}
+              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
+            >
+              на головну
+            </Button>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "999px",
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <RequestQuoteIcon sx={{ color: "#0f172a" }} />
+              </Box>
+
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: 800, color: "#0f172a" }}
+              >
+                Комерційні пропозиції
+              </Typography>
+
+              <Chip
+                label="Всього: 0"
+                size="small"
+                sx={{
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+
+            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
+              Створюй пропозиції клієнтам і конвертуй в інвойс в один клік.
+            </Typography>
+          </Box>
+
+          <Box sx={{ flex: 1, display: "grid", placeItems: "center" }}>
+            <NoOrgState />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
   const refreshQuotes = async () => {
     await queryClient.invalidateQueries({
-      queryKey: quotesKeys.list(
-        canWork ? (organizationId as string) : undefined,
-      ),
+      queryKey: quotesKeys.list(organizationId),
     });
   };
 
@@ -219,96 +520,33 @@ export default function QuotesPage() {
 
   const quotesCount = quotes.length;
 
-  // ✅ EMPTY-STATE: центр під хедером
-  if (!organizationId) {
-    return (
-      <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
-        <Container
-          maxWidth="xl"
-          sx={{
-            px: { xs: 2, sm: 3 },
-            minHeight: "100dvh",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <Box sx={{ mb: 2.5 }}>
-            <Button
-              onClick={() => router.push("/dashboard")}
-              sx={{ color: "black", mb: 2 }}
-              startIcon={<KeyboardReturnIcon fontSize="inherit" />}
-            >
-              на головну
-            </Button>
-
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1}
-              alignItems={{ xs: "flex-start", sm: "center" }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Box
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: "999px",
-                    bgcolor: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <RequestQuoteIcon sx={{ color: "#0f172a" }} />
-                </Box>
-
-                <Typography
-                  variant="h5"
-                  sx={{ fontWeight: 800, color: "#0f172a" }}
-                >
-                  Комерційні пропозиції
-                </Typography>
-              </Stack>
-
-              <Chip
-                label="Всього: 0"
-                size="small"
-                sx={{
-                  bgcolor: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  color: "#0f172a",
-                  fontWeight: 700,
-                }}
-              />
-            </Stack>
-
-            <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
-              Створюй пропозиції клієнтам і конвертуй в інвойс в один клік.
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              pb: { xs: 2, sm: 3 },
-            }}
-          >
-            <NoOrgState />
-          </Box>
-        </Container>
-      </Box>
-    );
-  }
+  // ✅ limit
+  const planLimit = PLAN_LIMITS[planId ?? ""] ?? Infinity;
+  const isLimitReached = quotesCount >= planLimit;
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
-      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+    <Box
+      sx={{
+        height: { xs: "auto", md: "100dvh" },
+        overflow: { xs: "auto", md: "hidden" },
+        bgcolor: "#f3f4f6",
+        py: 4,
+      }}
+    >
+      <Container
+        maxWidth="xl"
+        sx={{
+          px: { xs: 2, sm: 3 },
+          height: { xs: "auto", md: "100%" },
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Header */}
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/dashboard")}
-            sx={{ color: "black", marginBottom: "20px" }}
+            sx={{ color: "black", mb: 2 }}
             startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
             на головну
@@ -359,8 +597,17 @@ export default function QuotesPage() {
           </Typography>
         </Box>
 
-        {/* ✅ Friendly hint block */}
-        <Box sx={{ mt: 2, mb: 3 }}>
+        {/* Limit banner */}
+        {isLimitReached && planLimit !== Infinity && (
+          <PlanLimitBanner
+            current={quotesCount}
+            limit={planLimit}
+            onUpgrade={() => router.push("/billing")}
+          />
+        )}
+
+        {/* Hint */}
+        <Box sx={{ mt: 0, mb: 2.5 }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
             severity="info"
@@ -375,12 +622,8 @@ export default function QuotesPage() {
               variant="body2"
               sx={{ color: "#334155", lineHeight: 1.55 }}
             >
-              Тут зручно тримати весь процес під контролем:{" "}
-              <strong>змінюй статуси</strong> (в роботі / на погодженні /
-              прийнято / відхилено), щоб у будь-який момент бачити,{" "}
-              <strong>на якому етапі кожна угода</strong>. А коли клієнт погодив
-              пропозицію — можна <strong>перетворити її в інвойс</strong> одним
-              кліком, без дублювання даних і ручного копіювання.
+              Тут зручно тримати процес під контролем: змінюй статуси, бач
+              етапи, а коли погоджено — конвертуй в інвойс без дублювання.
             </Typography>
 
             <Stack
@@ -421,7 +664,7 @@ export default function QuotesPage() {
               <Chip
                 size="small"
                 icon={<BoltIcon />}
-                label="1 клік → готовий документ"
+                label="1 клік → документ"
                 sx={{
                   bgcolor: "#f8fafc",
                   border: "1px solid #e2e8f0",
@@ -432,29 +675,49 @@ export default function QuotesPage() {
           </Alert>
         </Box>
 
-        <Box sx={{ maxWidth: 1700, mx: "auto" }}>
-          <QuotesCard
-            count={clients.length}
-            organizationId={organizationId}
-            currentUserId={currentUserId}
-            setCreateOpen={setCreateOpen}
+        {/* Main */}
+        <Box sx={{ flex: { xs: "unset", md: 1 }, minHeight: 0 }}>
+          <Box
+            sx={{
+              maxWidth: 1700,
+              mx: "auto",
+              height: { xs: "auto", md: "100%" },
+            }}
           >
-            <QuotesGrid
-              quotes={quotes as any}
-              clients={clients as any}
-              loading={quotesQuery.isLoading || clientsQuery.isLoading}
-              onAction={onAction}
-              onConvert={onConvert}
-              actionBusyId={busyId}
-            />
-          </QuotesCard>
+            <QuotesCard
+              count={quotesCount}
+              organizationId={organizationId}
+              currentUserId={currentUserId || ""}
+              setCreateOpen={() => {
+                if (isLimitReached) {
+                  setSnackbar({
+                    open: true,
+                    message: "Ліміт quotes вичерпано. Підвищіть план.",
+                    severity: "error",
+                  });
+                  return;
+                }
+                setCreateOpen(true);
+              }}
+              isLimitReached={isLimitReached} // ✅ додай у QuotesCard так само як у Clients/Invoices
+            >
+              <QuotesGrid
+                quotes={quotes as any}
+                clients={clients as any}
+                loading={quotesQuery.isLoading || clientsQuery.isLoading}
+                onAction={onAction}
+                onConvert={onConvert}
+                actionBusyId={busyId}
+              />
+            </QuotesCard>
+          </Box>
         </Box>
       </Container>
 
       <CreateQuoteDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        organizationId={organizationId || ""}
+        organizationId={organizationId}
         createdById={currentUserId || ""}
         clients={clients as any}
         onCreated={async () => {

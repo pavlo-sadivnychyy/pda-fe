@@ -10,13 +10,17 @@ export const QuotesCard = ({
   setCreateOpen,
   organizationId,
   currentUserId,
+  isLimitReached,
 }: {
   count: number;
   children: ReactNode;
   setCreateOpen: (open: boolean) => void;
   organizationId: string;
   currentUserId: string;
+  isLimitReached: boolean;
 }) => {
+  const disabled = !organizationId || !currentUserId || isLimitReached;
+
   return (
     <Box
       sx={{
@@ -24,6 +28,12 @@ export const QuotesCard = ({
         bgcolor: "background.paper",
         boxShadow: "0px 18px 45px rgba(15,23,42,0.11)",
         p: { xs: 3, md: 4 },
+
+        // ✅ на desktop карточка може бути flex-колонкою щоб грід займав весь простір
+        height: { xs: "auto", md: "100%" },
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
       }}
     >
       <Box
@@ -33,6 +43,7 @@ export const QuotesCard = ({
           justifyContent: "space-between",
           gap: 2,
           mb: 3,
+          flexShrink: 0,
         }}
       >
         <Box>
@@ -57,7 +68,7 @@ export const QuotesCard = ({
             variant="caption"
             sx={{ color: "#6b7280", textTransform: "uppercase" }}
           >
-            Усього клієнтів
+            Усього пропозицій
           </Typography>
           <Typography
             variant="subtitle1"
@@ -68,24 +79,48 @@ export const QuotesCard = ({
         </Box>
       </Box>
 
-      <Box sx={{ borderBottom: "1px solid rgba(148,163,184,0.4)", mb: 2.5 }} />
+      <Box
+        sx={{
+          borderBottom: "1px solid rgba(148,163,184,0.4)",
+          mb: 2.5,
+          flexShrink: 0,
+        }}
+      />
 
-      {children}
+      {/* ✅ тут грід має розтягуватись і мати internal scroll */}
+      <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
 
-      <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid rgba(148,163,184,0.2)" }}>
+      <Box
+        sx={{
+          mt: 3,
+          pt: 2,
+          borderTop: "1px solid rgba(148,163,184,0.2)",
+          flexShrink: 0,
+        }}
+      >
         <Button
           onClick={() => setCreateOpen(true)}
           variant="contained"
           startIcon={<AddIcon />}
           fullWidth
+          disabled={disabled}
           sx={{
             textTransform: "none",
             borderRadius: 999,
+            py: 1.35,
+            fontWeight: 800,
+
             bgcolor: "#111827",
-            "&:hover": { bgcolor: "#020617" },
             color: "white",
+            "&:hover": { bgcolor: "#020617" },
+
+            "&.Mui-disabled": {
+              bgcolor: "rgba(15, 23, 42, 0.08)",
+              color: "rgba(15, 23, 42, 0.45)",
+              border: "1px solid rgba(148,163,184,0.35)",
+              boxShadow: "none",
+            },
           }}
-          disabled={!organizationId || !currentUserId}
         >
           Створити пропозицію
         </Button>
@@ -99,7 +134,7 @@ export const QuotesCard = ({
             color: "#9ca3af",
           }}
         >
-          Клієнти повʼязані з вашим акаунтом та організацією
+          Комерційні пропозиції повʼязані з вашим акаунтом та організацією
         </Typography>
       </Box>
     </Box>
