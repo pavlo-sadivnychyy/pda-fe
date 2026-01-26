@@ -19,6 +19,8 @@ export type InvoiceItemForm = {
   quantity: string;
   unitPrice: string;
   taxRate: string;
+  serviceId?: string | null;
+  addToMyServices?: boolean;
 };
 
 export type Invoice = {
@@ -51,11 +53,13 @@ export type Invoice = {
 };
 
 export const defaultItem: InvoiceItemForm = {
+  serviceId: null,
   name: "",
   description: "",
   quantity: "1",
   unitPrice: "0",
-  taxRate: "0",
+  taxRate: "",
+  addToMyServices: false,
 };
 
 export const statuses: Record<InvoiceStatus, string> = {

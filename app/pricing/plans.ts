@@ -4,7 +4,7 @@ export const PLANS: Plan[] = [
     title: "FREE",
     subtitle: "Спробуй систему і звикни до порядку",
     priceMonthly: "0",
-    currency: "грн",
+    currency: "$",
     ctaLabel: "Почати безкоштовно",
     features: [
       "Створення організації",
@@ -26,8 +26,8 @@ export const PLANS: Plan[] = [
     id: "BASIC",
     title: "BASIC",
     subtitle: "Щоденна робота ФОП без рутини",
-    priceMonthly: 399,
-    currency: "грн",
+    priceMonthly: 9.99,
+    currency: "$",
     highlight: true,
     ctaLabel: "Обрати BASIC",
     features: [
@@ -53,8 +53,8 @@ export const PLANS: Plan[] = [
     id: "PRO",
     title: "PRO",
     subtitle: "Автоматизація бізнесу на автопілоті",
-    priceMonthly: 799,
-    currency: "грн",
+    priceMonthly: 19.99,
+    currency: "$",
     ctaLabel: "Обрати PRO",
     features: [
       "Безліміт клієнтів",

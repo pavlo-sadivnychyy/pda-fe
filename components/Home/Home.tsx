@@ -21,6 +21,7 @@ import {
   AnalyticsShortcutCard,
   ClientsShortcutCard,
   QuotesShortcutCard,
+  ServicesShortcutCard,
 } from "./components/FinanceShortcutsCards";
 import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortcutsCards";
 
@@ -164,6 +165,7 @@ export default function HomePage() {
           {/* RIGHT */}
           <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
             <ClientsShortcutCard onClick={() => router.push("/clients")} />
+            <ServicesShortcutCard onClick={() => router.push("/services")} />
             <InvoicesShortcutCard onClick={() => router.push("/invoices")} />
             <QuotesShortcutCard
               onClick={() => router.push("/quotes")}

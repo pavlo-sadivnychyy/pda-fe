@@ -36,10 +36,13 @@ import { CreateInvoiceDialog } from "./components/CreateInvoiceDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 
 import type { InvoiceAction, CreateInvoicePayload } from "./types";
+import { useServicesQueries } from "@/app/invoices/hooks/useServicesQueries";
+import { useServiceMutations } from "@/app/invoices/hooks/useServiceMutations";
+
+// ✅ NEW
 
 /* =======================
    Config: plan limits
-   (ти просив ті самі 3 і 20)
 ======================= */
 
 const PLAN_LIMITS: Record<string, number> = {
@@ -182,46 +185,28 @@ function PlanLimitBanner({
           fontWeight: 900,
           letterSpacing: "0.02em",
           textTransform: "none",
-
-          // gradient background
           background: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-
           color: "#fff",
-
           boxShadow:
             "0 8px 22px rgba(249,115,22,0.35), inset 0 0 0 1px rgba(255,255,255,0.2)",
-
           position: "relative",
           overflow: "hidden",
-
-          // hover = lift + brighter
           "&:hover": {
             background: "linear-gradient(135deg, #fbbf24 0%, #fb923c 100%)",
             boxShadow:
               "0 12px 28px rgba(249,115,22,0.45), inset 0 0 0 1px rgba(255,255,255,0.25)",
             transform: "translateY(-1px)",
           },
-
-          // click
           "&:active": {
             transform: "translateY(0px) scale(0.98)",
             boxShadow:
               "0 6px 16px rgba(249,115,22,0.35), inset 0 0 0 1px rgba(255,255,255,0.2)",
           },
-
-          // pulse ring
           "@keyframes upgradePulse": {
-            "0%": {
-              boxShadow: "0 0 0 0 rgba(249,115,22,0.45)",
-            },
-            "70%": {
-              boxShadow: "0 0 0 14px rgba(249,115,22,0)",
-            },
-            "100%": {
-              boxShadow: "0 0 0 0 rgba(249,115,22,0)",
-            },
+            "0%": { boxShadow: "0 0 0 0 rgba(249,115,22,0.45)" },
+            "70%": { boxShadow: "0 0 0 14px rgba(249,115,22,0)" },
+            "100%": { boxShadow: "0 0 0 0 rgba(249,115,22,0)" },
           },
-
           animation: "upgradePulse 2.6s ease-out infinite",
         }}
       >
@@ -241,7 +226,6 @@ export default function InvoicesPage() {
 
   const canWork = Boolean(organizationId);
 
-  // ✅ Hooks always called (no conditional hooks!)
   const { clientsQuery, invoicesQuery } = useInvoicesQueries(
     canWork ? organizationId : undefined,
   );
@@ -262,7 +246,13 @@ export default function InvoicesPage() {
     removeItem,
     totals,
     reset,
+    errors, // ✅ ДОДАНО
+    validateForm, // ✅ ДОДАНО
   } = useInvoiceForm();
+
+  // ✅ NEW: services for select + checkbox "save"
+  const { servicesQuery } = useServicesQueries();
+  const { createService } = useServiceMutations();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -287,7 +277,6 @@ export default function InvoicesPage() {
 
   const onCreateClose = () => setCreateDialogOpen(false);
 
-  // ✅ actionBusyKey: `${id}:${action}`
   const actionBusyKey = useMemo(() => {
     const v = invoiceActionMutation.variables as any;
     if (!invoiceActionMutation.isPending || !v?.id || !v?.action) return null;
@@ -304,15 +293,11 @@ export default function InvoicesPage() {
 
   const invoicesCount = invoicesQuery.data?.length ?? 0;
 
-  // ✅ Bootstrapping: щоб не було миготіння (org/plan ще undefined)
   const isBootstrapping =
     typeof organizationId === "undefined" || typeof planId === "undefined";
 
-  if (isBootstrapping) {
-    return <FullscreenLoader text="Завантажую..." />;
-  }
+  if (isBootstrapping) return <FullscreenLoader text="Завантажую..." />;
 
-  // ✅ No org (після bootstrap)
   if (!organizationId) {
     return (
       <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
@@ -325,7 +310,6 @@ export default function InvoicesPage() {
             flexDirection: "column",
           }}
         >
-          {/* Header */}
           <Box sx={{ mb: 2.5 }}>
             <Button
               onClick={() => router.push("/dashboard")}
@@ -383,7 +367,6 @@ export default function InvoicesPage() {
     );
   }
 
-  // ✅ Plan limit logic (3 / 20)
   const planLimit = PLAN_LIMITS[planId ?? ""] ?? Infinity;
   const isLimitReached = invoicesCount >= planLimit;
 
@@ -397,8 +380,16 @@ export default function InvoicesPage() {
     }
   };
 
+  // Замініть функцію handleSubmit в InvoicesPage.tsx на цю:
+
   const handleSubmit = async () => {
     try {
+      // ✅ ВАЛІДАЦІЯ ПЕРЕД ЗБЕРЕЖЕННЯМ
+      if (!validateForm()) {
+        showSnackbar("Будь ласка, виправте помилки у формі", "error");
+        return;
+      }
+
       if (isLimitReached) {
         showSnackbar("Ліміт інвойсів вичерпано. Підвищіть план.", "error");
         return;
@@ -430,7 +421,34 @@ export default function InvoicesPage() {
         })),
       };
 
+      // створюємо інвойс
       await createInvoiceMutation.mutateAsync(payload);
+
+      // якщо юзер поставив чекбокс — створюємо сервіси
+      const candidates = invoiceForm.items
+        .filter((i) => i.addToMyServices)
+        .map((i) => ({
+          name: (i.name ?? "").trim(),
+          description: (i.description ?? "").trim() || undefined,
+          price: Number.parseFloat(i.unitPrice) || 0,
+        }))
+        .filter((x) => x.name && Number.isFinite(x.price));
+
+      // дедуп по name+price
+      const uniq = new Map<string, (typeof candidates)[number]>();
+      for (const s of candidates) {
+        const key = `${s.name.toLowerCase()}::${s.price}`;
+        if (!uniq.has(key)) uniq.set(key, s);
+      }
+
+      for (const s of uniq.values()) {
+        try {
+          await createService.mutateAsync(s);
+        } catch (e) {
+          console.error("Failed to create service", e);
+        }
+      }
+
       showSnackbar("Інвойс створено", "success");
       setCreateDialogOpen(false);
     } catch (e) {
@@ -453,11 +471,6 @@ export default function InvoicesPage() {
     }
   };
 
-  /**
-   * ✅ Ключовий момент:
-   * - mobile: нормальний page scroll
-   * - desktop: фіксуємо екран на 100dvh і блокуємо page scroll
-   */
   return (
     <Box
       sx={{
@@ -471,12 +484,11 @@ export default function InvoicesPage() {
         maxWidth="xl"
         sx={{
           px: { xs: 2, sm: 3 },
-          height: { xs: "auto", md: "100%" }, // ✅ take full height on desktop
+          height: { xs: "auto", md: "100%" },
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Header */}
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/dashboard")}
@@ -532,7 +544,6 @@ export default function InvoicesPage() {
           </Typography>
         </Box>
 
-        {/* Limit banner */}
         {isLimitReached && planLimit !== Infinity && (
           <PlanLimitBanner
             current={invoicesCount}
@@ -541,7 +552,6 @@ export default function InvoicesPage() {
           />
         )}
 
-        {/* Tip */}
         <Box sx={{ mt: 0, mb: 2.5 }}>
           <Alert
             icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
@@ -568,15 +578,8 @@ export default function InvoicesPage() {
           </Alert>
         </Box>
 
-        {/* ✅ Main area: desktop should not grow beyond viewport */}
         <Box>
-          <Box
-            sx={{
-              maxWidth: 1500,
-              mx: "auto",
-              height: "auto",
-            }}
-          >
+          <Box sx={{ maxWidth: 1500, mx: "auto", height: "auto" }}>
             <InvoicesCard
               invoicesCount={invoicesCount}
               onCreate={() => {
@@ -589,7 +592,7 @@ export default function InvoicesPage() {
                 }
                 onCreateOpen();
               }}
-              isLimitReached={isLimitReached} // ✅ pass down
+              isLimitReached={isLimitReached}
             >
               <InvoicesGrid
                 disbaleExport={planId !== "PRO"}
@@ -611,9 +614,12 @@ export default function InvoicesPage() {
         onClose={onCreateClose}
         clients={clientsQuery.data ?? []}
         loadingClients={clientsQuery.isFetching}
+        services={servicesQuery.data ?? []}
+        servicesLoading={servicesQuery.isFetching}
         formStatus={formStatus}
         setFormStatus={setFormStatus}
         form={invoiceForm}
+        errors={errors} // ✅ ДОДАНО
         setField={setField as any}
         setItemField={setItemField as any}
         addItem={addItem}

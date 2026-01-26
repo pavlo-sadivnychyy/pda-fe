@@ -15,19 +15,19 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
-import type { Client, InvoiceStatus } from "../types";
+
+import type {
+  Client,
+  InvoiceStatus,
+  InvoiceCreateFormState,
+  InvoiceItemForm,
+} from "../types";
 import { InvoiceItemsEditor } from "./InvoiceItemsEditor";
 import { InvoiceTotals } from "./InvoiceTotals";
 import { INVOICE_STATUS_OPTIONS } from "@/app/invoices/utils";
 
-type InvoiceForm = {
-  clientId: string;
-  issueDate: string; // YYYY-MM-DD
-  dueDate: string; // YYYY-MM-DD
-  currency: string;
-  notes: string;
-  items: any[];
-};
+import type { UserService } from "@/app/services/hooks/useServicesQueries";
+import type { ValidationErrors } from "../hooks/useInvoiceForm";
 
 function toDayjs(value: string): Dayjs | null {
   if (!value) return null;
@@ -45,9 +45,14 @@ export const CreateInvoiceDialog = ({
   onClose,
   clients,
   loadingClients,
+
+  services,
+  servicesLoading,
+
   formStatus,
   setFormStatus,
   form,
+  errors,
   setField,
   setItemField,
   addItem,
@@ -58,15 +63,24 @@ export const CreateInvoiceDialog = ({
 }: {
   open: boolean;
   onClose: () => void;
+
   clients: Client[];
   loadingClients: boolean;
+
+  services: UserService[];
+  servicesLoading: boolean;
 
   formStatus: InvoiceStatus;
   setFormStatus: (s: InvoiceStatus) => void;
 
-  form: InvoiceForm;
-  setField: (field: keyof InvoiceForm, value: string) => void;
-  setItemField: (index: number, field: any, value: string) => void;
+  form: InvoiceCreateFormState;
+  errors: ValidationErrors;
+  setField: (field: keyof InvoiceCreateFormState, value: string) => void;
+  setItemField: (
+    index: number,
+    field: keyof InvoiceItemForm,
+    value: any,
+  ) => void;
   addItem: () => void;
   removeItem: (index: number) => void;
 
@@ -82,7 +96,6 @@ export const CreateInvoiceDialog = ({
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
     >
-      {/* ✅ HEADER з кнопкою X */}
       <DialogTitle
         sx={{
           position: "sticky",
@@ -164,7 +177,6 @@ export const CreateInvoiceDialog = ({
             ))}
           </TextField>
 
-          {/* ✅ MUI DatePicker: issueDate */}
           <DatePicker
             variant={"standard"}
             label="Дата виставлення"
@@ -180,7 +192,6 @@ export const CreateInvoiceDialog = ({
             }}
           />
 
-          {/* ✅ MUI DatePicker: dueDate */}
           <DatePicker
             label="Кінцевий термін оплати"
             value={toDayjs(form.dueDate)}
@@ -219,9 +230,12 @@ export const CreateInvoiceDialog = ({
 
         <InvoiceItemsEditor
           form={form}
+          errors={errors}
           onItemChange={setItemField}
           onAddItem={addItem}
           onRemoveItem={removeItem}
+          services={services}
+          servicesLoading={servicesLoading}
         />
 
         <InvoiceTotals
