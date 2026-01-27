@@ -5,7 +5,7 @@ import { AppProviders } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Personal Business Assistant",
+  title: "Spravly",
   description: "AI-powered SaaS for your business",
   icons: {
     icon: "/favicon.png",
