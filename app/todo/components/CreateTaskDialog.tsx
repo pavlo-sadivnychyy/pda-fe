@@ -185,6 +185,7 @@ export const CreateTaskDialog = (props: {
               borderRadius: 999,
               px: { xs: 2.5, md: 3 },
               bgcolor: "#111827",
+              color: "white",
               "&:hover": { bgcolor: "#020617" },
             }}
           >

@@ -3,7 +3,7 @@
 import { Chip } from "@mui/material";
 import type { QuoteStatus } from "../types";
 
-const map = (s: QuoteStatus) => {
+export const mapToStatus = (s: QuoteStatus) => {
   switch (s) {
     case "DRAFT":
       return { label: "Чернетка", color: "default" as const };
@@ -23,7 +23,7 @@ const map = (s: QuoteStatus) => {
 };
 
 export function QuoteStatusChip({ status }: { status: QuoteStatus }) {
-  const { label, color } = map(status);
+  const { label, color } = mapToStatus(status);
 
   return (
     <Chip

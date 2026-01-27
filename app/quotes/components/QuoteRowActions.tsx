@@ -26,12 +26,16 @@ export function QuoteRowActions({
   hasInvoice,
   onAction,
   onConvert,
+  hasClient,
+  clientHasEmail,
 }: {
   status: QuoteStatus;
   busy: boolean;
   hasInvoice: boolean;
   onAction: (a: QuoteAction) => void;
   onConvert: () => void;
+  hasClient: boolean;
+  clientHasEmail: boolean;
 }) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
@@ -44,6 +48,15 @@ export function QuoteRowActions({
   const canReject = status === "SENT";
   const canExpire = status === "SENT";
 
+  // ✅ причини, чому send недоступний
+  const sendDisabled = busy || !hasClient || !clientHasEmail;
+
+  const sendTooltipText = !hasClient
+    ? "Спочатку додай клієнта до пропозиції"
+    : !clientHasEmail
+      ? "У клієнта немає email — додай email, щоб надіслати"
+      : "";
+
   return (
     <Stack
       direction="row"
@@ -52,32 +65,43 @@ export function QuoteRowActions({
       height="100%"
       sx={{
         width: "100%",
-        minWidth: 0, // 🔑 дозволяє дітям стискатися
-        overflow: "hidden", // 🔑 нічого не вилітає з клітинки
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
       {canSend ? (
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={busy}
-          onClick={() => onAction("send")}
-          startIcon={<SendIcon sx={{ fontSize: 16 }} />}
-          sx={{
-            flexShrink: 0, // 🔑 ця кнопка не стискається
-            textTransform: "none",
-            fontSize: 12,
-            borderRadius: 999,
-            px: 1.25,
-            whiteSpace: "nowrap",
-            bgcolor: "#ffffff",
-            borderColor: "#e2e8f0",
-            color: "#111827",
-            "&:hover": { bgcolor: "#f3f4f6", borderColor: "#e2e8f0" },
-          }}
+        <Tooltip
+          title={sendTooltipText}
+          disableHoverListener={!sendTooltipText}
+          disableFocusListener={!sendTooltipText}
+          disableTouchListener={!sendTooltipText}
+          arrow
         >
-          Надіслати
-        </Button>
+          {/* 🔑 Tooltip не працює напряму з disabled Button */}
+          <span style={{ display: "inline-flex" }}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={sendDisabled}
+              onClick={() => onAction("send")}
+              startIcon={<SendIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                flexShrink: 0,
+                textTransform: "none",
+                fontSize: 12,
+                borderRadius: 999,
+                px: 1.25,
+                whiteSpace: "nowrap",
+                bgcolor: "#ffffff",
+                borderColor: "#e2e8f0",
+                color: "#111827",
+                "&:hover": { bgcolor: "#f3f4f6", borderColor: "#e2e8f0" },
+              }}
+            >
+              Надіслати
+            </Button>
+          </span>
+        </Tooltip>
       ) : (
         <Box sx={{ width: 0, flexShrink: 0 }} />
       )}

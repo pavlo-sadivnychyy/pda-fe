@@ -131,7 +131,7 @@ export const CreateActDialog = ({
             fullWidth
             disabled={loadingInvoices}
             placeholder={"Оберіть інвойс"}
-            helperText="Оберіть рахунок, на основі якого буде створено акт"
+            helperText="Оберіть рахунок, на основі якого буде створено акт. Ви не можете свторити акт з інвйсу без клієнта."
             InputLabelProps={{ shrink: true }}
             SelectProps={{ displayEmpty: true }}
           >
@@ -148,7 +148,11 @@ export const CreateActDialog = ({
               </MenuItem>
             ) : (
               invoices.map((inv) => (
-                <MenuItem key={inv.id} value={inv.id}>
+                <MenuItem
+                  disabled={!inv.client?.name}
+                  key={inv.id}
+                  value={inv.id}
+                >
                   № {inv.number} — {inv.client?.name ?? "Без клієнта"} (
                   {dayjs(inv.issueDate).format("DD.MM.YYYY")})
                 </MenuItem>

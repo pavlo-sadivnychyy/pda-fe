@@ -38,7 +38,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LockIcon from "@mui/icons-material/Lock";
 import { InfinitySpin } from "react-loader-spinner";
-import { useOrganizationContext } from "@/app/clients/hooks/useOrganizationContext";
+import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
 
 /* =======================
    Config: plan limits (постав свої)
@@ -293,7 +293,8 @@ export default function QuotesPage() {
   const queryClient = useQueryClient();
 
   // ✅ один контекст як джерело правди
-  const { currentUserId, organizationId, planId } = useOrganizationContext();
+  const { currentUserId, organizationId, planId, isUserLoading, isOrgLoading } =
+    useOrganizationContext();
 
   const canWork = true;
 
@@ -316,9 +317,7 @@ export default function QuotesPage() {
 
   // ✅ loader щоб не миготів noOrg/paywall
   const isBootstrapping =
-    typeof currentUserId === "undefined" ||
-    typeof organizationId === "undefined" ||
-    typeof planId === "undefined";
+    isUserLoading || isOrgLoading || typeof planId === "undefined";
 
   if (isBootstrapping) {
     return <FullscreenLoader text="Завантажую..." />;

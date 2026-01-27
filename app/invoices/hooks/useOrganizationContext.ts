@@ -6,10 +6,12 @@ import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
 import { PlanId } from "@/components/Home/components/PlanCard";
 
 export const useOrganizationContext = () => {
-  const { data: userData } = useCurrentUser();
+  const { data: userData, isLoading: isUserLoading } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
-  const { data: orgData } = useOrganization(currentUserId || undefined);
+  const { data: orgData, isLoading: isOrgLoading } = useOrganization(
+    currentUserId || undefined,
+  );
 
   const organizationId = useMemo(() => {
     return orgData?.items?.[0]?.organizationId as string | undefined;
@@ -19,6 +21,8 @@ export const useOrganizationContext = () => {
     ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
   return {
+    isUserLoading,
+    isOrgLoading,
     currentUserId: currentUserId as string | null,
     organizationId,
     planId: currentPlanFromApi,

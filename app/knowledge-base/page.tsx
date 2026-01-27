@@ -16,9 +16,9 @@ import { useRouter } from "next/navigation";
 
 import { KnowledgeBaseShell } from "@/components/KnowledgeBaseShell/KnowledgeBaseShell";
 import LockIcon from "@mui/icons-material/Lock";
-import { useOrganizationContext } from "@/app/clients/hooks/useOrganizationContext";
 import { useKnowledgeBasePage } from "@/hooksNew/useKnowledgeBasePage";
 import { FullscreenLoader } from "@/app/clients/page";
+import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
 
 function PlanLimitBanner({
   current,
@@ -135,7 +135,7 @@ const PLAN_LIMITS: Record<string, number> = {
 
 export default function KnowledgeBasePage() {
   const router = useRouter();
-  const { planId, currentUserId, organizationId } = useOrganizationContext();
+  const { planId, isUserLoading, isOrgLoading } = useOrganizationContext();
 
   const planLimit = PLAN_LIMITS[planId ?? ""] ?? Infinity;
 
@@ -143,9 +143,7 @@ export default function KnowledgeBasePage() {
   const isLimitReached = vm?.documents?.length >= planLimit;
 
   const isBootstrapping =
-    typeof currentUserId === "undefined" ||
-    typeof organizationId === "undefined" ||
-    typeof planId === "undefined";
+    isUserLoading || isOrgLoading || typeof planId === "undefined";
 
   if (isBootstrapping) {
     return <FullscreenLoader text="Завантажую..." />;

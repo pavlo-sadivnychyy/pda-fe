@@ -18,6 +18,7 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LockIcon from "@mui/icons-material/Lock";
+import DesignServicesIcon from "@mui/icons-material/DesignServices";
 
 type ShortcutProps = {
   onClick: () => void;
@@ -212,6 +213,26 @@ export function ClientsShortcutCard({ onClick, dragHandle }: ShortcutProps) {
           Тут зберігається вся база твоїх клієнтів. Після додавання клієнта ти
           зможеш створювати для нього інвойси, комерційні пропозиції та акти — і
           відправляти їх прямо з додатку.
+        </>,
+      ]}
+      onClick={onClick}
+      dragHandle={dragHandle}
+    />
+  );
+}
+
+export function ServicesShortcutCard({ onClick, dragHandle }: ShortcutProps) {
+  return (
+    <ShortcutCard
+      icon={<DesignServicesIcon sx={{ color: "#7c3aed" }} />}
+      iconBg="#f5f3ff"
+      title="Мої товари / послуги"
+      subtitle=""
+      desc={[
+        <>
+          Створи власний каталог товарів і послуг з цінами. Під час створення
+          інвойсів, актів або комерційних пропозицій ти зможеш обирати їх зі
+          списку — ціна підставиться автоматично, але її можна змінити.
         </>,
       ]}
       onClick={onClick}

@@ -28,22 +28,29 @@ import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { InfinitySpin } from "react-loader-spinner";
 
-function formatPrice(price: number) {
-  return price === 0 ? "0" : String(price);
+function formatPrice(price: number | string) {
+  const n = typeof price === "string" ? Number(price) : price;
+  if (!Number.isFinite(n)) return String(price);
+  return n === 0 ? "0" : String(n);
 }
 
-// мінімальний тип відповіді з бекенду
+type MonoCheckoutResponse = {
+  subscriptionId: string;
+  pageUrl: string;
+};
+
 type UserResponse = {
   user: {
     id: string;
     subscription?: {
       planId: PlanId;
+      status?: string | null;
+      planIdPending?: PlanId | null;
     } | null;
   };
 };
 
 type Props = {
-  // якщо ти прокидаєш його з сервера — ок як fallback
   currentPlanId?: PlanId;
 };
 
@@ -57,6 +64,27 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   const currentPlanFromApi: PlanId =
     userData?.subscription?.planId ?? currentPlanId;
 
+  const subscriptionStatus = userData?.subscription?.status ?? null;
+  const planIdPending = userData?.subscription?.planIdPending ?? null;
+
+  // ✅ BASIC/PRO: тільки через оплату Monobank
+  const checkoutMutation = useMutation({
+    mutationFn: async (planId: PlanId) => {
+      if (!userId) throw new Error("No userId");
+      if (planId === "FREE") throw new Error("FREE does not require checkout");
+
+      const { data } = await api.post<MonoCheckoutResponse>(
+        `/billing/monobank/checkout`,
+        { planId },
+      );
+      return data;
+    },
+    onSuccess: (data) => {
+      window.location.href = data.pageUrl;
+    },
+  });
+
+  // ✅ FREE: залишаємо твій існуючий endpoint (без оплати)
   const setPlanMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -66,20 +94,31 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       return data;
     },
     onSuccess: (data) => {
-      // ✅ одразу оновлюємо кеш, щоб UI миттєво перерендився
       qc.setQueryData(["app-bootstrap"], data);
-      // ✅ і на всяк випадок підтягнемо ще раз
       qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
     },
   });
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
-    if (planId === currentPlanFromApi) return;
-    setPlanMutation.mutate(planId);
+
+    // якщо підписка в процесі — не даємо робити іншу
+    if (subscriptionStatus === "pending" && planIdPending) return;
+
+    if (planId === currentPlanFromApi && !planIdPending) return;
+
+    // FREE — одразу
+    if (planId === "FREE") {
+      setPlanMutation.mutate("FREE");
+      return;
+    }
+
+    // BASIC/PRO — checkout
+    checkoutMutation.mutate(planId);
   };
 
-  const isBusy = isLoading || setPlanMutation.isPending;
+  const isBusy =
+    isLoading || checkoutMutation.isPending || setPlanMutation.isPending;
 
   if (isBusy) {
     return (
@@ -95,6 +134,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       </Box>
     );
   }
+
+  const topChipLabel =
+    planIdPending && subscriptionStatus === "pending"
+      ? `Оплата обробляється: ${planIdPending}`
+      : `Поточний план: ${currentPlanFromApi}`;
 
   return (
     <Container maxWidth="lg" sx={{ padding: "32px 20px" }}>
@@ -119,7 +163,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
         <Box sx={{ mt: 0.5, display: "flex", gap: 1, alignItems: "center" }}>
           <Chip
-            label={`Поточний план: ${currentPlanFromApi}`}
+            label={topChipLabel}
             sx={{
               bgcolor: "#fefce8",
               border: "1px solid #facc15",
@@ -127,12 +171,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             }}
           />
 
-          {setPlanMutation.isError && (
+          {(checkoutMutation.isError || setPlanMutation.isError) && (
             <Typography variant="caption" sx={{ color: "#dc2626" }}>
-              Не вдалося змінити план
+              Не вдалося виконати дію
             </Typography>
           )}
         </Box>
+
+        {planIdPending && subscriptionStatus === "pending" ? (
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            Якщо ти вже оплатив — зачекай кілька секунд або онови сторінку.
+          </Typography>
+        ) : null}
       </Stack>
 
       {/* Cards */}
@@ -143,11 +193,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       >
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlanFromApi;
-          const isPopular = Boolean(plan.highlight);
+          const isPopular = Boolean((plan as any).highlight);
           const headerIconColor = isPopular ? "#f97316" : "#111827";
 
           const isThisPending =
-            setPlanMutation.isPending && setPlanMutation.variables === plan.id;
+            checkoutMutation.isPending &&
+            checkoutMutation.variables === plan.id;
+
+          const disabled =
+            isCurrent ||
+            isBusy ||
+            !userId ||
+            (subscriptionStatus === "pending" && Boolean(planIdPending));
 
           return (
             <Card
@@ -177,7 +234,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       {plan.title}
                     </Typography>
 
-                    {isCurrent && (
+                    {isCurrent && !planIdPending && (
                       <Chip
                         label="Поточний"
                         size="small"
@@ -188,6 +245,19 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                         }}
                       />
                     )}
+
+                    {planIdPending === plan.id &&
+                      subscriptionStatus === "pending" && (
+                        <Chip
+                          label="Оплата..."
+                          size="small"
+                          sx={{
+                            bgcolor: "#fff7ed",
+                            border: "1px solid #fdba74",
+                            fontWeight: 700,
+                          }}
+                        />
+                      )}
                   </Stack>
                 }
                 subheader={
@@ -304,7 +374,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                     size="small"
                     variant={"contained"}
                     onClick={() => handleChoosePlan(plan.id)}
-                    disabled={isCurrent || isBusy || !userId}
+                    disabled={disabled}
                     sx={{
                       textTransform: "none",
                       borderRadius: 999,
@@ -316,7 +386,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                     {isCurrent
                       ? "План активний"
                       : isThisPending
-                        ? "Застосовую..."
+                        ? "Переходимо до оплати..."
                         : plan.ctaLabel}
                   </Button>
                 </Stack>

@@ -4,11 +4,13 @@ import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { useOrganization } from "@/hooksNew/useAllUserOrganizations";
 import { PlanId } from "@/components/Home/components/PlanCard";
 
-export const useOrganizationContext = () => {
-  const { data: userData } = useCurrentUser();
+export const c = () => {
+  const { data: userData, isLoading: isUserLoading } = useCurrentUser();
   const currentUserId = (userData as any)?.id ?? null;
 
-  const { data: orgData } = useOrganization(currentUserId || undefined);
+  const { data: orgData, isLoading: isOrgLoading } = useOrganization(
+    currentUserId || undefined,
+  );
 
   const organizationId =
     (orgData as any)?.items?.[0]?.organizationId ??
@@ -18,5 +20,11 @@ export const useOrganizationContext = () => {
   const currentPlanFromApi: PlanId =
     ((userData as any)?.subscription?.planId as PlanId) ?? "FREE";
 
-  return { currentUserId, organizationId, planId: currentPlanFromApi };
+  return {
+    currentUserId,
+    organizationId,
+    planId: currentPlanFromApi,
+    isUserLoading,
+    isOrgLoading,
+  };
 };

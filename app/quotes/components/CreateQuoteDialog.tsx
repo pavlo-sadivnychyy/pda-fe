@@ -4,21 +4,19 @@ import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
+  Autocomplete,
   Box,
   Button,
+  Checkbox,
   Divider,
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from "@mui/material";
@@ -26,24 +24,39 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Client } from "@/app/clients/types"; // ✅ якщо інший шлях — підправ
+import type { Client } from "@/app/clients/types";
+import { api } from "@/libs/axios";
 import { useCreateQuoteMutation } from "../hooks/useCreateQuoteMutation";
+
+type ServiceEntity = {
+  id: string;
+  name: string;
+  description?: string | null;
+  unitPrice?: number | string | null;
+  price?: number | string | null;
+  taxRate?: number | string | null;
+};
 
 type QuoteItemForm = {
   name: string;
   description: string;
-  quantity: number;
-  unitPrice: number;
-  taxRate: number; // %
+  quantity: string;
+  unitPrice: string;
+  taxRate: string;
+  serviceId: string | null;
+  addToMyServices: boolean;
 };
 
 const emptyItem: QuoteItemForm = {
   name: "",
   description: "",
-  quantity: 1,
-  unitPrice: 0,
-  taxRate: 0,
+  quantity: "1",
+  unitPrice: "",
+  taxRate: "0",
+  serviceId: null,
+  addToMyServices: false,
 };
 
 function toDayjs(value: string): Dayjs | null {
@@ -59,6 +72,53 @@ function toISODate(value: Dayjs | null): string {
 
 function todayISO() {
   return dayjs().format("YYYY-MM-DD");
+}
+
+const servicesKeys = {
+  all: ["services"] as const,
+  list: (search: string) => [...servicesKeys.all, "list", search] as const,
+};
+
+async function fetchServices(search: string) {
+  const res = await api.get<{ services: ServiceEntity[] }>("/services", {
+    params: search?.trim() ? { search: search.trim() } : undefined,
+  });
+  return res.data.services ?? [];
+}
+
+async function createService(payload: {
+  name: string;
+  description?: string | null;
+  unitPrice: number;
+  taxRate?: number | null;
+  organizationId?: string;
+}) {
+  const res = await api.post<{ service: ServiceEntity }>("/services", payload);
+  return res.data.service;
+}
+
+const priceRegex = /^\d+(\.\d{1,2})?$/;
+
+function normalizePriceInput(s: string) {
+  return (s ?? "").trim();
+}
+
+function isExactMatchServiceName(name: string, services: ServiceEntity[]) {
+  const n = name.trim().toLowerCase();
+  if (!n) return false;
+  return services.some((s) => (s.name ?? "").trim().toLowerCase() === n);
+}
+
+function getServicePrice(s: ServiceEntity): number {
+  const raw = s.unitPrice ?? s.price ?? 0;
+  const n = typeof raw === "string" ? Number(raw) : Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getServiceTax(s: ServiceEntity): number {
+  const raw = s.taxRate ?? 0;
+  const n = typeof raw === "string" ? Number(raw) : Number(raw);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export function CreateQuoteDialog({
@@ -78,6 +138,7 @@ export function CreateQuoteDialog({
   onCreated: () => void;
   onError: (message: string) => void;
 }) {
+  const qc = useQueryClient();
   const today = useMemo(() => todayISO(), []);
 
   const [clientId, setClientId] = useState<string>("");
@@ -88,37 +149,30 @@ export function CreateQuoteDialog({
 
   const [items, setItems] = useState<QuoteItemForm[]>([{ ...emptyItem }]);
 
-  const { mutateAsync, isLoading } = useCreateQuoteMutation();
+  const servicesQuery = useQuery({
+    queryKey: servicesKeys.all,
+    enabled: open,
+    queryFn: () => fetchServices(""),
+    staleTime: 60_000,
+  });
 
-  const totals = useMemo(() => {
-    const subtotal = items.reduce(
-      (acc, it) =>
-        acc + (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0),
-      0,
-    );
-    const tax = items.reduce((acc, it) => {
-      const base = (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0);
-      const rate = Number(it.taxRate) || 0;
-      return acc + base * (rate / 100);
-    }, 0);
-    const total = subtotal + tax;
+  const createServiceMutation = useMutation({
+    mutationFn: createService,
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: servicesKeys.all });
+    },
+  });
 
-    const fmt = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : "0.00");
-    return { subtotal: fmt(subtotal), tax: fmt(tax), total: fmt(total) };
-  }, [items]);
+  const { mutateAsync: createQuote, isLoading: isCreatingQuote } =
+    useCreateQuoteMutation();
 
-  const reset = () => {
-    setClientId("");
-    setCurrency("UAH");
-    setIssueDate(today);
-    setValidUntil("");
-    setNotes("");
-    setItems([{ ...emptyItem }]);
-  };
+  const isLoading = isCreatingQuote || servicesQuery.isFetching;
+
+  const services = servicesQuery.data ?? [];
 
   const addItem = () => setItems((p) => [...p, { ...emptyItem }]);
   const removeItem = (idx: number) =>
-    setItems((p) => p.filter((_, i) => i !== idx));
+    setItems((p) => (p.length === 1 ? p : p.filter((_, i) => i !== idx)));
 
   const updateItem = <K extends keyof QuoteItemForm>(
     idx: number,
@@ -130,20 +184,80 @@ export function CreateQuoteDialog({
     );
   };
 
+  const reset = () => {
+    setClientId("");
+    setCurrency("UAH");
+    setIssueDate(today);
+    setValidUntil("");
+    setNotes("");
+    setItems([{ ...emptyItem }]);
+  };
+
+  const totals = useMemo(() => {
+    const subtotalN = items.reduce((acc, it) => {
+      const q = Number(it.quantity);
+      const p = Number(it.unitPrice);
+      if (!Number.isFinite(q) || !Number.isFinite(p)) return acc;
+      return acc + q * p;
+    }, 0);
+
+    const taxN = items.reduce((acc, it) => {
+      const q = Number(it.quantity);
+      const p = Number(it.unitPrice);
+      const r = Number(it.taxRate);
+      if (!Number.isFinite(q) || !Number.isFinite(p) || !Number.isFinite(r))
+        return acc;
+      const base = q * p;
+      return acc + base * (r / 100);
+    }, 0);
+
+    const totalN = subtotalN + taxN;
+    const fmt = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : "0.00");
+    return { subtotal: fmt(subtotalN), tax: fmt(taxN), total: fmt(totalN) };
+  }, [items]);
+
   const validate = (): string | null => {
     if (!organizationId || !createdById)
       return "Немає organizationId/createdById";
-    if (!items.length) return "Додай хоча б одну позицію";
+    if (!items.length) return "Додайте хоча б одну позицію";
 
     for (const [i, it] of items.entries()) {
-      if (!it.name.trim()) return `Позиція #${i + 1}: назва обовʼязкова`;
-      if ((Number(it.quantity) || 0) <= 0)
-        return `Позиція #${i + 1}: quantity > 0`;
-      if ((Number(it.unitPrice) || 0) < 0)
-        return `Позиція #${i + 1}: unitPrice >= 0`;
-      if ((Number(it.taxRate) || 0) < 0)
-        return `Позиція #${i + 1}: taxRate >= 0`;
+      const row = i + 1;
+
+      const name = (it.name ?? "").trim();
+      if (!name) return `Позиція #${row}: послуга/товар — обовʼязково`;
+
+      const qtyRaw = (it.quantity ?? "").trim();
+      if (!qtyRaw) return `Позиція #${row}: кількість — обовʼязково`;
+      if (qtyRaw.includes(","))
+        return `Позиція #${row}: кількість тільки числом`;
+      const qty = Number(qtyRaw);
+      if (!Number.isFinite(qty) || qty <= 0)
+        return `Позиція #${row}: кількість має бути числом > 0`;
+
+      const priceRaw = normalizePriceInput(it.unitPrice ?? "");
+      if (!priceRaw) return `Позиція #${row}: ціна — обовʼязково`;
+      if (priceRaw.includes(",")) {
+        return `Позиція #${row}: ціна має бути з крапкою (наприклад 12.50)`;
+      }
+      if (!priceRegex.test(priceRaw)) {
+        return `Позиція #${row}: введіть коректну ціну (до 2 знаків після крапки)`;
+      }
+      const price = Number(priceRaw);
+      if (!Number.isFinite(price) || price < 0)
+        return `Позиція #${row}: ціна має бути числом >= 0`;
+
+      const taxRaw = (it.taxRate ?? "").trim();
+      if (taxRaw) {
+        if (taxRaw.includes(",")) {
+          return `Позиція #${row}: ПДВ має бути з крапкою (наприклад 20 або 20.00)`;
+        }
+        const tax = Number(taxRaw);
+        if (!Number.isFinite(tax) || tax < 0)
+          return `Позиція #${row}: ПДВ має бути числом >= 0`;
+      }
     }
+
     return null;
   };
 
@@ -152,7 +266,37 @@ export function CreateQuoteDialog({
     if (err) return onError(err);
 
     try {
-      await mutateAsync({
+      const toCreate = items
+        .map((it) => ({
+          ...it,
+          nameTrim: it.name.trim(),
+          priceN: Number(normalizePriceInput(it.unitPrice)),
+          taxN: it.taxRate ? Number(it.taxRate) : 0,
+        }))
+        .filter((it) => it.addToMyServices)
+        .filter((it) => !it.serviceId)
+        .filter((it) => it.nameTrim.length > 0)
+        .filter((it) => !isExactMatchServiceName(it.nameTrim, services));
+
+      for (const it of toCreate) {
+        await createServiceMutation.mutateAsync({
+          name: it.nameTrim,
+          description: it.description?.trim() ? it.description.trim() : null,
+          price: it.priceN.toString(),
+          taxRate: Number.isFinite(it.taxN) ? it.taxN : 0,
+          organizationId,
+        });
+      }
+    } catch (e: any) {
+      console.error(e);
+      return onError(
+        e?.response?.data?.message ||
+          "Не вдалося додати послугу в 'Мої послуги'",
+      );
+    }
+
+    try {
+      await createQuote({
         organizationId,
         createdById,
         clientId: clientId || null,
@@ -161,11 +305,11 @@ export function CreateQuoteDialog({
         currency,
         notes: notes || null,
         items: items.map((it) => ({
-          name: it.name,
-          description: it.description || null,
+          name: it.name.trim(),
+          description: it.description?.trim() ? it.description.trim() : null,
           quantity: Number(it.quantity) || 0,
-          unitPrice: Number(it.unitPrice) || 0,
-          taxRate: Number(it.taxRate) || 0,
+          unitPrice: Number(normalizePriceInput(it.unitPrice)) || 0,
+          taxRate: it.taxRate ? Number(it.taxRate) || 0 : 0,
         })),
       });
 
@@ -190,7 +334,6 @@ export function CreateQuoteDialog({
       fullWidth
       PaperProps={{ sx: { borderRadius: 4, p: 0 } }}
     >
-      {/* ✅ HEADER як у твоїх інших Dialog */}
       <DialogTitle
         sx={{
           position: "sticky",
@@ -210,7 +353,7 @@ export function CreateQuoteDialog({
             Нова комерційна пропозиція
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748b" }}>
-            Заповни клієнта, позиції та умови.
+            Обери клієнта, додай позиції та умови.
           </Typography>
         </Box>
 
@@ -241,11 +384,10 @@ export function CreateQuoteDialog({
             }}
           >
             <Stack spacing={1.5}>
-              {/* ✅ Select (TextField select) + placeholder */}
               <TextField
                 select
                 label="Клієнт"
-                variant={"standard"}
+                variant="standard"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
                 size="small"
@@ -267,7 +409,7 @@ export function CreateQuoteDialog({
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <TextField
                   label="Валюта"
-                  variant={"standard"}
+                  variant="standard"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   size="small"
@@ -276,9 +418,7 @@ export function CreateQuoteDialog({
                   InputLabelProps={{ shrink: true }}
                 />
 
-                {/* ✅ MUI DatePicker: issueDate */}
                 <DatePicker
-                  variant={"standard"}
                   label="Дата"
                   value={toDayjs(issueDate)}
                   onChange={(d) => setIssueDate(toISODate(d))}
@@ -287,15 +427,14 @@ export function CreateQuoteDialog({
                     textField: {
                       size: "small",
                       fullWidth: true,
+                      variant: "standard",
                       InputLabelProps: { shrink: true },
                     },
                   }}
                 />
               </Stack>
 
-              {/* ✅ MUI DatePicker: validUntil */}
               <DatePicker
-                variant={"standard"}
                 label="Дійсна до"
                 value={toDayjs(validUntil)}
                 onChange={(d) => setValidUntil(toISODate(d))}
@@ -304,13 +443,14 @@ export function CreateQuoteDialog({
                   textField: {
                     size: "small",
                     fullWidth: true,
+                    variant: "standard",
                     InputLabelProps: { shrink: true },
                   },
                 }}
               />
 
               <TextField
-                variant={"standard"}
+                variant="standard"
                 label="Нотатки"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -332,7 +472,7 @@ export function CreateQuoteDialog({
               direction="row"
               alignItems="center"
               justifyContent="space-between"
-              sx={{ mb: 1 }}
+              sx={{ mb: 2 }}
             >
               <Typography sx={{ fontWeight: 800, color: "#0f172a" }}>
                 Позиції
@@ -343,7 +483,6 @@ export function CreateQuoteDialog({
                 startIcon={<AddIcon />}
                 variant="outlined"
                 size="small"
-                color={"primary.contrastText"}
                 disabled={isLoading}
                 sx={{ textTransform: "none", borderRadius: 999 }}
               >
@@ -351,117 +490,284 @@ export function CreateQuoteDialog({
               </Button>
             </Stack>
 
-            <Box sx={{ overflowX: "auto" }}>
-              <Table size="small" sx={{ minWidth: 720 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 800 }}>Назва</TableCell>
-                    <TableCell sx={{ fontWeight: 800 }}>Опис</TableCell>
-                    <TableCell sx={{ fontWeight: 800, width: 90 }}>
-                      К-сть
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 800, width: 140 }}>
-                      Ціна
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 800, width: 90 }}>
-                      ПДВ %
-                    </TableCell>
-                    <TableCell sx={{ width: 56 }} />
-                  </TableRow>
-                </TableHead>
+            <Stack spacing={2}>
+              {items.map((it, idx) => {
+                const showAddToServices =
+                  it.name.trim().length > 0 &&
+                  !it.serviceId &&
+                  !isExactMatchServiceName(it.name, services);
 
-                <TableBody>
-                  {items.map((it, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        <TextField
-                          value={it.name}
-                          variant={"standard"}
-                          onChange={(e) =>
-                            updateItem(idx, "name", e.target.value)
-                          }
-                          size="small"
-                          placeholder="Послуга/товар"
-                          fullWidth
-                          disabled={isLoading}
-                        />
-                      </TableCell>
+                const itemTotal = (() => {
+                  const q = Number(it.quantity);
+                  const p = Number(it.unitPrice);
+                  const r = Number(it.taxRate);
+                  if (!Number.isFinite(q) || !Number.isFinite(p)) return 0;
+                  const base = q * p;
+                  const tax = Number.isFinite(r) ? base * (r / 100) : 0;
+                  return base + tax;
+                })();
 
-                      <TableCell>
-                        <TextField
-                          value={it.description}
-                          onChange={(e) =>
-                            updateItem(idx, "description", e.target.value)
-                          }
-                          size="small"
-                          variant={"standard"}
-                          placeholder="Деталі"
-                          fullWidth
-                          disabled={isLoading}
-                        />
-                      </TableCell>
+                return (
+                  <Paper
+                    key={idx}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      borderColor: "#e5e7eb",
+                      bgcolor: "#ffffff",
+                      position: "relative",
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      {/* Header з номером та кнопкою видалення */}
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 700, color: "#475569" }}
+                        >
+                          Позиція #{idx + 1}
+                        </Typography>
 
-                      <TableCell>
-                        <TextField
-                          value={it.quantity}
-                          onChange={(e) =>
-                            updateItem(idx, "quantity", Number(e.target.value))
-                          }
-                          size="small"
-                          variant={"standard"}
-                          type="number"
-                          inputProps={{ min: 1 }}
-                          fullWidth
-                          disabled={isLoading}
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <TextField
-                          variant={"standard"}
-                          value={it.unitPrice}
-                          onChange={(e) =>
-                            updateItem(idx, "unitPrice", Number(e.target.value))
-                          }
-                          size="small"
-                          type="number"
-                          inputProps={{ min: 0, step: "0.01" }}
-                          fullWidth
-                          disabled={isLoading}
-                        />
-                      </TableCell>
-
-                      <TableCell>
-                        <TextField
-                          variant={"standard"}
-                          value={it.taxRate}
-                          onChange={(e) =>
-                            updateItem(idx, "taxRate", Number(e.target.value))
-                          }
-                          size="small"
-                          type="number"
-                          inputProps={{ min: 0, step: "0.01" }}
-                          fullWidth
-                          disabled={isLoading}
-                        />
-                      </TableCell>
-
-                      <TableCell align="right">
                         <IconButton
                           onClick={() => removeItem(idx)}
                           disabled={isLoading || items.length === 1}
                           size="small"
+                          sx={{
+                            color: "#ef4444",
+                            "&:hover": { bgcolor: "#fee2e2" },
+                            "&.Mui-disabled": { color: "#cbd5e1" },
+                          }}
                         >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
+                      </Stack>
 
-            <Divider sx={{ my: 1.5 }} />
+                      {/* Послуга/товар */}
+                      <Box>
+                        <Autocomplete
+                          freeSolo
+                          options={services}
+                          getOptionLabel={(opt) =>
+                            typeof opt === "string" ? opt : opt.name
+                          }
+                          value={
+                            it.serviceId
+                              ? (services.find((s) => s.id === it.serviceId) ??
+                                null)
+                              : null
+                          }
+                          inputValue={it.name}
+                          onInputChange={(_, value) => {
+                            updateItem(idx, "name", value);
+                            updateItem(idx, "serviceId", null);
+                            if (!value.trim()) {
+                              updateItem(idx, "addToMyServices", false);
+                            }
+                          }}
+                          onChange={(_, selected) => {
+                            if (!selected || typeof selected === "string") {
+                              return;
+                            }
+
+                            updateItem(idx, "serviceId", selected.id);
+                            updateItem(idx, "name", selected.name ?? "");
+                            updateItem(
+                              idx,
+                              "description",
+                              (selected.description ?? "") as any,
+                            );
+
+                            const price = getServicePrice(selected);
+                            const tax = getServiceTax(selected);
+
+                            updateItem(
+                              idx,
+                              "unitPrice",
+                              Number.isFinite(price) ? String(price) : "",
+                            );
+                            updateItem(
+                              idx,
+                              "taxRate",
+                              Number.isFinite(tax) ? String(tax) : "0",
+                            );
+
+                            updateItem(idx, "addToMyServices", false);
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              InputLabelProps={{ shrink: true }}
+                              label="Послуга/товар"
+                              variant="standard"
+                              placeholder="Обери зі списку або введи вручну"
+                              fullWidth
+                              disabled={isLoading}
+                              size="small"
+                            />
+                          )}
+                        />
+
+                        {showAddToServices && (
+                          <FormControlLabel
+                            sx={{ mt: 1, ml: 0 }}
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={it.addToMyServices}
+                                onChange={(e) =>
+                                  updateItem(
+                                    idx,
+                                    "addToMyServices",
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                            }
+                            label={
+                              <Typography
+                                variant="caption"
+                                sx={{ color: "#475569" }}
+                              >
+                                Додати в "Мої послуги"
+                              </Typography>
+                            }
+                          />
+                        )}
+                      </Box>
+
+                      {/* Опис */}
+                      <TextField
+                        label="Опис"
+                        value={it.description}
+                        onChange={(e) =>
+                          updateItem(idx, "description", e.target.value)
+                        }
+                        size="small"
+                        variant="standard"
+                        placeholder="Додаткова інформація про позицію"
+                        fullWidth
+                        disabled={isLoading}
+                        InputLabelProps={{ shrink: true }}
+                        multiline
+                        minRows={2}
+                      />
+
+                      {/* Кількість, ціна, ПДВ */}
+                      <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={1.5}
+                      >
+                        <TextField
+                          label="Кількість"
+                          value={it.quantity}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Дозволяємо тільки цифри та крапку
+                            if (value === "" || /^[0-9.]*$/.test(value)) {
+                              updateItem(idx, "quantity", value);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Блокуємо кому
+                            if (e.key === ",") {
+                              e.preventDefault();
+                            }
+                          }}
+                          size="small"
+                          variant="standard"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="1"
+                          fullWidth
+                          disabled={isLoading}
+                          inputProps={{ inputMode: "decimal" }}
+                        />
+
+                        <TextField
+                          label="Ціна за одиницю"
+                          value={it.unitPrice}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Дозволяємо тільки цифри та крапку
+                            if (value === "" || /^[0-9.]*$/.test(value)) {
+                              updateItem(idx, "unitPrice", value);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Блокуємо кому
+                            if (e.key === ",") {
+                              e.preventDefault();
+                            }
+                          }}
+                          size="small"
+                          variant="standard"
+                          placeholder="0.00"
+                          fullWidth
+                          disabled={isLoading}
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{
+                            inputMode: "decimal",
+                          }}
+                        />
+
+                        <TextField
+                          label="ПДВ %"
+                          InputLabelProps={{ shrink: true }}
+                          value={it.taxRate}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Дозволяємо тільки цифри та крапку
+                            if (value === "" || /^[0-9.]*$/.test(value)) {
+                              updateItem(idx, "taxRate", value);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Блокуємо кому
+                            if (e.key === ",") {
+                              e.preventDefault();
+                            }
+                          }}
+                          size="small"
+                          variant="standard"
+                          placeholder="0"
+                          fullWidth
+                          disabled={isLoading}
+                          inputProps={{ inputMode: "decimal" }}
+                        />
+                      </Stack>
+
+                      {/* Підсумок позиції */}
+                      {itemTotal > 0 && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            pt: 1.5,
+                            borderTop: "1px solid #e5e7eb",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            align="right"
+                            sx={{ color: "#64748b" }}
+                          >
+                            Сума позиції:{" "}
+                            <strong>
+                              {itemTotal.toFixed(2)} {currency}
+                            </strong>
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
+
+            <Divider sx={{ my: 2 }} />
 
             <Stack spacing={0.5} sx={{ alignItems: "flex-end" }}>
               <Typography variant="body2" sx={{ color: "#64748b" }}>
@@ -470,7 +776,9 @@ export function CreateQuoteDialog({
               <Typography variant="body2" sx={{ color: "#64748b" }}>
                 Tax: <b>{totals.tax}</b> {currency}
               </Typography>
-              <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+              <Typography
+                sx={{ fontWeight: 900, color: "#0f172a", fontSize: "1.1rem" }}
+              >
                 Total: {totals.total} {currency}
               </Typography>
             </Stack>
@@ -487,6 +795,8 @@ export function CreateQuoteDialog({
                 bgcolor: "#111827",
                 "&:hover": { bgcolor: "#020617" },
                 color: "white",
+                px: 3,
+                py: 1,
               }}
             >
               {isLoading ? "Зберігаю..." : "Зберегти пропозицію"}

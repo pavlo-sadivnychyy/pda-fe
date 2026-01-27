@@ -144,14 +144,13 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
 
 const FinancialAnalyticsPage: React.FC = () => {
   const router = useRouter();
-  const { currentUserId, organizationId, planId } = useOrganizationContext();
+  const { organizationId, planId, isUserLoading, isOrgLoading } =
+    useOrganizationContext();
 
   // ✅ якщо нема org — показуємо empty state
 
   const isBootstrapping =
-    typeof currentUserId === "undefined" ||
-    typeof organizationId === "undefined" ||
-    typeof planId === "undefined";
+    isUserLoading || isOrgLoading || typeof planId === "undefined";
 
   if (isBootstrapping) {
     return <FullscreenLoader text="Завантажую..." />;
