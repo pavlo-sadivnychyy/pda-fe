@@ -1,11 +1,11 @@
-name: Deploy FE (dev) to Heroku
+name: Deploy FE to Heroku
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
 
 concurrency:
-  group: heroku-fe-dev
+  group: heroku-fe-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -28,14 +28,14 @@ jobs:
 
       - name: Build (sanity check)
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ github.ref_name == 'main' && secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_PROD || secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ github.ref_name == 'main' && secrets.CLERK_SECRET_KEY_PROD || secrets.CLERK_SECRET_KEY }}
         run: npm run build
 
-      - name: Deploy to Heroku (existing app)
+      - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+          HEROKU_APP_NAME: ${{ github.ref_name == 'main' && secrets.HEROKU_APP_NAME_PROD || secrets.HEROKU_APP_NAME }}
         run: |
-          git remote add heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git
-          git push heroku HEAD:main --force
+          echo "Deploying branch '${{ github.ref_name }}' to Heroku app: $HEROKU_APP_NAME"
+          git push https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git HEAD:main --force
