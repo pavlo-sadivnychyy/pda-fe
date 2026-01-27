@@ -9,6 +9,7 @@ import { setClerkGetToken } from "@/libs/clerkToken";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { ukUA } from "@clerk/localizations";
 
 const theme = createTheme({
   palette: {
@@ -39,7 +40,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>
       <ClerkProvider
-        // localization={ukUA}
+        localization={ukUA}
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
         afterSignInUrl="/dashboard"
