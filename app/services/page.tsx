@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
-import { useOrganizationContext } from "@/app/clients/hooks/useOrganizationContext";
 import { useSnackbar } from "@/app/clients/components/useSnackbar";
 
 import { ServicesCard } from "./components/ServicesCard";
@@ -35,6 +34,7 @@ import { useServiceMutations } from "./hooks/useServiceMutations";
 import { useServiceForm } from "./hooks/useServiceForm";
 
 import { toCreatePayload, toUpdatePayload, formatMoneyUA } from "./utils";
+import { useOrganizationContext } from "../invoices/hooks/useOrganizationContext";
 
 /* =======================
    Shared loader

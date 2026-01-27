@@ -30,7 +30,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
-import { useOrganizationContext } from "./hooks/useOrganizationContext";
 import { useClientsQueries } from "./hooks/useClientsQueries";
 import { useClientMutations } from "./hooks/useClientMutations";
 import { useClientForm } from "./hooks/useClientForm";
@@ -42,6 +41,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { useSnackbar } from "./components/useSnackbar";
 
 import { toCreatePayload, toUpdatePayload } from "./utils";
+import { useOrganizationContext } from "@/app/invoices/hooks/useOrganizationContext";
 
 /* =======================
    Config: plan limits
@@ -245,7 +245,8 @@ export default function ClientsPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("md")); // ✅ mobile shows cards & page scroll
 
   // --- Hooks always ---
-  const { currentUserId, organizationId, planId } = useOrganizationContext();
+  const { currentUserId, organizationId, planId, isUserLoading, isOrgLoading } =
+    useOrganizationContext();
   const snackbar = useSnackbar();
   const formState = useClientForm();
   const router = useRouter();
@@ -271,9 +272,7 @@ export default function ClientsPage() {
 
   // --- Bootstrapping loader ---
   const isBootstrapping =
-    typeof currentUserId === "undefined" ||
-    typeof organizationId === "undefined" ||
-    typeof planId === "undefined";
+    isUserLoading || isOrgLoading || typeof planId === "undefined";
 
   if (isBootstrapping) {
     return <FullscreenLoader text="Завантажую..." />;

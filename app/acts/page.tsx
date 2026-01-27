@@ -18,7 +18,6 @@ import {
 import DescriptionIcon from "@mui/icons-material/Description";
 import { useMemo, useState } from "react";
 
-import { useOrganizationContext } from "../invoices/hooks/useOrganizationContext";
 import { useActsQueries } from "./hooks/useActsQueries";
 import { useActMutations } from "./hooks/useActMutations";
 import { useActForm } from "./hooks/useActForm";
@@ -37,6 +36,7 @@ import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LockIcon from "@mui/icons-material/Lock";
+import { useOrganizationContext } from "../invoices/hooks/useOrganizationContext";
 
 function FullscreenLoader({ text }: { text?: string }) {
   return (
@@ -169,7 +169,8 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
 }
 
 export default function ActsPage() {
-  const { currentUserId, organizationId, planId } = useOrganizationContext();
+  const { currentUserId, organizationId, planId, isUserLoading, isOrgLoading } =
+    useOrganizationContext();
   const isMobile = useMediaQuery("(max-width:900px)");
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -187,9 +188,7 @@ export default function ActsPage() {
 
   // ✅ щоб не "блимало": поки контекст не ініціалізувався — лоадер
   const isBootstrapping =
-    typeof planId === "undefined" ||
-    typeof organizationId === "undefined" ||
-    typeof currentUserId === "undefined";
+    isUserLoading || isOrgLoading || typeof currentUserId === "undefined";
 
   // ✅ guard: якщо нема org — не грузимо дані
   const canWork = Boolean(organizationId);

@@ -222,7 +222,8 @@ function PlanLimitBanner({
 
 export default function InvoicesPage() {
   const router = useRouter();
-  const { organizationId, planId } = useOrganizationContext();
+  const { organizationId, planId, isUserLoading, isOrgLoading } =
+    useOrganizationContext();
 
   const canWork = Boolean(organizationId);
 
@@ -294,7 +295,7 @@ export default function InvoicesPage() {
   const invoicesCount = invoicesQuery.data?.length ?? 0;
 
   const isBootstrapping =
-    typeof organizationId === "undefined" || typeof planId === "undefined";
+    isUserLoading || isOrgLoading || typeof planId === "undefined";
 
   if (isBootstrapping) return <FullscreenLoader text="Завантажую..." />;
 
