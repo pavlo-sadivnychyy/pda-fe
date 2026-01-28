@@ -33,6 +33,55 @@ import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { InfinitySpin } from "react-loader-spinner";
 
+type PaddleCheckoutResponse = {
+  transactionId: string;
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
+declare global {
+  interface Window {
+    Paddle?: any;
+  }
+}
+
+function loadPaddleScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Paddle) return resolve();
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-paddle="v2"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () =>
+        reject(new Error("Paddle failed")),
+      );
+      return;
+    }
+
+    const s = document.createElement("script");
+    s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+    s.async = true;
+    s.dataset.paddle = "v2";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Failed to load Paddle.js"));
+    document.head.appendChild(s);
+  });
+}
+
+function initPaddle() {
+  const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+  const env = process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox";
+
+  if (!token) throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
+  if (!window.Paddle) throw new Error("Paddle.js not loaded");
+
+  // Paddle v2 style init (works for overlay)
+  window.Paddle.Environment.set(env); // "sandbox" | "production"
+  window.Paddle.Setup({ token });
+}
+
 function formatPrice(price: number | string) {
   const n = typeof price === "string" ? Number(price) : price;
   if (!Number.isFinite(n)) return String(price);
@@ -50,24 +99,6 @@ function formatDateShort(iso?: string | Date | null) {
   });
 }
 
-type PaddleCheckoutResponse = {
-  transactionId: string;
-  checkoutUrl: string; // -> https://dev.spravly.com/checkout?_ptxn=...
-};
-
-type UserResponse = {
-  user: {
-    id: string;
-    subscription?: {
-      planId: PlanId;
-      status?: string | null;
-      cancelAtPeriodEnd?: boolean | null;
-      currentPeriodEnd?: string | null;
-      paddleStatus?: string | null;
-    } | null;
-  };
-};
-
 type Props = {
   currentPlanId?: PlanId;
 };
@@ -78,6 +109,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   const { data: userData, isLoading } = useCurrentUser();
 
   const userId = userData?.id ?? null;
+
   const currentPlanFromApi: PlanId =
     userData?.subscription?.planId ?? currentPlanId;
 
@@ -91,20 +123,90 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     message: string;
   }>({ open: false, severity: "info", message: "" });
 
-  const [cancelOpen, setCancelOpen] = React.useState(false);
+  // preload Paddle once
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadPaddleScript();
+        initPaddle();
+      } catch (e: any) {
+        // don’t block page; just show message when user tries to pay
+        console.warn(e?.message ?? e);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("checkout") === "success") {
+      qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+      setSnack({
+        open: true,
+        severity: "success",
+        message: "Оплату отримано. Оновлюємо підписку...",
+      });
+    }
+    if (q.get("checkout") === "cancel") {
+      setSnack({
+        open: true,
+        severity: "info",
+        message: "Оплату скасовано.",
+      });
+    }
+  }, [qc]);
 
   const checkoutMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
       if (planId === "FREE") throw new Error("FREE does not require checkout");
+
       const { data } = await api.post<PaddleCheckoutResponse>(
         `/billing/paddle/checkout`,
         { planId },
       );
       return data;
     },
-    onSuccess: (data) => {
-      window.location.href = data.checkoutUrl;
+    onSuccess: async (data) => {
+      try {
+        await loadPaddleScript();
+        initPaddle();
+
+        // OPEN PADDLE CHECKOUT OVERLAY (this is where card form appears)
+        window.Paddle.Checkout.open({
+          transactionId: data.transactionId,
+
+          // when completed – sync and redirect
+          onSuccess: async () => {
+            try {
+              await api.post("/billing/paddle/sync-transaction", {
+                transactionId: data.transactionId,
+              });
+            } finally {
+              router.replace("/pricing?checkout=success");
+            }
+          },
+
+          onClose: () => {
+            // user just closed overlay
+          },
+
+          onError: () => {
+            setSnack({
+              open: true,
+              severity: "error",
+              message: "Помилка при відкритті оплати. Спробуй ще раз.",
+            });
+          },
+        });
+      } catch (e: any) {
+        setSnack({
+          open: true,
+          severity: "error",
+          message:
+            e?.message ??
+            "Не вдалося відкрити форму оплати (Paddle.js / token).",
+        });
+      }
     },
     onError: (e: any) => {
       setSnack({
@@ -121,9 +223,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   const setPlanMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
-      const { data } = await api.patch<UserResponse>(`/users/${userId}/plan`, {
-        planId,
-      });
+      const { data } = await api.patch(`/users/${userId}/plan`, { planId });
       return data;
     },
     onSuccess: async () => {
@@ -139,19 +239,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       });
     },
   });
-
-  useEffect(() => {
-    // якщо повернулись з checkout
-    const q = new URLSearchParams(window.location.search);
-    if (q.get("checkout") === "success") {
-      qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
-      setSnack({
-        open: true,
-        severity: "success",
-        message: "Оплату отримано. Оновлюємо підписку...",
-      });
-    }
-  }, [qc]);
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
@@ -260,7 +347,12 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlanFromApi;
           const disabled =
-            isCurrent || !userId || subscriptionStatus === "pending";
+            isCurrent ||
+            !userId ||
+            subscriptionStatus === "pending" ||
+            checkoutMutation.isPending ||
+            setPlanMutation.isPending;
+
           return (
             <Card
               key={plan.id}
@@ -286,6 +378,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 }
                 sx={{ pb: 0 }}
               />
+
               <CardContent
                 sx={{
                   pt: 1.5,
@@ -345,7 +438,12 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {isCurrent ? "План активний" : plan.ctaLabel}
+                    {isCurrent
+                      ? "План активний"
+                      : checkoutMutation.isPending &&
+                          checkoutMutation.variables === plan.id
+                        ? "Відкриваємо оплату..."
+                        : plan.ctaLabel}
                   </Button>
                 </Stack>
               </CardContent>

@@ -10,7 +10,7 @@ export default function CheckoutClient() {
   const sp = useSearchParams();
 
   useEffect(() => {
-    const txn = sp.get("_ptxn");
+    const txn = sp.get("transaction_id") || sp.get("_ptxn");
 
     if (!txn) {
       router.replace("/pricing?checkout=cancel");
@@ -22,8 +22,6 @@ export default function CheckoutClient() {
         await api.post("/billing/paddle/sync-transaction", {
           transactionId: txn,
         });
-      } catch {
-        // webhook може підтягнути, але юзера все одно повертаємо
       } finally {
         router.replace("/pricing?checkout=success");
       }
