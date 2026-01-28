@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useEffect } from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
@@ -15,10 +16,6 @@ import {
   CardHeader,
   Chip,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   List,
   ListItem,
@@ -35,7 +32,6 @@ import { PLANS, type PlanId } from "./plans";
 import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { InfinitySpin } from "react-loader-spinner";
-import { useEffect } from "react";
 
 function formatPrice(price: number | string) {
   const n = typeof price === "string" ? Number(price) : price;
@@ -56,7 +52,7 @@ function formatDateShort(iso?: string | Date | null) {
 
 type PaddleCheckoutResponse = {
   transactionId: string;
-  checkoutUrl: string; // зараз приходить https://dev.spravly.com?_ptxn=...
+  checkoutUrl: string; // -> https://dev.spravly.com/checkout?_ptxn=...
 };
 
 type UserResponse = {
@@ -79,13 +75,9 @@ type Props = {
 export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   const router = useRouter();
   const qc = useQueryClient();
-
   const { data: userData, isLoading } = useCurrentUser();
 
-  console.log(userData);
-
   const userId = userData?.id ?? null;
-
   const currentPlanFromApi: PlanId =
     userData?.subscription?.planId ?? currentPlanId;
 
@@ -101,12 +93,10 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   const [cancelOpen, setCancelOpen] = React.useState(false);
 
-  // ✅ BASIC/PRO: Paddle checkout
   const checkoutMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
       if (planId === "FREE") throw new Error("FREE does not require checkout");
-
       const { data } = await api.post<PaddleCheckoutResponse>(
         `/billing/paddle/checkout`,
         { planId },
@@ -128,7 +118,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
-  // ✅ FREE: без оплати
   const setPlanMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -137,9 +126,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       });
       return data;
     },
-    onSuccess: (data) => {
-      qc.setQueryData(["app-bootstrap"], data);
-      qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
       setSnack({ open: true, severity: "success", message: "План оновлено" });
     },
     onError: (e: any) => {
@@ -152,53 +140,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
-  // ✅ Cancel subscription (Paddle)
-  const cancelMutation = useMutation({
-    mutationFn: async (
-      effectiveFrom: "next_billing_period" | "immediately",
-    ) => {
-      const { data } = await api.post(`/billing/paddle/cancel`, {
-        effectiveFrom,
-      });
-      return data;
-    },
-    onSuccess: async (data: any) => {
-      setCancelOpen(false);
-      await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
-
-      const effectiveFrom = data?.effectiveFrom as string | undefined;
-      if (effectiveFrom === "immediately") {
-        setSnack({
-          open: true,
-          severity: "success",
-          message: "Підписку скасовано одразу. Доступ переведено на FREE.",
-        });
-      } else {
-        setSnack({
-          open: true,
-          severity: "info",
-          message: "Підписку буде скасовано в кінці поточного періоду.",
-        });
-      }
-    },
-    onError: (e: any) => {
+  useEffect(() => {
+    // якщо повернулись з checkout
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("checkout") === "success") {
+      qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
       setSnack({
         open: true,
-        severity: "error",
-        message:
-          e?.response?.data?.message ??
-          e?.message ??
-          "Не вдалося скасувати підписку",
+        severity: "success",
+        message: "Оплату отримано. Оновлюємо підписку...",
       });
-    },
-  });
-
-  useEffect(() => {
-    const q = new URLSearchParams(location.search);
-    if (q.get("checkout") === "success") {
-      qc.invalidateQueries(["app-bootstrap"]);
     }
-  }, []);
+  }, [qc]);
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
@@ -214,18 +167,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   };
 
   const isBusy =
-    isLoading ||
-    checkoutMutation.isPending ||
-    setPlanMutation.isPending ||
-    cancelMutation.isPending;
-
-  const canCancel =
-    Boolean(userId) &&
-    currentPlanFromApi !== "FREE" &&
-    (subscriptionStatus === "active" ||
-      subscriptionStatus === "past_due" ||
-      subscriptionStatus === "trialing") &&
-    !cancelAtPeriodEnd;
+    isLoading || checkoutMutation.isPending || setPlanMutation.isPending;
 
   const topChipLabel = (() => {
     if (subscriptionStatus === "pending") return "Оплата обробляється...";
@@ -268,11 +210,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           Плани та підписка
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Обери план під свої потреби. Підписки — місячні з автосписанням.
-          Скасувати можна будь-коли.
-        </Typography>
-
         <Box
           sx={{
             mt: 0.5,
@@ -290,7 +227,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
               fontWeight: 600,
             }}
           />
-
           {subscriptionStatus === "past_due" && (
             <Chip
               icon={<WarningAmberIcon />}
@@ -302,7 +238,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
               }}
             />
           )}
-
           {cancelAtPeriodEnd && (
             <Chip
               icon={<CancelIcon />}
@@ -315,44 +250,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             />
           )}
         </Box>
-
-        {subscriptionStatus === "pending" ? (
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Якщо ти вже оплатив — зачекай кілька секунд або онови сторінку.
-          </Typography>
-        ) : null}
-
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          sx={{ mt: 1 }}
-          alignItems="center"
-        >
-          <Button
-            variant="outlined"
-            size="small"
-            disabled={!canCancel}
-            onClick={() => setCancelOpen(true)}
-            sx={{
-              textTransform: "none",
-              borderRadius: 999,
-              px: 2,
-              whiteSpace: "nowrap",
-            }}
-          >
-            Скасувати підписку
-          </Button>
-
-          {!canCancel && currentPlanFromApi !== "FREE" && (
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {cancelAtPeriodEnd
-                ? "Скасування вже заплановано."
-                : subscriptionStatus === "pending"
-                  ? "Поки оплата обробляється — скасування недоступне."
-                  : "Скасування доступне лише для активної підписки."}
-            </Typography>
-          )}
-        </Stack>
       </Stack>
 
       <Stack
@@ -362,21 +259,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       >
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlanFromApi;
-          const isPopular = Boolean((plan as any).highlight);
-          const headerIconColor = isPopular ? "#f97316" : "#111827";
-
-          const isThisPending =
-            checkoutMutation.isPending &&
-            checkoutMutation.variables === plan.id;
-
           const disabled =
-            isCurrent ||
-            !userId ||
-            subscriptionStatus === "pending" ||
-            checkoutMutation.isPending ||
-            setPlanMutation.isPending ||
-            cancelMutation.isPending;
-
+            isCurrent || !userId || subscriptionStatus === "pending";
           return (
             <Card
               key={plan.id}
@@ -386,49 +270,14 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 flex: 1,
                 display: "flex",
                 flexDirection: "column",
-                position: "relative",
-                opacity: isLoading ? 0.85 : 1,
               }}
             >
               <CardHeader
-                avatar={
-                  <WorkspacePremiumIcon sx={{ color: headerIconColor }} />
-                }
+                avatar={<WorkspacePremiumIcon sx={{ color: "#111827" }} />}
                 title={
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={1}
-                    flexWrap="wrap"
-                  >
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                      {plan.title}
-                    </Typography>
-
-                    {isCurrent && (
-                      <Chip
-                        label="Поточний"
-                        size="small"
-                        sx={{
-                          bgcolor: "#ecfdf5",
-                          border: "1px solid #86efac",
-                          fontWeight: 700,
-                        }}
-                      />
-                    )}
-
-                    {isCurrent && cancelAtPeriodEnd && (
-                      <Chip
-                        label="Не продовжиться"
-                        size="small"
-                        sx={{
-                          bgcolor: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          fontWeight: 700,
-                        }}
-                      />
-                    )}
-                  </Stack>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {plan.title}
+                  </Typography>
                 }
                 subheader={
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
@@ -437,7 +286,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 }
                 sx={{ pb: 0 }}
               />
-
               <CardContent
                 sx={{
                   pt: 1.5,
@@ -446,78 +294,24 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                   height: "100%",
                 }}
               >
-                <Stack spacing={1.5} sx={{ flexGrow: 1 }}>
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 600, mb: 0.5 }}
-                    >
-                      Що входить
-                    </Typography>
-
-                    <List dense sx={{ py: 0 }}>
-                      {plan.features.map((f: string) => (
-                        <ListItem key={f} disableGutters sx={{ py: 0.25 }}>
-                          <ListItemIcon sx={{ minWidth: 32 }}>
-                            <CheckCircleIcon
-                              sx={{ fontSize: 18, color: "#16a34a" }}
-                            />
-                          </ListItemIcon>
-
-                          <ListItemText
-                            primary={
-                              <Typography
-                                variant="body2"
-                                sx={{ color: "#4b5563" }}
-                              >
-                                {f}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-
-                  {plan.limits?.length ? (
-                    <>
-                      <Divider />
-
-                      <Box
-                        sx={{
-                          bgcolor: "#fefce8",
-                          borderRadius: 2,
-                          p: 1.5,
-                          border: "1px solid #facc15",
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ fontWeight: 600, mb: 0.5 }}
-                        >
-                          Обмеження
-                        </Typography>
-
-                        <List dense sx={{ py: 0 }}>
-                          {plan.limits.map((l: string) => (
-                            <ListItem key={l} disableGutters sx={{ py: 0.25 }}>
-                              <ListItemText
-                                primary={
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ color: "#4b5563" }}
-                                  >
-                                    • {l}
-                                  </Typography>
-                                }
-                              />
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Box>
-                    </>
-                  ) : null}
-                </Stack>
+                <List dense sx={{ py: 0 }}>
+                  {plan.features.map((f: string) => (
+                    <ListItem key={f} disableGutters sx={{ py: 0.25 }}>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <CheckCircleIcon
+                          sx={{ fontSize: 18, color: "#16a34a" }}
+                        />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" sx={{ color: "#4b5563" }}>
+                            {f}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
 
                 <Divider sx={{ my: 1.5 }} />
 
@@ -551,120 +345,14 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {isCurrent
-                      ? "План активний"
-                      : isThisPending
-                        ? "Переходимо до оплати..."
-                        : plan.ctaLabel}
+                    {isCurrent ? "План активний" : plan.ctaLabel}
                   </Button>
                 </Stack>
-
-                {isCurrent &&
-                currentPlanFromApi !== "FREE" &&
-                currentPeriodEnd ? (
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary", mt: 1 }}
-                  >
-                    Період до: {formatDateShort(currentPeriodEnd)}
-                  </Typography>
-                ) : null}
               </CardContent>
-
-              {isPopular && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 4,
-                    bgcolor: "#facc15",
-                  }}
-                />
-              )}
             </Card>
           );
         })}
       </Stack>
-
-      <Dialog
-        open={cancelOpen}
-        onClose={() => (cancelMutation.isPending ? null : setCancelOpen(false))}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ fontWeight: 800 }}>Скасувати підписку?</DialogTitle>
-
-        <DialogContent>
-          <Stack spacing={1.25} sx={{ mt: 1 }}>
-            <Alert severity="info">
-              За замовчуванням ми вимикаємо автопродовження — план буде активним
-              до кінця оплаченого періоду.
-            </Alert>
-
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Поточний план: <b>{currentPlanFromApi}</b>
-              {currentPeriodEnd ? (
-                <>
-                  {" "}
-                  • до: <b>{formatDateShort(currentPeriodEnd)}</b>
-                </>
-              ) : null}
-            </Typography>
-
-            <Box
-              sx={{
-                bgcolor: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: 2,
-                p: 1.5,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                Варіанти
-              </Typography>
-
-              <Typography variant="body2" sx={{ color: "#475569" }}>
-                1) <b>В кінці періоду</b> — рекомендовано. Доступ зберігається
-                до кінця оплаченого місяця.
-              </Typography>
-              <Typography variant="body2" sx={{ color: "#475569", mt: 0.75 }}>
-                2) <b>Одразу</b> — доступ одразу стане FREE.
-              </Typography>
-            </Box>
-          </Stack>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setCancelOpen(false)}
-            disabled={cancelMutation.isPending}
-            sx={{ textTransform: "none" }}
-          >
-            Назад
-          </Button>
-
-          <Button
-            variant="outlined"
-            color="error"
-            disabled={cancelMutation.isPending}
-            onClick={() => cancelMutation.mutate("immediately")}
-            sx={{ textTransform: "none", borderRadius: 999 }}
-          >
-            Скасувати одразу
-          </Button>
-
-          <Button
-            variant="contained"
-            disabled={cancelMutation.isPending}
-            onClick={() => cancelMutation.mutate("next_billing_period")}
-            sx={{ textTransform: "none", borderRadius: 999 }}
-          >
-            В кінці періоду
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <Snackbar
         open={snack.open}
