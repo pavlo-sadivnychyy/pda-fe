@@ -46,9 +46,6 @@ export default function CheckoutPage() {
         // ✅ Paddle Billing v2: must initialize with client-side token :contentReference[oaicite:4]{index=4}
         window.Paddle.Initialize({
           token,
-          // environment тут зазвичай не потрібен якщо токен test_ (sandbox),
-          // але нехай буде для ясності:
-          environment: process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox",
         });
 
         // ✅ Open checkout for existing transaction :contentReference[oaicite:5]{index=5}
