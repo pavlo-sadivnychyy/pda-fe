@@ -4,7 +4,10 @@ import * as React from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
+import CancelIcon from "@mui/icons-material/Cancel";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -12,11 +15,16 @@ import {
   CardHeader,
   Chip,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/material";
@@ -34,9 +42,20 @@ function formatPrice(price: number | string) {
   return n === 0 ? "0" : String(n);
 }
 
-type MonoCheckoutResponse = {
-  subscriptionId: string;
-  pageUrl: string;
+function formatDateShort(iso?: string | Date | null) {
+  if (!iso) return null;
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("uk-UA", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+}
+
+type PaddleCheckoutResponse = {
+  transactionId: string;
+  checkoutUrl: string;
 };
 
 type UserResponse = {
@@ -44,8 +63,10 @@ type UserResponse = {
     id: string;
     subscription?: {
       planId: PlanId;
-      status?: string | null;
-      planIdPending?: PlanId | null;
+      status?: string | null; // active | pending | canceled | past_due | ...
+      cancelAtPeriodEnd?: boolean | null;
+      currentPeriodEnd?: string | null;
+      paddleStatus?: string | null;
     } | null;
   };
 };
@@ -57,6 +78,7 @@ type Props = {
 export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   const router = useRouter();
   const qc = useQueryClient();
+
   const { data: userData, isLoading } = useCurrentUser();
 
   const userId = userData?.id ?? null;
@@ -65,26 +87,46 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     userData?.subscription?.planId ?? currentPlanId;
 
   const subscriptionStatus = userData?.subscription?.status ?? null;
-  const planIdPending = userData?.subscription?.planIdPending ?? null;
+  const cancelAtPeriodEnd = Boolean(userData?.subscription?.cancelAtPeriodEnd);
+  const currentPeriodEnd = userData?.subscription?.currentPeriodEnd ?? null;
 
-  // ✅ BASIC/PRO: тільки через оплату Monobank
+  const [snack, setSnack] = React.useState<{
+    open: boolean;
+    severity: "success" | "error" | "info" | "warning";
+    message: string;
+  }>({ open: false, severity: "info", message: "" });
+
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+
+  // ✅ BASIC/PRO: Paddle checkout
   const checkoutMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
       if (planId === "FREE") throw new Error("FREE does not require checkout");
 
-      const { data } = await api.post<MonoCheckoutResponse>(
-        `/billing/monobank/checkout`,
+      const { data } = await api.post<PaddleCheckoutResponse>(
+        `/billing/paddle/checkout`,
         { planId },
       );
       return data;
     },
     onSuccess: (data) => {
-      window.location.href = data.pageUrl;
+      // ✅ redirect to Paddle hosted checkout
+      window.location.href = data.checkoutUrl;
+    },
+    onError: (e: any) => {
+      setSnack({
+        open: true,
+        severity: "error",
+        message:
+          e?.response?.data?.message ??
+          e?.message ??
+          "Не вдалося перейти до оплати",
+      });
     },
   });
 
-  // ✅ FREE: залишаємо твій існуючий endpoint (без оплати)
+  // ✅ FREE: твій existing endpoint (без оплати)
   const setPlanMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -96,16 +138,68 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     onSuccess: (data) => {
       qc.setQueryData(["app-bootstrap"], data);
       qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+      setSnack({ open: true, severity: "success", message: "План оновлено" });
+    },
+    onError: (e: any) => {
+      setSnack({
+        open: true,
+        severity: "error",
+        message:
+          e?.response?.data?.message ?? e?.message ?? "Не вдалося оновити план",
+      });
+    },
+  });
+
+  // ✅ Cancel subscription (Paddle)
+  const cancelMutation = useMutation({
+    mutationFn: async (
+      effectiveFrom: "next_billing_period" | "immediately",
+    ) => {
+      const { data } = await api.post(`/billing/paddle/cancel`, {
+        effectiveFrom,
+      });
+      return data;
+    },
+    onSuccess: async (data: any) => {
+      setCancelOpen(false);
+
+      // оновимо bootstrap
+      await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+
+      const effectiveFrom = data?.effectiveFrom as string | undefined;
+      if (effectiveFrom === "immediately") {
+        setSnack({
+          open: true,
+          severity: "success",
+          message: "Підписку скасовано одразу. Доступ переведено на FREE.",
+        });
+      } else {
+        setSnack({
+          open: true,
+          severity: "info",
+          message: "Підписку буде скасовано в кінці поточного періоду.",
+        });
+      }
+    },
+    onError: (e: any) => {
+      setSnack({
+        open: true,
+        severity: "error",
+        message:
+          e?.response?.data?.message ??
+          e?.message ??
+          "Не вдалося скасувати підписку",
+      });
     },
   });
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
 
-    // якщо підписка в процесі — не даємо робити іншу
-    if (subscriptionStatus === "pending" && planIdPending) return;
+    // якщо є pending checkout — блокуємо інші дії
+    if (subscriptionStatus === "pending") return;
 
-    if (planId === currentPlanFromApi && !planIdPending) return;
+    if (planId === currentPlanFromApi) return;
 
     // FREE — одразу
     if (planId === "FREE") {
@@ -118,7 +212,29 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   };
 
   const isBusy =
-    isLoading || checkoutMutation.isPending || setPlanMutation.isPending;
+    isLoading ||
+    checkoutMutation.isPending ||
+    setPlanMutation.isPending ||
+    cancelMutation.isPending;
+
+  const canCancel =
+    Boolean(userId) &&
+    currentPlanFromApi !== "FREE" &&
+    (subscriptionStatus === "active" ||
+      subscriptionStatus === "past_due" ||
+      subscriptionStatus === "trialing") &&
+    !cancelAtPeriodEnd;
+
+  const topChipLabel = (() => {
+    if (subscriptionStatus === "pending") return "Оплата обробляється...";
+    if (cancelAtPeriodEnd) {
+      const end = formatDateShort(currentPeriodEnd);
+      return end
+        ? `Скасування заплановано: до ${end}`
+        : "Скасування заплановано";
+    }
+    return `Поточний план: ${currentPlanFromApi}`;
+  })();
 
   if (isBusy) {
     return (
@@ -135,11 +251,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     );
   }
 
-  const topChipLabel =
-    planIdPending && subscriptionStatus === "pending"
-      ? `Оплата обробляється: ${planIdPending}`
-      : `Поточний план: ${currentPlanFromApi}`;
-
   return (
     <Container maxWidth="lg" sx={{ padding: "32px 20px" }}>
       {/* Header */}
@@ -151,17 +262,25 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         на головну
       </Button>
 
-      <Stack spacing={1} sx={{ mb: 3 }}>
+      <Stack spacing={1} sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Плани та підписка
         </Typography>
 
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Обери план під свої потреби. Почни з FREE і апгрейднись, коли захочеш
-          аналітику, експорт і автоматизації.
+          Обери план під свої потреби. Підписки — місячні з автосписанням.
+          Скасувати можна будь-коли.
         </Typography>
 
-        <Box sx={{ mt: 0.5, display: "flex", gap: 1, alignItems: "center" }}>
+        <Box
+          sx={{
+            mt: 0.5,
+            display: "flex",
+            gap: 1,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <Chip
             label={topChipLabel}
             sx={{
@@ -171,18 +290,69 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             }}
           />
 
-          {(checkoutMutation.isError || setPlanMutation.isError) && (
-            <Typography variant="caption" sx={{ color: "#dc2626" }}>
-              Не вдалося виконати дію
-            </Typography>
+          {subscriptionStatus === "past_due" && (
+            <Chip
+              icon={<WarningAmberIcon />}
+              label="Проблема з оплатою"
+              sx={{
+                bgcolor: "#fff1f2",
+                border: "1px solid #fecdd3",
+                fontWeight: 700,
+              }}
+            />
+          )}
+
+          {cancelAtPeriodEnd && (
+            <Chip
+              icon={<CancelIcon />}
+              label="Автопродовження вимкнено"
+              sx={{
+                bgcolor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                fontWeight: 700,
+              }}
+            />
           )}
         </Box>
 
-        {planIdPending && subscriptionStatus === "pending" ? (
+        {subscriptionStatus === "pending" ? (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             Якщо ти вже оплатив — зачекай кілька секунд або онови сторінку.
           </Typography>
         ) : null}
+
+        {/* Cancel / Manage */}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          sx={{ mt: 1 }}
+          alignItems="center"
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={!canCancel}
+            onClick={() => setCancelOpen(true)}
+            sx={{
+              textTransform: "none",
+              borderRadius: 999,
+              px: 2,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Скасувати підписку
+          </Button>
+
+          {!canCancel && currentPlanFromApi !== "FREE" && (
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {cancelAtPeriodEnd
+                ? "Скасування вже заплановано."
+                : subscriptionStatus === "pending"
+                  ? "Поки оплата обробляється — скасування недоступне."
+                  : "Скасування доступне лише для активної підписки."}
+            </Typography>
+          )}
+        </Stack>
       </Stack>
 
       {/* Cards */}
@@ -202,9 +372,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
           const disabled =
             isCurrent ||
-            isBusy ||
             !userId ||
-            (subscriptionStatus === "pending" && Boolean(planIdPending));
+            subscriptionStatus === "pending" ||
+            checkoutMutation.isPending ||
+            setPlanMutation.isPending ||
+            cancelMutation.isPending;
 
           return (
             <Card
@@ -234,7 +406,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       {plan.title}
                     </Typography>
 
-                    {isCurrent && !planIdPending && (
+                    {isCurrent && (
                       <Chip
                         label="Поточний"
                         size="small"
@@ -246,18 +418,17 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       />
                     )}
 
-                    {planIdPending === plan.id &&
-                      subscriptionStatus === "pending" && (
-                        <Chip
-                          label="Оплата..."
-                          size="small"
-                          sx={{
-                            bgcolor: "#fff7ed",
-                            border: "1px solid #fdba74",
-                            fontWeight: 700,
-                          }}
-                        />
-                      )}
+                    {isCurrent && cancelAtPeriodEnd && (
+                      <Chip
+                        label="Не продовжиться"
+                        size="small"
+                        sx={{
+                          bgcolor: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          fontWeight: 700,
+                        }}
+                      />
+                    )}
                   </Stack>
                 }
                 subheader={
@@ -287,7 +458,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                     </Typography>
 
                     <List dense sx={{ py: 0 }}>
-                      {plan.features.map((f) => (
+                      {plan.features.map((f: string) => (
                         <ListItem key={f} disableGutters sx={{ py: 0.25 }}>
                           <ListItemIcon sx={{ minWidth: 32 }}>
                             <CheckCircleIcon
@@ -330,7 +501,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                         </Typography>
 
                         <List dense sx={{ py: 0 }}>
-                          {plan.limits.map((l) => (
+                          {plan.limits.map((l: string) => (
                             <ListItem key={l} disableGutters sx={{ py: 0.25 }}>
                               <ListItemText
                                 primary={
@@ -390,6 +561,17 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                         : plan.ctaLabel}
                   </Button>
                 </Stack>
+
+                {isCurrent &&
+                currentPlanFromApi !== "FREE" &&
+                currentPeriodEnd ? (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary", mt: 1 }}
+                  >
+                    Період до: {formatDateShort(currentPeriodEnd)}
+                  </Typography>
+                ) : null}
               </CardContent>
 
               {/* Subtle accent for popular plan */}
@@ -409,6 +591,100 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           );
         })}
       </Stack>
+
+      {/* Cancel dialog */}
+      <Dialog
+        open={cancelOpen}
+        onClose={() => (cancelMutation.isPending ? null : setCancelOpen(false))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Скасувати підписку?</DialogTitle>
+
+        <DialogContent>
+          <Stack spacing={1.25} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              За замовчуванням ми вимикаємо автопродовження — план буде активним
+              до кінця оплаченого періоду.
+            </Alert>
+
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Поточний план: <b>{currentPlanFromApi}</b>
+              {currentPeriodEnd ? (
+                <>
+                  {" "}
+                  • до: <b>{formatDateShort(currentPeriodEnd)}</b>
+                </>
+              ) : null}
+            </Typography>
+
+            <Box
+              sx={{
+                bgcolor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: 2,
+                p: 1.5,
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Варіанти
+              </Typography>
+
+              <Typography variant="body2" sx={{ color: "#475569" }}>
+                1) <b>В кінці періоду</b> — рекомендовано. Доступ зберігається
+                до кінця оплаченого місяця.
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#475569", mt: 0.75 }}>
+                2) <b>Одразу</b> — доступ одразу стане FREE.
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setCancelOpen(false)}
+            disabled={cancelMutation.isPending}
+            sx={{ textTransform: "none" }}
+          >
+            Назад
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="error"
+            disabled={cancelMutation.isPending}
+            onClick={() => cancelMutation.mutate("immediately")}
+            sx={{ textTransform: "none", borderRadius: 999 }}
+          >
+            Скасувати одразу
+          </Button>
+
+          <Button
+            variant="contained"
+            disabled={cancelMutation.isPending}
+            onClick={() => cancelMutation.mutate("next_billing_period")}
+            sx={{ textTransform: "none", borderRadius: 999 }}
+          >
+            В кінці періоду
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3500}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+          severity={snack.severity}
+          sx={{ width: "100%" }}
+        >
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
