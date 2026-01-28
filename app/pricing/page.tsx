@@ -55,7 +55,7 @@ function formatDateShort(iso?: string | Date | null) {
 
 type PaddleCheckoutResponse = {
   transactionId: string;
-  checkoutUrl: string;
+  checkoutUrl: string; // зараз приходить https://dev.spravly.com?_ptxn=...
 };
 
 type UserResponse = {
@@ -63,7 +63,7 @@ type UserResponse = {
     id: string;
     subscription?: {
       planId: PlanId;
-      status?: string | null; // active | pending | canceled | past_due | ...
+      status?: string | null;
       cancelAtPeriodEnd?: boolean | null;
       currentPeriodEnd?: string | null;
       paddleStatus?: string | null;
@@ -111,8 +111,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       return data;
     },
     onSuccess: (data) => {
-      console.log("checkoutUrl:", data.checkoutUrl);
-      // window.location.href = data.checkoutUrl;
+      // ✅ FIX: не кидаємо на "/" — примусово ведемо на "/checkout"
+      // де ми вже відкриємо Paddle по _ptxn
+      try {
+        const url = new URL(data.checkoutUrl);
+        url.pathname = "/checkout";
+        window.location.href = url.toString();
+      } catch {
+        // fallback
+        window.location.href = `/checkout?_ptxn=${encodeURIComponent(
+          data.transactionId,
+        )}`;
+      }
     },
     onError: (e: any) => {
       setSnack({
@@ -126,7 +136,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
-  // ✅ FREE: твій existing endpoint (без оплати)
+  // ✅ FREE: без оплати
   const setPlanMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -162,8 +172,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
     onSuccess: async (data: any) => {
       setCancelOpen(false);
-
-      // оновимо bootstrap
       await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
 
       const effectiveFrom = data?.effectiveFrom as string | undefined;
@@ -195,19 +203,14 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
-
-    // якщо є pending checkout — блокуємо інші дії
     if (subscriptionStatus === "pending") return;
-
     if (planId === currentPlanFromApi) return;
 
-    // FREE — одразу
     if (planId === "FREE") {
       setPlanMutation.mutate("FREE");
       return;
     }
 
-    // BASIC/PRO — checkout
     checkoutMutation.mutate(planId);
   };
 
@@ -253,7 +256,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   return (
     <Container maxWidth="lg" sx={{ padding: "32px 20px" }}>
-      {/* Header */}
       <Button
         onClick={() => router.push("/dashboard")}
         sx={{ color: "black", marginBottom: "20px" }}
@@ -321,7 +323,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           </Typography>
         ) : null}
 
-        {/* Cancel / Manage */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1}
@@ -355,7 +356,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         </Stack>
       </Stack>
 
-      {/* Cards */}
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={2.5}
@@ -447,7 +447,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                   height: "100%",
                 }}
               >
-                {/* Main content */}
                 <Stack spacing={1.5} sx={{ flexGrow: 1 }}>
                   <Box>
                     <Typography
@@ -521,7 +520,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                   ) : null}
                 </Stack>
 
-                {/* Bottom CTA */}
                 <Divider sx={{ my: 1.5 }} />
 
                 <Stack
@@ -543,7 +541,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
                   <Button
                     size="small"
-                    variant={"contained"}
+                    variant="contained"
                     onClick={() => handleChoosePlan(plan.id)}
                     disabled={disabled}
                     sx={{
@@ -574,7 +572,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 ) : null}
               </CardContent>
 
-              {/* Subtle accent for popular plan */}
               {isPopular && (
                 <Box
                   sx={{
@@ -592,7 +589,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         })}
       </Stack>
 
-      {/* Cancel dialog */}
       <Dialog
         open={cancelOpen}
         onClose={() => (cancelMutation.isPending ? null : setCancelOpen(false))}
