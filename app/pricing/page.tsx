@@ -112,7 +112,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
     onSuccess: (data) => {
       console.log("checkoutUrl:", data.checkoutUrl);
-      window.location.href = data.checkoutUrl;
+      // window.location.href = data.checkoutUrl;
     },
     onError: (e: any) => {
       setSnack({
