@@ -192,6 +192,13 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get("checkout") === "success") {
+      qc.invalidateQueries(["app-bootstrap"]);
+    }
+  }, []);
+
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
     if (subscriptionStatus === "pending") return;
@@ -674,4 +681,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       </Snackbar>
     </Container>
   );
+}
+function useEffect(arg0: () => void, arg1: never[]) {
+  throw new Error("Function not implemented.");
 }
