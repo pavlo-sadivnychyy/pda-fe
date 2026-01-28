@@ -113,16 +113,17 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     onSuccess: (data) => {
       // ✅ FIX: не кидаємо на "/" — примусово ведемо на "/checkout"
       // де ми вже відкриємо Paddle по _ptxn
-      try {
-        const url = new URL(data.checkoutUrl);
-        url.pathname = "/checkout";
-        window.location.href = url.toString();
-      } catch {
-        // fallback
-        window.location.href = `/checkout?_ptxn=${encodeURIComponent(
-          data.transactionId,
-        )}`;
-      }
+      window.location.href = data.checkoutUrl;
+      // try {
+      //   const url = new URL(data.checkoutUrl);
+      //   url.pathname = "/checkout";
+      //   window.location.href = url.toString();
+      // } catch {
+      //   // fallback
+      //   window.location.href = `/checkout?_ptxn=${encodeURIComponent(
+      //     data.transactionId,
+      //   )}`;
+      // }
     },
     onError: (e: any) => {
       setSnack({
