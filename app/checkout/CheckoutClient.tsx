@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Box, Button, Stack, Typography, Alert } from "@mui/material";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { InfinitySpin } from "react-loader-spinner";
 
 declare global {
@@ -18,7 +18,6 @@ function loadPaddleScript(): Promise<void> {
     const existing = document.querySelector<HTMLScriptElement>(
       'script[data-paddle="1"]',
     );
-
     if (existing) {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () =>
@@ -31,10 +30,8 @@ function loadPaddleScript(): Promise<void> {
     s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
     s.async = true;
     s.setAttribute("data-paddle", "1");
-
     s.onload = () => resolve();
     s.onerror = () => reject(new Error("Paddle load error"));
-
     document.head.appendChild(s);
   });
 }
@@ -42,8 +39,8 @@ function loadPaddleScript(): Promise<void> {
 export default function CheckoutClient() {
   const router = useRouter();
   const sp = useSearchParams();
+  const ptxn = sp.get("_ptxn");
 
-  const ptxn = sp.get("_ptxn"); // txn_...
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -52,27 +49,44 @@ export default function CheckoutClient() {
 
     async function run() {
       try {
+        setError(null);
+
         if (!ptxn) throw new Error("Немає параметра _ptxn у URL");
+
+        const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+        if (!token) {
+          throw new Error(
+            "Немає NEXT_PUBLIC_PADDLE_CLIENT_TOKEN у env (це обов'язково для Paddle.Initialize)",
+          );
+        }
 
         await loadPaddleScript();
         if (cancelled) return;
 
-        if (!window.Paddle?.Checkout?.open) {
-          throw new Error("Paddle Checkout не доступний (SDK не завантажився)");
+        if (!window.Paddle?.Initialize) {
+          throw new Error(
+            "Paddle SDK не завантажився (нема Paddle.Initialize)",
+          );
         }
 
-        // Відкриваємо checkout по transactionId (txn_...)
-        window.Paddle.Checkout.open({
-          transactionId: ptxn,
-
-          // Якщо в тебе на бекенді вже задані success/cancel — краще прибрати це звідси,
-          // але як fallback ок.
-          successUrl: `${window.location.origin}/billing/success`,
-          cancelUrl: `${window.location.origin}/billing/cancel`,
-
-          // Рекомендую на час дебагу увімкнути:
-          // eventCallback: (ev: any) => console.log("Paddle event:", ev),
+        // ✅ ОБОВ'ЯЗКОВО
+        window.Paddle.Initialize({
+          token,
+          checkout: {
+            settings: {
+              displayMode: "overlay",
+              theme: "light",
+              locale: "uk",
+              // бажано тримати return-URLи на бекенді, але хай буде fallback:
+              successUrl: `${window.location.origin}/billing/success`,
+              cancelUrl: `${window.location.origin}/billing/cancel`,
+            },
+          },
         });
+
+        // ✅ НІЧОГО не відкриваємо вручну
+        // Paddle сам відкриє checkout для ?_ptxn=txn_... на default payment link сторінці.
+        // Це якраз описано в їх доках.
 
         setLoading(false);
       } catch (e: any) {
@@ -82,7 +96,6 @@ export default function CheckoutClient() {
     }
 
     run();
-
     return () => {
       cancelled = true;
     };
@@ -129,6 +142,11 @@ export default function CheckoutClient() {
             Оновити
           </Button>
         </Stack>
+
+        {/* корисно для дебагу */}
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          txn: {ptxn ?? "-"}
+        </Typography>
       </Stack>
     </Box>
   );
