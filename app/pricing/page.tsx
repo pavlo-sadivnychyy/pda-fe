@@ -111,7 +111,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       return data;
     },
     onSuccess: (data) => {
-      // ✅ redirect to Paddle hosted checkout
+      console.log("checkoutUrl:", data.checkoutUrl);
       window.location.href = data.checkoutUrl;
     },
     onError: (e: any) => {
