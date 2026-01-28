@@ -35,6 +35,7 @@ import { PLANS, type PlanId } from "./plans";
 import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
 import { InfinitySpin } from "react-loader-spinner";
+import { useEffect } from "react";
 
 function formatPrice(price: number | string) {
   const n = typeof price === "string" ? Number(price) : price;
@@ -681,7 +682,4 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       </Snackbar>
     </Container>
   );
-}
-function useEffect(arg0: () => void, arg1: never[]) {
-  throw new Error("Function not implemented.");
 }
