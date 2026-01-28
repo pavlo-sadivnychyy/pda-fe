@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 declare global {
   interface Window {
@@ -24,7 +25,9 @@ function loadPaddleV2(): Promise<void> {
 }
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
+  const [opened, setOpened] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -37,20 +40,46 @@ export default function CheckoutPage() {
 
         await loadPaddleV2();
 
-        // ✅ CRITICAL: set sandbox BEFORE any other Paddle.js calls
-        // If not set, Paddle uses production. :contentReference[oaicite:1]{index=1}
         window.Paddle.Environment.set("sandbox");
-
-        // ✅ then initialize with client-side token :contentReference[oaicite:2]{index=2}
         window.Paddle.Initialize({ token });
 
-        // ✅ open checkout for transaction
-        window.Paddle.Checkout.open({ transactionId: txn });
+        // ✅ один хендлер: після success ведемо на /pricing
+        const goBack = (status: "success" | "closed") => {
+          // щоб не було double navigation
+          if (typeof window !== "undefined") {
+            router.push(`/pricing?checkout=${status}`);
+          }
+        };
+
+        window.Paddle.Checkout.open({
+          transactionId: txn,
+
+          // ✅ This is the key: events from overlay
+          // (Paddle sends a few event shapes, so handle defensively)
+          eventCallback: (event: any) => {
+            const type = String(event?.name ?? event?.type ?? "");
+            // найчастіше: "checkout.completed" / "transaction.completed" / "checkout.closed"
+            if (/completed/i.test(type)) {
+              goBack("success");
+            }
+            if (/closed/i.test(type)) {
+              // якщо юзер закрив хрестиком
+              goBack("closed");
+            }
+          },
+
+          // ✅ On close fallback (інколи зручніше)
+          onClose: () => {
+            goBack("closed");
+          },
+        });
+
+        setOpened(true);
       } catch (e: any) {
         setError(e?.message ?? "Checkout init failed");
       }
     })();
-  }, []);
+  }, [router]);
 
   if (error) {
     return (
@@ -73,7 +102,9 @@ export default function CheckoutPage() {
     <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <CircularProgress />
-        <Typography sx={{ fontWeight: 700 }}>Відкриваємо оплату…</Typography>
+        <Typography sx={{ fontWeight: 700 }}>
+          {opened ? "Очікуємо завершення оплати…" : "Відкриваємо оплату…"}
+        </Typography>
       </Box>
     </Box>
   );

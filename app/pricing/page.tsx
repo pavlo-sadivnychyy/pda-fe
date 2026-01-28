@@ -81,6 +81,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   const { data: userData, isLoading } = useCurrentUser();
 
+  console.log(userData);
+
   const userId = userData?.id ?? null;
 
   const currentPlanFromApi: PlanId =
