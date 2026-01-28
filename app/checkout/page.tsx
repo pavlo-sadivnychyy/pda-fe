@@ -31,24 +31,29 @@ export default function CheckoutPage() {
         const url = new URL(window.location.href);
         const txn = url.searchParams.get("_ptxn");
         if (!txn) {
-          setError("Missing _ptxn. Open checkout from Pricing page again.");
+          setError("Missing _ptxn param");
+          return;
+        }
+
+        const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+        if (!token) {
+          setError("Missing NEXT_PUBLIC_PADDLE_CLIENT_TOKEN in .env.local");
           return;
         }
 
         await loadPaddleJs();
 
-        const env = process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox";
-
+        // ✅ Paddle Billing v2: must initialize with client-side token :contentReference[oaicite:4]{index=4}
         window.Paddle.Initialize({
-          environment: env, // sandbox | production
+          token,
+          // environment тут зазвичай не потрібен якщо токен test_ (sandbox),
+          // але нехай буде для ясності:
+          environment: process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox",
         });
 
-        // Open checkout for existing transaction :contentReference[oaicite:19]{index=19}
+        // ✅ Open checkout for existing transaction :contentReference[oaicite:5]{index=5}
         window.Paddle.Checkout.open({
           transactionId: txn,
-          // Optional:
-          // displayMode: "overlay",
-          // locale: "en" / "uk" (якщо доступно в акаунті)
         });
       } catch (e: any) {
         setError(e?.message ?? "Checkout init failed");
