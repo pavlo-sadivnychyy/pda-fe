@@ -16,26 +16,35 @@ import {
 } from "@mui/material";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import type { FormValues } from "../hooks/useOrganizationProfilePage";
+import type { PaymentReadiness } from "../hooks/useOrganizationProfilePage";
 
 type Organization = {
   id: string;
   name: string;
 
-  legalName?: string | null;
-  beneficiaryName?: string | null;
-  legalAddress?: string | null;
-  vatId?: string | null;
-  registrationNumber?: string | null;
-  iban?: string | null;
-  swiftBic?: string | null;
-  bankName?: string | null;
-  bankAddress?: string | null;
-  paymentReferenceHint?: string | null;
-};
+  // UA
+  uaCompanyName?: string | null;
+  uaCompanyAddress?: string | null;
+  uaEdrpou?: string | null;
+  uaIpn?: string | null;
+  uaIban?: string | null;
+  uaBankName?: string | null;
+  uaMfo?: string | null;
+  uaAccountNumber?: string | null;
+  uaBeneficiaryName?: string | null;
+  uaPaymentPurposeHint?: string | null;
 
-type PaymentReadiness = {
-  ua: { ready: boolean; missing: string[] };
-  international: { ready: boolean; missing: string[] };
+  // Intl
+  intlLegalName?: string | null;
+  intlBeneficiaryName?: string | null;
+  intlLegalAddress?: string | null;
+  intlVatId?: string | null;
+  intlRegistrationNumber?: string | null;
+  intlIban?: string | null;
+  intlSwiftBic?: string | null;
+  intlBankName?: string | null;
+  intlBankAddress?: string | null;
+  intlPaymentReferenceHint?: string | null;
 };
 
 type Props = {
@@ -48,8 +57,6 @@ type Props = {
   onCancel: () => void;
   onChange: (field: keyof FormValues) => any;
   onSubmit: (e: any) => void;
-
-  // ✅ NEW
   paymentReadiness?: PaymentReadiness | null;
 };
 
@@ -66,7 +73,7 @@ const labelSx = { color: "#64748b" };
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <Box sx={{ display: "flex", gap: 2, py: 0.75 }}>
-      <Typography variant="body2" sx={{ ...labelSx, minWidth: 190 }}>
+      <Typography variant="body2" sx={{ ...labelSx, minWidth: 210 }}>
         {label}
       </Typography>
       <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 600 }}>
@@ -156,6 +163,25 @@ function ReadinessAlert({
   );
 }
 
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <Box sx={{ mb: 1.5 }}>
+      <Typography sx={{ fontWeight: 900, color: "#0f172a" }}>
+        {title}
+      </Typography>
+      <Typography variant="body2" sx={{ color: "#64748b" }}>
+        {subtitle}
+      </Typography>
+    </Box>
+  );
+}
+
 export function PaymentDetailsCard({
   mode,
   hasOrganization,
@@ -189,14 +215,14 @@ export function PaymentDetailsCard({
           </Box>
         }
         title={
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Реквізити для оплати (UA + International Invoice PDF)
+          <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>
+            Реквізити для оплати
           </Typography>
         }
         subheader={
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Заповни IBAN / банк / SWIFT — ці дані автоматично підставляться в
-            PDF.
+            Тут два окремі блоки: українські реквізити для UA документів і
+            міжнародні — для International Invoice.
           </Typography>
         }
       />
@@ -204,16 +230,15 @@ export function PaymentDetailsCard({
       <CardContent sx={{ pt: 0 }}>
         <Divider sx={{ mb: 2 }} />
 
-        {/* ✅ NEW: readiness alerts */}
         {paymentReadiness && (
           <Stack spacing={1.2} sx={{ mb: 2 }}>
             <ReadinessAlert
-              title="UA Invoice PDF"
+              title="UA документи"
               ready={paymentReadiness.ua.ready}
               missing={paymentReadiness.ua.missing}
             />
             <ReadinessAlert
-              title="International Invoice PDF"
+              title="International invoice"
               ready={paymentReadiness.international.ready}
               missing={paymentReadiness.international.missing}
             />
@@ -222,27 +247,68 @@ export function PaymentDetailsCard({
 
         {isView ? (
           <>
+            {/* ===================== UA VIEW ===================== */}
+            <SectionTitle
+              title="🇺🇦 Українські реквізити"
+              subtitle="Підставляються в українські інвойси/акти."
+            />
+
+            <Box sx={{ px: 0.5 }}>
+              <Row label="Отримувач" value={organization?.uaBeneficiaryName} />
+              <Row
+                label="Назва (ФОП/ТОВ)"
+                value={organization?.uaCompanyName}
+              />
+              <Row label="Адреса" value={organization?.uaCompanyAddress} />
+              <Row label="ЄДРПОУ" value={organization?.uaEdrpou} />
+              <Row label="ІПН" value={organization?.uaIpn} />
+              <Divider sx={{ my: 1.5 }} />
+              <Row label="IBAN" value={organization?.uaIban} />
+              <Row label="Банк" value={organization?.uaBankName} />
+              <Row label="МФО" value={organization?.uaMfo} />
+              <Row
+                label="Рахунок (якщо треба)"
+                value={organization?.uaAccountNumber}
+              />
+              <Divider sx={{ my: 1.5 }} />
+              <Row
+                label="Призначення платежу (підказка)"
+                value={organization?.uaPaymentPurposeHint}
+              />
+            </Box>
+
+            <Divider sx={{ my: 2.5 }} />
+
+            {/* ===================== INTL VIEW ===================== */}
+            <SectionTitle
+              title="🌍 International реквізити"
+              subtitle="Підставляються тільки в International invoice PDF."
+            />
+
             <Box sx={{ px: 0.5 }}>
               <Row
                 label="Beneficiary name"
-                value={organization?.beneficiaryName}
+                value={organization?.intlBeneficiaryName}
               />
-              <Row label="Legal name" value={organization?.legalName} />
-              <Row label="VAT / Tax ID" value={organization?.vatId} />
+              <Row label="Legal name" value={organization?.intlLegalName} />
+              <Row
+                label="Legal address"
+                value={organization?.intlLegalAddress}
+              />
+              <Row label="VAT / Tax ID" value={organization?.intlVatId} />
               <Row
                 label="Registration number"
-                value={organization?.registrationNumber}
+                value={organization?.intlRegistrationNumber}
               />
-              <Row label="Legal address" value={organization?.legalAddress} />
               <Divider sx={{ my: 1.5 }} />
-              <Row label="IBAN" value={organization?.iban} />
-              <Row label="SWIFT / BIC" value={organization?.swiftBic} />
-              <Row label="Bank name" value={organization?.bankName} />
-              <Row label="Bank address" value={organization?.bankAddress} />
+              <Row label="IBAN" value={organization?.intlIban} />
+              <Row label="SWIFT / BIC" value={organization?.intlSwiftBic} />
+              <Row label="Bank name" value={organization?.intlBankName} />
+              <Row label="Bank address" value={organization?.intlBankAddress} />
               <Divider sx={{ my: 1.5 }} />
               <Row
                 label="Payment reference hint"
-                value={organization?.paymentReferenceHint}
+                value={organization?.intlPaymentReferenceHint}
               />
             </Box>
 
@@ -264,123 +330,242 @@ export function PaymentDetailsCard({
           </>
         ) : (
           <Box component="form" onSubmit={onSubmit}>
+            {/* ===================== UA EDIT ===================== */}
+            <SectionTitle
+              title="🇺🇦 Українські реквізити"
+              subtitle="Тільки для UA документів. Заповнюй українською."
+            />
+
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  variant={"standard"}
+                  variant="standard"
                   fullWidth
                   InputLabelProps={{ shrink: true }}
-                  label="Beneficiary name"
-                  placeholder="Beneficiary name"
-                  value={form.beneficiaryName}
-                  onChange={onChange("beneficiaryName")}
+                  label="Отримувач"
+                  value={form.uaBeneficiaryName}
+                  onChange={onChange("uaBeneficiaryName")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
+                  variant="standard"
                   fullWidth
-                  variant={"standard"}
                   InputLabelProps={{ shrink: true }}
-                  label="Legal name"
-                  placeholder="Legal name"
-                  value={form.legalName}
-                  onChange={onChange("legalName")}
+                  label="Назва (ФОП/ТОВ)"
+                  value={form.uaCompanyName}
+                  onChange={onChange("uaCompanyName")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
-                  InputLabelProps={{ shrink: true }}
+                  variant="standard"
                   fullWidth
-                  variant={"standard"}
-                  label="VAT / Tax ID"
-                  placeholder="VAT / Tax ID"
-                  value={form.vatId}
-                  onChange={onChange("vatId")}
+                  InputLabelProps={{ shrink: true }}
+                  label="Адреса"
+                  value={form.uaCompanyAddress}
+                  onChange={onChange("uaCompanyAddress")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  InputLabelProps={{ shrink: true }}
+                  variant="standard"
                   fullWidth
-                  variant={"standard"}
-                  label="Registration number"
-                  placeholder="Registration number"
-                  value={form.registrationNumber}
-                  onChange={onChange("registrationNumber")}
+                  InputLabelProps={{ shrink: true }}
+                  label="ЄДРПОУ"
+                  value={form.uaEdrpou}
+                  onChange={onChange("uaEdrpou")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
+                  variant="standard"
                   fullWidth
-                  variant={"standard"}
                   InputLabelProps={{ shrink: true }}
-                  label="Legal address"
-                  placeholder="Legal address"
-                  value={form.legalAddress}
-                  onChange={onChange("legalAddress")}
+                  label="ІПН"
+                  value={form.uaIpn}
+                  onChange={onChange("uaIpn")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  variant={"standard"}
+                  variant="standard"
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="IBAN"
-                  value={form.iban}
-                  onChange={onChange("iban")}
-                  placeholder="UA00XXXX...."
+                  value={form.uaIban}
+                  onChange={onChange("uaIban")}
+                  placeholder="UA00...."
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  variant={"standard"}
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Назва банку"
+                  value={form.uaBankName}
+                  onChange={onChange("uaBankName")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="МФО"
+                  value={form.uaMfo}
+                  onChange={onChange("uaMfo")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Рахунок (не обов'язково)"
+                  value={form.uaAccountNumber}
+                  onChange={onChange("uaAccountNumber")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Призначення платежу (підказка)"
+                  value={form.uaPaymentPurposeHint}
+                  onChange={onChange("uaPaymentPurposeHint")}
+                  placeholder='Напр. "Оплата за інвойсом №..."'
+                />
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* ===================== INTL EDIT ===================== */}
+            <SectionTitle
+              title="🌍 International реквізити"
+              subtitle="Тільки для International invoice. Заповнюй англійською."
+            />
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Beneficiary name"
+                  value={form.intlBeneficiaryName}
+                  onChange={onChange("intlBeneficiaryName")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Legal name"
+                  value={form.intlLegalName}
+                  onChange={onChange("intlLegalName")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Legal address"
+                  value={form.intlLegalAddress}
+                  onChange={onChange("intlLegalAddress")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="VAT / Tax ID"
+                  value={form.intlVatId}
+                  onChange={onChange("intlVatId")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="Registration number"
+                  value={form.intlRegistrationNumber}
+                  onChange={onChange("intlRegistrationNumber")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  label="IBAN"
+                  value={form.intlIban}
+                  onChange={onChange("intlIban")}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  variant="standard"
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="SWIFT / BIC"
-                  value={form.swiftBic}
-                  onChange={onChange("swiftBic")}
-                  placeholder="XXXXXXXX / XXXXXXXXXXX"
+                  value={form.intlSwiftBic}
+                  onChange={onChange("intlSwiftBic")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  variant={"standard"}
-                  InputLabelProps={{ shrink: true }}
+                  variant="standard"
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   label="Bank name"
-                  placeholder="Bank name"
-                  value={form.bankName}
-                  onChange={onChange("bankName")}
+                  value={form.intlBankName}
+                  onChange={onChange("intlBankName")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
-                  variant={"standard"}
+                  variant="standard"
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="Bank address"
-                  placeholder="Bank address"
-                  value={form.bankAddress}
-                  onChange={onChange("bankAddress")}
+                  value={form.intlBankAddress}
+                  onChange={onChange("intlBankAddress")}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
-                  variant={"standard"}
+                  variant="standard"
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   label="Payment reference hint"
-                  value={form.paymentReferenceHint}
-                  onChange={onChange("paymentReferenceHint")}
+                  value={form.intlPaymentReferenceHint}
+                  onChange={onChange("intlPaymentReferenceHint")}
                   placeholder='e.g. "Use invoice number as reference"'
                 />
               </Grid>
@@ -391,7 +576,7 @@ export function PaymentDetailsCard({
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: 1.25,
-                mt: 2,
+                mt: 2.5,
               }}
             >
               <Button
