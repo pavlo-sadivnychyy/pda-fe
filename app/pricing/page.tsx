@@ -535,6 +535,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       fontSize: 12,
                       px: 2.5,
                       whiteSpace: "nowrap",
+                      "&.Mui-disabled": {
+                        backgroundColor: "#2e7d32", // MUI green[800]
+                        color: "#fff",
+                        opacity: 1, // прибирає стандартне “засірення”
+                      },
                     }}
                   >
                     {isCurrent

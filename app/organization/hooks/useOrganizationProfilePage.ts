@@ -136,10 +136,6 @@ type PaymentReadiness = {
 const normalize = (v?: string | null) => (v ?? "").trim();
 
 function computePaymentReadiness(form: FormValues): PaymentReadiness {
-  // IMPORTANT:
-  // - org.name завжди існує, але для "оплати" бажано мати beneficiary/legalName.
-  // - мінімум для UA: IBAN + Bank name + (Beneficiary OR Legal name OR Org name)
-  // - мінімум для INTL: IBAN + SWIFT/BIC + Bank name + Beneficiary(або legalName/name)
   const missingUa: string[] = [];
   const missingIntl: string[] = [];
 
@@ -169,6 +165,19 @@ function computePaymentReadiness(form: FormValues): PaymentReadiness {
   };
 }
 
+// ✅ максимально “терпимий” витяг id з response create
+function getCreatedOrgId(d: any): string | null {
+  const candidate =
+    d?.id ??
+    d?.organization?.id ??
+    d?.data?.id ??
+    d?.data?.organization?.id ??
+    d?.item?.organization?.id ??
+    d?.item?.id;
+
+  return typeof candidate === "string" && candidate.trim() ? candidate : null;
+}
+
 export function useOrganizationProfilePage() {
   const { data: userData, isLoading: isUserLoading } = useCurrentUser();
   const currentUserId = userData?.id ?? null;
@@ -177,6 +186,7 @@ export function useOrganizationProfilePage() {
     data,
     isLoading: isOrgLoading,
     isError,
+    refetch: refetchOrganization,
   } = useOrganization(currentUserId || undefined);
 
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -190,6 +200,17 @@ export function useOrganizationProfilePage() {
   });
 
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
+
+  // ✅ поточний orgId з state або з query data (на випадок гонок)
+  const orgIdFromQuery = useMemo(() => {
+    const typed = data as OrganizationsForUserResponse | undefined;
+    const id = typed?.items?.[0]?.organization?.id;
+    return typeof id === "string" && id.trim() ? id : null;
+  }, [data]);
+
+  const effectiveOrgId = organization?.id?.trim()
+    ? organization.id
+    : orgIdFromQuery;
 
   useEffect(() => {
     if (!data) return;
@@ -210,15 +231,18 @@ export function useOrganizationProfilePage() {
 
   const { mutate: createOrganization, isLoading: isCreating } =
     useCreateOrganization({
-      onSuccess: (_d, { values }) => {
+      onSuccess: async (d: any, { values }: any) => {
         setSnackbar({
           open: true,
           message: "Профіль створено",
           severity: "success",
         });
 
+        // ✅ 1) беремо реальний id зі створення (якщо бек віддає)
+        const createdId = getCreatedOrgId(d);
+
         setOrganization((prev) => ({
-          id: prev?.id ?? "",
+          id: createdId ?? prev?.id ?? "", // ✅ вже не “затираємо” id порожнім
           name: values.name,
           industry: values.industry || null,
           description: values.description || null,
@@ -247,6 +271,9 @@ export function useOrganizationProfilePage() {
 
         setForm(values);
         setMode("view");
+
+        // ✅ 2) надійний варіант: синкаємося з беком (підхопить id, якщо його не було)
+        await refetchOrganization();
       },
       onError: (error: any) => {
         console.error(error);
@@ -261,7 +288,7 @@ export function useOrganizationProfilePage() {
 
   const { mutate: updateOrganization, isLoading: isUpdating } =
     useUpdateOrganization({
-      onSuccess: (_d, { values }) => {
+      onSuccess: (_d: any, { values }: any) => {
         setSnackbar({
           open: true,
           message: "Зміни збережено",
@@ -291,14 +318,26 @@ export function useOrganizationProfilePage() {
       );
     };
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form || !currentUserId) return;
 
-    if (organization) {
+    // ✅ якщо org “є”, але id ще не прилетів — не валимо PATCH
+    // краще 1 раз синкнутись і тоді дозволити update
+    if (organization && !effectiveOrgId) {
+      setSnackbar({
+        open: true,
+        message: "Організація ще створюється. Спробуй ще раз за секунду.",
+        severity: "error",
+      });
+      await refetchOrganization();
+      return;
+    }
+
+    if (effectiveOrgId) {
       updateOrganization({
         values: form,
-        organizationId: organization.id,
+        organizationId: effectiveOrgId,
         currentUserId,
       });
     } else {
@@ -334,6 +373,7 @@ export function useOrganizationProfilePage() {
   };
 
   return {
+    refetchOrganization,
     currentUserId,
     userData,
     organization,
@@ -346,7 +386,7 @@ export function useOrganizationProfilePage() {
     isLoading,
     isError,
     hasOrganization,
-    paymentReadiness, // ✅ NEW
+    paymentReadiness,
     actions: {
       onChange,
       onSubmit,
