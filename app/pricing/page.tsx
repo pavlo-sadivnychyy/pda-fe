@@ -178,29 +178,46 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           onSuccess: async () => {
             // ✅ CLOSE overlay immediately
             try {
-              if (checkoutRef.current?.close) checkoutRef.current.close();
-              else if (instance?.close) instance.close();
-              else if (window.Paddle?.Checkout?.close)
+              if (checkoutRef.current?.close) {
+                checkoutRef.current.close();
+              } else if (instance?.close) {
+                instance.close();
+              } else if (window.Paddle?.Checkout?.close) {
                 window.Paddle.Checkout.close();
-            } catch {
-              // ignore close errors
+              }
+            } catch (err) {
+              console.warn("Failed to close Paddle checkout:", err);
             }
 
-            // then sync + redirect
+            // ✅ Show success toast
+            setSnack({
+              open: true,
+              severity: "success",
+              message: "План успішно змінено! Оновлюємо дані...",
+            });
+
+            // ✅ Sync transaction with backend
             try {
               await api.post("/billing/paddle/sync-transaction", {
                 transactionId: data.transactionId,
               });
-            } finally {
-              router.replace("/pricing?checkout=success");
+            } catch (err) {
+              console.error("Sync transaction error:", err);
             }
+
+            // ✅ Refetch user data
+            await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+
+            // ✅ Clear checkout query params
+            router.replace("/pricing");
           },
 
           onClose: () => {
             checkoutRef.current = null;
           },
 
-          onError: () => {
+          onError: (error: any) => {
+            console.error("Paddle checkout error:", error);
             setSnack({
               open: true,
               severity: "error",
