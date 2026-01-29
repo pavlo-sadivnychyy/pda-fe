@@ -1,7 +1,6 @@
 "use client";
 
 import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
   Autocomplete,
@@ -29,6 +28,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Client } from "@/app/clients/types";
 import { api } from "@/libs/axios";
 import { useCreateQuoteMutation } from "../hooks/useCreateQuoteMutation";
+import AddIcon from "@mui/icons-material/Add";
 
 type ServiceEntity = {
   id: string;
@@ -477,17 +477,6 @@ export function CreateQuoteDialog({
               <Typography sx={{ fontWeight: 800, color: "#0f172a" }}>
                 Позиції
               </Typography>
-
-              <Button
-                onClick={addItem}
-                startIcon={<AddIcon />}
-                variant="outlined"
-                size="small"
-                disabled={isLoading}
-                sx={{ textTransform: "none", borderRadius: 999 }}
-              >
-                Додати
-              </Button>
             </Stack>
 
             <Stack spacing={2}>
@@ -766,6 +755,24 @@ export function CreateQuoteDialog({
                 );
               })}
             </Stack>
+
+            <Button
+              onClick={addItem}
+              startIcon={<AddIcon />}
+              variant="outlined"
+              size="small"
+              disabled={isLoading}
+              sx={{
+                my: 2,
+                textTransform: "none",
+                borderRadius: 999,
+                border: "none",
+                backgroundColor: "black",
+                color: "white",
+              }}
+            >
+              Додати
+            </Button>
 
             <Divider sx={{ my: 2 }} />
 
