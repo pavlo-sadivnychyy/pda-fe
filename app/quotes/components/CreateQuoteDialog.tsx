@@ -622,7 +622,7 @@ export function CreateQuoteDialog({
                                 variant="caption"
                                 sx={{ color: "#475569" }}
                               >
-                                Додати в "Мої послуги"
+                                Додати в "Мої послуги/товари"
                               </Typography>
                             }
                           />
