@@ -64,6 +64,14 @@ export default function OrganizationProfilePage() {
             onView={vm.actions.toView}
           />
 
+          <Grid container spacing={2.5} pb={2.5}>
+            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                <AssistantInfoCard />
+              </Box>
+            </Grid>
+          </Grid>
+
           <Grid container spacing={2.5}>
             <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
               <ProfileCard
@@ -94,12 +102,6 @@ export default function OrganizationProfilePage() {
                 onSubmit={vm.actions.onSubmit}
                 paymentReadiness={vm.paymentReadiness}
               />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4 }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-                <AssistantInfoCard />
-              </Box>
             </Grid>
           </Grid>
         </Container>
