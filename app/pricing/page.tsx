@@ -39,6 +39,11 @@ type PaddleCheckoutResponse = {
   cancelUrl?: string;
 };
 
+type PaddleEvent = {
+  name: string;
+  data?: any;
+};
+
 declare global {
   interface Window {
     Paddle?: any;
@@ -122,8 +127,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     message: string;
   }>({ open: false, severity: "info", message: "" });
 
-  // ✅ store checkout instance so we can close it on success
-  const checkoutRef = useRef<any>(null);
+  const checkoutRef = useRef<{ transactionId: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -155,6 +159,56 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     }
   }, [qc]);
 
+  useEffect(() => {
+    // Слухаємо глобальні події Paddle
+    const handlePaddleEvent = (event: MessageEvent) => {
+      if (event.origin !== "https://cdn.paddle.com") return;
+
+      try {
+        const paddleEvent: PaddleEvent = JSON.parse(event.data);
+
+        if (paddleEvent.name === "checkout.completed") {
+          // Успішна оплата завершена
+          setTimeout(async () => {
+            // 1. Закриваємо модалку (на всяк випадок)
+            try {
+              window.Paddle?.Checkout?.close?.();
+            } catch {}
+
+            // 2. Показуємо тост
+            setSnack({
+              open: true,
+              severity: "success",
+              message: "План успішно змінено! Оновлюємо дані...",
+            });
+
+            // 3. Синхронізуємо транзакцію (якщо потрібно)
+            if (checkoutRef.current?.transactionId) {
+              try {
+                await api.post("/billing/paddle/sync-transaction", {
+                  transactionId: checkoutRef.current.transactionId,
+                });
+              } catch (err) {
+                console.warn("sync-transaction failed", err);
+              }
+            }
+
+            // 4. Оновлюємо користувача
+            await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+
+            // 5. Прибираємо query-параметри
+            setTimeout(() => {
+              router.replace("/pricing", { scroll: false });
+            }, 800);
+          }, 600); // невелика затримка — часто допомагає
+        }
+      } catch {}
+    };
+
+    window.addEventListener("message", handlePaddleEvent);
+    return () => window.removeEventListener("message", handlePaddleEvent);
+  }, [qc, router]);
+
   const checkoutMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -171,44 +225,10 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         await loadPaddleScript();
         initPaddle();
 
-        // ✅ open overlay and save instance
+        checkoutRef.current = { transactionId: data.transactionId };
+
         window.Paddle.Checkout.open({
           transactionId: data.transactionId,
-
-          onSuccess: async () => {
-            // ✅ Затримка перед закриттям (дає час Paddle обробити успіх)
-            setTimeout(() => {
-              try {
-                window.Paddle?.Checkout?.close();
-              } catch (err) {
-                console.warn("Failed to close Paddle checkout:", err);
-              }
-            }, 500);
-
-            // ✅ Show success toast
-            setSnack({
-              open: true,
-              severity: "success",
-              message: "План успішно змінено! Оновлюємо дані...",
-            });
-
-            // ✅ Sync transaction with backend
-            try {
-              await api.post("/billing/paddle/sync-transaction", {
-                transactionId: data.transactionId,
-              });
-            } catch (err) {
-              console.error("Sync transaction error:", err);
-            }
-
-            // ✅ Refetch user data
-            await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
-
-            // ✅ Clear checkout query params after delay
-            setTimeout(() => {
-              router.replace("/pricing");
-            }, 1000);
-          },
 
           onClose: () => {
             checkoutRef.current = null;
@@ -233,16 +253,16 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         });
       }
     },
-    //   onError: (e: any) {
-    //   setSnack({
-    //     open: true,
-    //     severity: "error",
-    //     message:
-    //       e?.response?.data?.message ??
-    //       e?.message ??
-    //       "Не вдалося перейти до оплати",
-    //   });
-    // }
+    onError: (e: any) => {
+      setSnack({
+        open: true,
+        severity: "error",
+        message:
+          e?.response?.data?.message ??
+          e?.message ??
+          "Не вдалося перейти до оплати",
+      });
+    },
   });
 
   const setPlanMutation = useMutation({
@@ -353,7 +373,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           {cancelAtPeriodEnd && (
             <Chip
               icon={<CancelIcon />}
-              label="Автопродовження вимкнено"
+              label="Автоподовження вимкнено"
               sx={{
                 bgcolor: "#f8fafc",
                 border: "1px solid #e2e8f0",
