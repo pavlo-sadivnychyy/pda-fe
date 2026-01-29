@@ -555,7 +555,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         open={snack.open}
         autoHideDuration={3500}
         onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
           onClose={() => setSnack((s) => ({ ...s, open: false }))}
