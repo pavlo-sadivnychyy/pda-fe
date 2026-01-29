@@ -68,7 +68,7 @@ export const ServiceDialog = ({
         }}
       >
         <Typography sx={{ fontWeight: 800, fontSize: 18, color: "#020617" }}>
-          {isEditing ? "Редагувати послугу" : "Додати послугу"}
+          {isEditing ? "Редагувати" : "Додати"}
         </Typography>
 
         <IconButton
@@ -96,7 +96,7 @@ export const ServiceDialog = ({
           }}
         >
           <TextField
-            label="Назва послуги *"
+            label="Назва *"
             placeholder="Наприклад: Консультація"
             fullWidth
             variant="standard"
@@ -110,7 +110,7 @@ export const ServiceDialog = ({
           <TextField
             label="Опис (опціонально)"
             fullWidth
-            placeholder="Короткий опис послуги"
+            placeholder="Короткий опис послуги/товару"
             multiline
             minRows={3}
             value={form.description}

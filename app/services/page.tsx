@@ -101,20 +101,20 @@ export default function ServicesPage() {
           id: formState.editingService.id,
           payload: toUpdatePayload(formState.form),
         });
-        snackbar.show("Послугу оновлено", "success");
+        snackbar.show("Оновлено", "success");
         formState.close();
         return;
       }
 
       await createService.mutateAsync(toCreatePayload(formState.form));
-      snackbar.show("Послугу створено", "success");
+      snackbar.show("Створено", "success");
       formState.close();
     });
 
   const confirmDelete = async () => {
     if (!deleteId) return;
     await deleteService.mutateAsync(deleteId);
-    snackbar.show("Послугу видалено", "success");
+    snackbar.show("Видалено", "success");
     setDeleteId(null);
   };
 
@@ -208,10 +208,10 @@ export default function ServicesPage() {
               variant="body2"
               sx={{ color: "#334155", lineHeight: 1.55 }}
             >
-              <strong>Порада:</strong> створи список типових послуг — тоді при
-              створенні інвойсу/акта/КП ти зможеш вибрати послугу з селекта і
-              швидко підставити назву та ціну (ціну завжди можна змінити
-              вручну).
+              <strong>Порада:</strong> створи список типових послуг/товарів —
+              тоді при створенні інвойсу/КП ти зможеш вибрати послугу/товар з
+              селекта і швидко підставити назву та ціну (ціну завжди можна
+              змінити вручну).
             </Typography>
 
             <Stack
@@ -283,7 +283,7 @@ export default function ServicesPage() {
 
       <ConfirmDialog
         open={Boolean(deleteId)}
-        title="Видалити послугу?"
+        title="Видалити?"
         description="Цю дію неможливо відмінити."
         confirmText="Видалити"
         loading={deleteService.isPending}

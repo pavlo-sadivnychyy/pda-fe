@@ -291,7 +291,7 @@ export function CreateQuoteDialog({
       console.error(e);
       return onError(
         e?.response?.data?.message ||
-          "Не вдалося додати послугу в 'Мої послуги'",
+          "Не вдалося додати послугу/товар до списку",
       );
     }
 
