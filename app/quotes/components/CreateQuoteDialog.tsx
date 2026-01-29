@@ -2,6 +2,7 @@
 
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AddIcon from "@mui/icons-material/Add";
 import {
   Autocomplete,
   Box,
@@ -28,7 +29,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Client } from "@/app/clients/types";
 import { api } from "@/libs/axios";
 import { useCreateQuoteMutation } from "../hooks/useCreateQuoteMutation";
-import AddIcon from "@mui/icons-material/Add";
 
 type ServiceEntity = {
   id: string;
@@ -142,6 +142,7 @@ export function CreateQuoteDialog({
   const today = useMemo(() => todayISO(), []);
 
   const [clientId, setClientId] = useState<string>("");
+  const [clientError, setClientError] = useState<string>(""); // ✅ new
   const [currency, setCurrency] = useState<string>("UAH");
   const [issueDate, setIssueDate] = useState<string>(today);
   const [validUntil, setValidUntil] = useState<string>("");
@@ -186,6 +187,7 @@ export function CreateQuoteDialog({
 
   const reset = () => {
     setClientId("");
+    setClientError(""); // ✅
     setCurrency("UAH");
     setIssueDate(today);
     setValidUntil("");
@@ -219,6 +221,15 @@ export function CreateQuoteDialog({
   const validate = (): string | null => {
     if (!organizationId || !createdById)
       return "Немає organizationId/createdById";
+
+    // ✅ клієнт обов'язковий
+    if (!clientId) {
+      setClientError("Оберіть клієнта");
+      return "Клієнт — обовʼязково";
+    } else {
+      setClientError("");
+    }
+
     if (!items.length) return "Додайте хоча б одну позицію";
 
     for (const [i, it] of items.entries()) {
@@ -299,7 +310,7 @@ export function CreateQuoteDialog({
       await createQuote({
         organizationId,
         createdById,
-        clientId: clientId || null,
+        clientId, // ✅ тепер точно не пустий
         issueDate,
         validUntil: validUntil || null,
         currency,
@@ -386,15 +397,21 @@ export function CreateQuoteDialog({
             <Stack spacing={1.5}>
               <TextField
                 select
+                required
                 label="Клієнт"
                 variant="standard"
                 value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
+                onChange={(e) => {
+                  setClientId(e.target.value);
+                  if (e.target.value) setClientError("");
+                }}
                 size="small"
                 fullWidth
                 disabled={isLoading}
                 InputLabelProps={{ shrink: true }}
                 SelectProps={{ displayEmpty: true }}
+                error={Boolean(clientError)}
+                helperText={clientError || " "}
               >
                 <MenuItem value="" sx={{ color: "text.secondary" }}>
                   Обери клієнта
@@ -629,7 +646,6 @@ export function CreateQuoteDialog({
                         )}
                       </Box>
 
-                      {/* Опис */}
                       <TextField
                         label="Опис"
                         value={it.description}
@@ -646,7 +662,6 @@ export function CreateQuoteDialog({
                         minRows={2}
                       />
 
-                      {/* Кількість, ціна, ПДВ */}
                       <Stack
                         direction={{ xs: "column", sm: "row" }}
                         spacing={1.5}
@@ -656,16 +671,12 @@ export function CreateQuoteDialog({
                           value={it.quantity}
                           onChange={(e) => {
                             const value = e.target.value;
-                            // Дозволяємо тільки цифри та крапку
                             if (value === "" || /^[0-9.]*$/.test(value)) {
                               updateItem(idx, "quantity", value);
                             }
                           }}
                           onKeyDown={(e) => {
-                            // Блокуємо кому
-                            if (e.key === ",") {
-                              e.preventDefault();
-                            }
+                            if (e.key === ",") e.preventDefault();
                           }}
                           size="small"
                           variant="standard"
@@ -681,16 +692,12 @@ export function CreateQuoteDialog({
                           value={it.unitPrice}
                           onChange={(e) => {
                             const value = e.target.value;
-                            // Дозволяємо тільки цифри та крапку
                             if (value === "" || /^[0-9.]*$/.test(value)) {
                               updateItem(idx, "unitPrice", value);
                             }
                           }}
                           onKeyDown={(e) => {
-                            // Блокуємо кому
-                            if (e.key === ",") {
-                              e.preventDefault();
-                            }
+                            if (e.key === ",") e.preventDefault();
                           }}
                           size="small"
                           variant="standard"
@@ -698,9 +705,7 @@ export function CreateQuoteDialog({
                           fullWidth
                           disabled={isLoading}
                           InputLabelProps={{ shrink: true }}
-                          inputProps={{
-                            inputMode: "decimal",
-                          }}
+                          inputProps={{ inputMode: "decimal" }}
                         />
 
                         <TextField
@@ -709,16 +714,12 @@ export function CreateQuoteDialog({
                           value={it.taxRate}
                           onChange={(e) => {
                             const value = e.target.value;
-                            // Дозволяємо тільки цифри та крапку
                             if (value === "" || /^[0-9.]*$/.test(value)) {
                               updateItem(idx, "taxRate", value);
                             }
                           }}
                           onKeyDown={(e) => {
-                            // Блокуємо кому
-                            if (e.key === ",") {
-                              e.preventDefault();
-                            }
+                            if (e.key === ",") e.preventDefault();
                           }}
                           size="small"
                           variant="standard"
@@ -729,7 +730,6 @@ export function CreateQuoteDialog({
                         />
                       </Stack>
 
-                      {/* Підсумок позиції */}
                       {itemTotal > 0 && (
                         <Box
                           sx={{
