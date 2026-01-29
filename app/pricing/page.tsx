@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
@@ -27,11 +27,11 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { InfinitySpin } from "react-loader-spinner";
 
 import { PLANS, type PlanId } from "./plans";
 import { api } from "@/libs/axios";
 import { useCurrentUser } from "@/hooksNew/useAppBootstrap";
-import { InfinitySpin } from "react-loader-spinner";
 
 type PaddleCheckoutResponse = {
   transactionId: string;
@@ -52,7 +52,7 @@ declare global {
 
 function loadPaddleScript(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (window.Paddle) return resolve();
+    if (typeof window !== "undefined" && window.Paddle) return resolve();
 
     const existing = document.querySelector<HTMLScriptElement>(
       'script[data-paddle="v2"]',
@@ -73,17 +73,6 @@ function loadPaddleScript(): Promise<void> {
     s.onerror = () => reject(new Error("Failed to load Paddle.js"));
     document.head.appendChild(s);
   });
-}
-
-function initPaddle() {
-  const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
-  const env = process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox";
-
-  if (!token) throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
-  if (!window.Paddle) throw new Error("Paddle.js not loaded");
-
-  window.Paddle.Environment.set(env); // "sandbox" | "production"
-  window.Paddle.Setup({ token });
 }
 
 function formatPrice(price: number | string) {
@@ -127,18 +116,135 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     message: string;
   }>({ open: false, severity: "info", message: "" });
 
+  /**
+   * Зберігаємо останній transactionId, щоб:
+   * - синхронізувати після success
+   * - синхронізувати після close (ключовий фікс)
+   */
   const checkoutRef = useRef<{ transactionId: string } | null>(null);
+
+  /**
+   * Щоб не ініціалізувати Paddle по 10 разів (React strict mode/dev тощо)
+   */
+  const paddleInitedRef = useRef(false);
+
+  const env = useMemo(
+    () => process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox",
+    [],
+  );
+
+  const paddleToken = useMemo(
+    () => process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
+    [],
+  );
+
+  const syncTransaction = React.useCallback(
+    async (transactionId: string) => {
+      // ВАЖЛИВО: цей endpoint має на бекенді:
+      // - подивитись реальний статус транзакції в Paddle
+      // - якщо НЕ completed — скинути локальний "pending" (інакше буде вічний pending)
+      try {
+        await api.post("/billing/paddle/sync-transaction", { transactionId });
+      } catch (err) {
+        console.warn("sync-transaction failed", err);
+      } finally {
+        await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+      }
+    },
+    [qc],
+  );
 
   useEffect(() => {
     (async () => {
       try {
         await loadPaddleScript();
-        initPaddle();
+        if (!paddleToken)
+          throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
+        if (!window.Paddle) throw new Error("Paddle.js not loaded");
+
+        if (paddleInitedRef.current) return;
+        paddleInitedRef.current = true;
+
+        // ✅ Правильна ініціалізація v2
+        window.Paddle.Environment.set(env); // "sandbox" | "production"
+        window.Paddle.Initialize({
+          token: paddleToken,
+
+          // ✅ Головне: ловимо події checkout
+          eventCallback: async (event: PaddleEvent) => {
+            const name = event?.name;
+
+            // Успішна оплата
+            if (name === "checkout.completed") {
+              const txn =
+                event?.data?.transaction_id ||
+                event?.data?.transactionId ||
+                checkoutRef.current?.transactionId;
+
+              // Закриваємо модалку на всяк
+              try {
+                window.Paddle?.Checkout?.close?.();
+              } catch {}
+
+              setSnack({
+                open: true,
+                severity: "success",
+                message: "Оплату отримано. Оновлюємо підписку...",
+              });
+
+              if (txn) {
+                checkoutRef.current = null;
+                await syncTransaction(txn);
+              } else {
+                await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+              }
+
+              // прибираємо query (якщо було)
+              setTimeout(() => {
+                router.replace("/pricing", { scroll: false });
+              }, 400);
+            }
+
+            // ❗️КЛЮЧОВИЙ ФІКС: користувач закрив чек-аут без оплати
+            if (name === "checkout.closed") {
+              const txn =
+                event?.data?.transaction_id ||
+                event?.data?.transactionId ||
+                checkoutRef.current?.transactionId;
+
+              checkoutRef.current = null;
+
+              setSnack({
+                open: true,
+                severity: "info",
+                message: "Оплату скасовано.",
+              });
+
+              if (txn) {
+                await syncTransaction(txn);
+              } else {
+                // якщо немає txn (рідко, але буває) — хоча б перезавантажимо юзера
+                await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+              }
+
+              setTimeout(() => {
+                router.replace("/pricing", { scroll: false });
+              }, 300);
+            }
+          },
+        });
       } catch (e: any) {
         console.warn(e?.message ?? e);
+        setSnack({
+          open: true,
+          severity: "warning",
+          message:
+            e?.message ??
+            "Не вдалося ініціалізувати оплату. Перевір токен Paddle.",
+        });
       }
     })();
-  }, []);
+  }, [env, paddleToken, qc, router, syncTransaction]);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -159,56 +265,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     }
   }, [qc]);
 
-  useEffect(() => {
-    // Слухаємо глобальні події Paddle
-    const handlePaddleEvent = (event: MessageEvent) => {
-      if (event.origin !== "https://cdn.paddle.com") return;
-
-      try {
-        const paddleEvent: PaddleEvent = JSON.parse(event.data);
-
-        if (paddleEvent.name === "checkout.completed") {
-          // Успішна оплата завершена
-          setTimeout(async () => {
-            // 1. Закриваємо модалку (на всяк випадок)
-            try {
-              window.Paddle?.Checkout?.close?.();
-            } catch {}
-
-            // 2. Показуємо тост
-            setSnack({
-              open: true,
-              severity: "success",
-              message: "План успішно змінено! Оновлюємо дані...",
-            });
-
-            // 3. Синхронізуємо транзакцію (якщо потрібно)
-            if (checkoutRef.current?.transactionId) {
-              try {
-                await api.post("/billing/paddle/sync-transaction", {
-                  transactionId: checkoutRef.current.transactionId,
-                });
-              } catch (err) {
-                console.warn("sync-transaction failed", err);
-              }
-            }
-
-            // 4. Оновлюємо користувача
-            await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
-
-            // 5. Прибираємо query-параметри
-            setTimeout(() => {
-              router.replace("/pricing", { scroll: false });
-            }, 800);
-          }, 600); // невелика затримка — часто допомагає
-        }
-      } catch {}
-    };
-
-    window.addEventListener("message", handlePaddleEvent);
-    return () => window.removeEventListener("message", handlePaddleEvent);
-  }, [qc, router]);
-
   const checkoutMutation = useMutation({
     mutationFn: async (planId: PlanId) => {
       if (!userId) throw new Error("No userId");
@@ -223,27 +279,20 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     onSuccess: async (data) => {
       try {
         await loadPaddleScript();
-        initPaddle();
+        if (!paddleToken)
+          throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
+        if (!window.Paddle) throw new Error("Paddle.js not loaded");
 
+        // зберігаємо txn, щоб потім sync-нути при close/success
         checkoutRef.current = { transactionId: data.transactionId };
 
+        // ✅ В v2 немає стабільного "onClose" як єдиної правди.
+        // Закриття ловимо через eventCallback (checkout.closed).
         window.Paddle.Checkout.open({
           transactionId: data.transactionId,
-
-          onClose: () => {
-            checkoutRef.current = null;
-          },
-
-          onError: (error: any) => {
-            console.error("Paddle checkout error:", error);
-            setSnack({
-              open: true,
-              severity: "error",
-              message: "Помилка при відкритті оплати. Спробуй ще раз.",
-            });
-          },
         });
       } catch (e: any) {
+        checkoutRef.current = null;
         setSnack({
           open: true,
           severity: "error",
@@ -254,6 +303,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       }
     },
     onError: (e: any) => {
+      checkoutRef.current = null;
       setSnack({
         open: true,
         severity: "error",
@@ -287,7 +337,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
+
+    // якщо pending — зараз блокуємо
+    // ПІСЛЯ ФІКСУ close->sync цей pending не буде вічним
     if (subscriptionStatus === "pending") return;
+
     if (planId === currentPlanFromApi) return;
 
     if (planId === "FREE") {
