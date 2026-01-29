@@ -33,7 +33,7 @@ import { useServicesQueries } from "./hooks/useServicesQueries";
 import { useServiceMutations } from "./hooks/useServiceMutations";
 import { useServiceForm } from "./hooks/useServiceForm";
 
-import { toCreatePayload, toUpdatePayload, formatMoneyUA } from "./utils";
+import { toCreatePayload, toUpdatePayload } from "./utils";
 import { useOrganizationContext } from "../invoices/hooks/useOrganizationContext";
 
 /* =======================
@@ -172,16 +172,6 @@ export default function ServicesPage() {
 
             <Chip
               label={`Всього: ${services.length}`}
-              size="small"
-              sx={{
-                bgcolor: "#ffffff",
-                border: "1px solid #e2e8f0",
-                fontWeight: 800,
-              }}
-            />
-
-            <Chip
-              label={`Сума цін: ${formatMoneyUA(totalPriceSum)}`}
               size="small"
               sx={{
                 bgcolor: "#ffffff",
