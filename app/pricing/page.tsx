@@ -172,22 +172,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         initPaddle();
 
         // ✅ open overlay and save instance
-        const instance = window.Paddle.Checkout.open({
+        window.Paddle.Checkout.open({
           transactionId: data.transactionId,
 
           onSuccess: async () => {
-            // ✅ CLOSE overlay immediately
-            try {
-              if (checkoutRef.current?.close) {
-                checkoutRef.current.close();
-              } else if (instance?.close) {
-                instance.close();
-              } else if (window.Paddle?.Checkout?.close) {
-                window.Paddle.Checkout.close();
+            // ✅ Затримка перед закриттям (дає час Paddle обробити успіх)
+            setTimeout(() => {
+              try {
+                window.Paddle?.Checkout?.close();
+              } catch (err) {
+                console.warn("Failed to close Paddle checkout:", err);
               }
-            } catch (err) {
-              console.warn("Failed to close Paddle checkout:", err);
-            }
+            }, 500);
 
             // ✅ Show success toast
             setSnack({
@@ -208,8 +204,10 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             // ✅ Refetch user data
             await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
 
-            // ✅ Clear checkout query params
-            router.replace("/pricing");
+            // ✅ Clear checkout query params after delay
+            setTimeout(() => {
+              router.replace("/pricing");
+            }, 1000);
           },
 
           onClose: () => {
@@ -225,8 +223,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             });
           },
         });
-
-        checkoutRef.current = instance ?? null;
       } catch (e: any) {
         setSnack({
           open: true,
@@ -237,16 +233,16 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         });
       }
     },
-    onError: (e: any) => {
-      setSnack({
-        open: true,
-        severity: "error",
-        message:
-          e?.response?.data?.message ??
-          e?.message ??
-          "Не вдалося перейти до оплати",
-      });
-    },
+    //   onError: (e: any) {
+    //   setSnack({
+    //     open: true,
+    //     severity: "error",
+    //     message:
+    //       e?.response?.data?.message ??
+    //       e?.message ??
+    //       "Не вдалося перейти до оплати",
+    //   });
+    // }
   });
 
   const setPlanMutation = useMutation({
