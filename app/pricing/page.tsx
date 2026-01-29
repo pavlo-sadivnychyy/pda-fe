@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
@@ -77,7 +77,6 @@ function initPaddle() {
   if (!token) throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
   if (!window.Paddle) throw new Error("Paddle.js not loaded");
 
-  // Paddle v2 style init (works for overlay)
   window.Paddle.Environment.set(env); // "sandbox" | "production"
   window.Paddle.Setup({ token });
 }
@@ -123,14 +122,15 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     message: string;
   }>({ open: false, severity: "info", message: "" });
 
-  // preload Paddle once
+  // ✅ store checkout instance so we can close it on success
+  const checkoutRef = useRef<any>(null);
+
   useEffect(() => {
     (async () => {
       try {
         await loadPaddleScript();
         initPaddle();
       } catch (e: any) {
-        // don’t block page; just show message when user tries to pay
         console.warn(e?.message ?? e);
       }
     })();
@@ -171,12 +171,22 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         await loadPaddleScript();
         initPaddle();
 
-        // OPEN PADDLE CHECKOUT OVERLAY (this is where card form appears)
-        window.Paddle.Checkout.open({
+        // ✅ open overlay and save instance
+        const instance = window.Paddle.Checkout.open({
           transactionId: data.transactionId,
 
-          // when completed – sync and redirect
           onSuccess: async () => {
+            // ✅ CLOSE overlay immediately
+            try {
+              if (checkoutRef.current?.close) checkoutRef.current.close();
+              else if (instance?.close) instance.close();
+              else if (window.Paddle?.Checkout?.close)
+                window.Paddle.Checkout.close();
+            } catch {
+              // ignore close errors
+            }
+
+            // then sync + redirect
             try {
               await api.post("/billing/paddle/sync-transaction", {
                 transactionId: data.transactionId,
@@ -187,7 +197,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           },
 
           onClose: () => {
-            // user just closed overlay
+            checkoutRef.current = null;
           },
 
           onError: () => {
@@ -198,6 +208,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             });
           },
         });
+
+        checkoutRef.current = instance ?? null;
       } catch (e: any) {
         setSnack({
           open: true,
