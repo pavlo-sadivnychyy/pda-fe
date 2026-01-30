@@ -7,6 +7,7 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import CancelIcon from "@mui/icons-material/Cancel";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import DoNotDisturbOnIcon from "@mui/icons-material/DoNotDisturbOn";
 import {
   Alert,
   Box,
@@ -116,16 +117,10 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     message: string;
   }>({ open: false, severity: "info", message: "" });
 
-  /**
-   * Зберігаємо останній transactionId, щоб:
-   * - синхронізувати після success
-   * - синхронізувати після close (ключовий фікс)
-   */
+  // last transactionId
   const checkoutRef = useRef<{ transactionId: string } | null>(null);
 
-  /**
-   * Щоб не ініціалізувати Paddle по 10 разів (React strict mode/dev тощо)
-   */
+  // init guard
   const paddleInitedRef = useRef(false);
 
   const env = useMemo(
@@ -140,9 +135,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
 
   const syncTransaction = React.useCallback(
     async (transactionId: string) => {
-      // ВАЖЛИВО: цей endpoint має на бекенді:
-      // - подивитись реальний статус транзакції в Paddle
-      // - якщо НЕ completed — скинути локальний "pending" (інакше буде вічний pending)
       try {
         await api.post("/billing/paddle/sync-transaction", { transactionId });
       } catch (err) {
@@ -165,23 +157,18 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
         if (paddleInitedRef.current) return;
         paddleInitedRef.current = true;
 
-        // ✅ Правильна ініціалізація v2
-        window.Paddle.Environment.set(env); // "sandbox" | "production"
+        window.Paddle.Environment.set(env);
         window.Paddle.Initialize({
           token: paddleToken,
-
-          // ✅ Головне: ловимо події checkout
           eventCallback: async (event: PaddleEvent) => {
             const name = event?.name;
 
-            // Успішна оплата
             if (name === "checkout.completed") {
               const txn =
                 event?.data?.transaction_id ||
                 event?.data?.transactionId ||
                 checkoutRef.current?.transactionId;
 
-              // Закриваємо модалку на всяк
               try {
                 window.Paddle?.Checkout?.close?.();
               } catch {}
@@ -199,13 +186,11 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                 await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
               }
 
-              // прибираємо query (якщо було)
               setTimeout(() => {
                 router.replace("/pricing", { scroll: false });
               }, 400);
             }
 
-            // ❗️КЛЮЧОВИЙ ФІКС: користувач закрив чек-аут без оплати
             if (name === "checkout.closed") {
               const txn =
                 event?.data?.transaction_id ||
@@ -223,7 +208,6 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
               if (txn) {
                 await syncTransaction(txn);
               } else {
-                // якщо немає txn (рідко, але буває) — хоча б перезавантажимо юзера
                 await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
               }
 
@@ -283,11 +267,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           throw new Error("NEXT_PUBLIC_PADDLE_CLIENT_TOKEN is missing");
         if (!window.Paddle) throw new Error("Paddle.js not loaded");
 
-        // зберігаємо txn, щоб потім sync-нути при close/success
         checkoutRef.current = { transactionId: data.transactionId };
 
-        // ✅ В v2 немає стабільного "onClose" як єдиної правди.
-        // Закриття ловимо через eventCallback (checkout.closed).
         window.Paddle.Checkout.open({
           transactionId: data.transactionId,
         });
@@ -335,13 +316,44 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
+  // ✅ NEW: cancel subscription (autorenew off)
+  const cancelSubMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post("/billing/paddle/cancel");
+      return data as {
+        ok: boolean;
+        cancelAtPeriodEnd?: boolean;
+        currentPeriodEnd?: string | null;
+      };
+    },
+    onSuccess: async (data) => {
+      await qc.invalidateQueries({ queryKey: ["app-bootstrap"] });
+
+      const end = formatDateShort(data?.currentPeriodEnd ?? currentPeriodEnd);
+      setSnack({
+        open: true,
+        severity: "success",
+        message: end
+          ? `Автоподовження вимкнено. Доступ активний до ${end}.`
+          : "Автоподовження вимкнено.",
+      });
+    },
+    onError: (e: any) => {
+      setSnack({
+        open: true,
+        severity: "error",
+        message:
+          e?.response?.data?.message ??
+          e?.message ??
+          "Не вдалося скасувати автоподовження",
+      });
+    },
+  });
+
   const handleChoosePlan = (planId: PlanId) => {
     if (!userId) return;
 
-    // якщо pending — зараз блокуємо
-    // ПІСЛЯ ФІКСУ close->sync цей pending не буде вічним
     if (subscriptionStatus === "pending") return;
-
     if (planId === currentPlanFromApi) return;
 
     if (planId === "FREE") {
@@ -353,7 +365,16 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
   };
 
   const isBusy =
-    isLoading || checkoutMutation.isPending || setPlanMutation.isPending;
+    isLoading ||
+    checkoutMutation.isPending ||
+    setPlanMutation.isPending ||
+    cancelSubMutation.isPending;
+
+  const canCancelAutorenew =
+    Boolean(userId) &&
+    currentPlanFromApi !== "FREE" &&
+    subscriptionStatus !== "pending" &&
+    !cancelAtPeriodEnd;
 
   const topChipLabel = (() => {
     if (subscriptionStatus === "pending") return "Оплата обробляється...";
@@ -392,9 +413,37 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
       </Button>
 
       <Stack spacing={1} sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Плани та підписка
-        </Typography>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          justifyContent="space-between"
+        >
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Плани та підписка
+          </Typography>
+
+          {/* ✅ NEW: cancel button */}
+          <Button
+            variant="outlined"
+            color="inherit"
+            disabled={!canCancelAutorenew || cancelSubMutation.isPending}
+            onClick={() => cancelSubMutation.mutate()}
+            startIcon={<DoNotDisturbOnIcon />}
+            sx={{
+              textTransform: "none",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+              borderColor: "#e2e8f0",
+              bgcolor: "#fff",
+              "&:hover": { bgcolor: "#f8fafc" },
+            }}
+          >
+            {cancelSubMutation.isPending
+              ? "Скасовуємо..."
+              : "Скасувати автоподовження"}
+          </Button>
+        </Stack>
 
         <Box
           sx={{
@@ -450,7 +499,8 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
             !userId ||
             subscriptionStatus === "pending" ||
             checkoutMutation.isPending ||
-            setPlanMutation.isPending;
+            setPlanMutation.isPending ||
+            cancelSubMutation.isPending;
 
           return (
             <Card
@@ -536,9 +586,9 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                       px: 2.5,
                       whiteSpace: "nowrap",
                       "&.Mui-disabled": {
-                        backgroundColor: "#2e7d32", // MUI green[800]
+                        backgroundColor: "#2e7d32",
                         color: "#fff",
-                        opacity: 1, // прибирає стандартне “засірення”
+                        opacity: 1,
                       },
                     }}
                   >
