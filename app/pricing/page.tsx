@@ -8,16 +8,18 @@ import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
 import CancelIcon from "@mui/icons-material/Cancel";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import DoNotDisturbOnIcon from "@mui/icons-material/DoNotDisturbOn";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import BoltIcon from "@mui/icons-material/Bolt";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import SecurityIcon from "@mui/icons-material/Security";
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   Chip,
   Container,
   Divider,
+  Grid,
   List,
   ListItem,
   ListItemIcon,
@@ -25,10 +27,12 @@ import {
   Snackbar,
   Stack,
   Typography,
+  Paper,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { InfinitySpin } from "react-loader-spinner";
+import { motion } from "framer-motion";
 
 import { PLANS, type PlanId } from "./plans";
 import { api } from "@/libs/axios";
@@ -50,6 +54,32 @@ declare global {
     Paddle?: any;
   }
 }
+
+/* ================== LANDING TOKENS ================== */
+const ORANGE = "#febe58";
+const DARK = "#111827";
+const MUTED = "#64748b";
+const BG = "#f3f4f6";
+const BORDER = "#e5e7eb";
+
+const glassShadow = "0 24px 60px rgba(15, 23, 42, 0.12)";
+const softShadow = "0 24px 60px rgba(15, 23, 42, 0.08)";
+
+const MotionPaper = motion(Paper);
+
+const pillSx = {
+  bgcolor: "#ffffff",
+  border: `1px solid ${BORDER}`,
+  color: DARK,
+  fontWeight: 900,
+};
+
+const softCardSx = {
+  borderRadius: 4,
+  border: `1px solid ${BORDER}`,
+  bgcolor: "#ffffff",
+  boxShadow: softShadow,
+};
 
 function loadPaddleScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -91,6 +121,21 @@ function formatDateShort(iso?: string | Date | null) {
     month: "short",
     day: "2-digit",
   });
+}
+
+function planBadge(planId: PlanId) {
+  if (planId === "BASIC")
+    return { label: "Найкращий старт", kind: "best" as const };
+  if (planId === "PRO") return { label: "Для обсягів", kind: "pro" as const };
+  return { label: "Спробувати", kind: "free" as const };
+}
+
+function planAvatar(planId: PlanId) {
+  if (planId === "BASIC")
+    return <BoltIcon sx={{ color: DARK, fontSize: 18 }} />;
+  if (planId === "PRO")
+    return <WorkspacePremiumIcon sx={{ color: DARK, fontSize: 18 }} />;
+  return <VerifiedIcon sx={{ color: DARK, fontSize: 18 }} />;
 }
 
 type Props = {
@@ -316,7 +361,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
     },
   });
 
-  // ✅ NEW: cancel subscription (autorenew off)
+  // cancel subscription (autorenew off)
   const cancelSubMutation = useMutation({
     mutationFn: async () => {
       const { data } = await api.post("/billing/paddle/cancel");
@@ -394,232 +439,386 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          bgcolor: "#f3f4f6",
+          bgcolor: BG,
         }}
       >
-        <InfinitySpin width="200" color="#202124" />
+        <InfinitySpin width="200" color={DARK} />
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ padding: "32px 20px" }}>
-      <Button
-        onClick={() => router.push("/dashboard")}
-        sx={{ color: "black", marginBottom: "20px" }}
-        startIcon={<KeyboardReturnIcon fontSize="inherit" />}
-      >
-        на головну
-      </Button>
-
-      <Stack spacing={1} sx={{ mb: 2 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          justifyContent="space-between"
-        >
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Плани та підписка
-          </Typography>
-
-          {/* ✅ NEW: cancel button */}
+    <Box sx={{ bgcolor: BG, minHeight: "100vh", py: { xs: 3, md: 4 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 2.5 } }}>
+        {/* TOP */}
+        <Stack spacing={1.3} sx={{ mb: 2.5 }}>
           <Button
-            variant="outlined"
-            color="inherit"
-            disabled={!canCancelAutorenew || cancelSubMutation.isPending}
-            onClick={() => cancelSubMutation.mutate()}
-            startIcon={<DoNotDisturbOnIcon />}
-            sx={{
-              textTransform: "none",
-              borderRadius: 999,
-              whiteSpace: "nowrap",
-              borderColor: "#e2e8f0",
-              bgcolor: "#fff",
-              "&:hover": { bgcolor: "#f8fafc" },
-            }}
+            onClick={() => router.push("/dashboard")}
+            sx={{ color: "black", mb: 2, width: "fit-content" }}
+            startIcon={<KeyboardReturnIcon fontSize="inherit" />}
           >
-            {cancelSubMutation.isPending
-              ? "Скасовуємо..."
-              : "Скасувати автоподовження"}
+            на головну
           </Button>
-        </Stack>
 
-        <Box
-          sx={{
-            mt: 0.5,
-            display: "flex",
-            gap: 1,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <Chip
-            label={topChipLabel}
-            sx={{
-              bgcolor: "#fefce8",
-              border: "1px solid #facc15",
-              fontWeight: 600,
-            }}
-          />
-          {subscriptionStatus === "past_due" && (
-            <Chip
-              icon={<WarningAmberIcon />}
-              label="Проблема з оплатою"
-              sx={{
-                bgcolor: "#fff1f2",
-                border: "1px solid #fecdd3",
-                fontWeight: 700,
-              }}
-            />
-          )}
-          {cancelAtPeriodEnd && (
-            <Chip
-              icon={<CancelIcon />}
-              label="Автоподовження вимкнено"
-              sx={{
-                bgcolor: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                fontWeight: 700,
-              }}
-            />
-          )}
-        </Box>
-      </Stack>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.2}
+            alignItems={{ xs: "stretch", md: "center" }}
+            justifyContent="space-between"
+          >
+            <Stack spacing={0.4}>
+              <Typography variant="h5" sx={{ fontWeight: 950, color: DARK }}>
+                Плани та підписка
+              </Typography>
+              <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                Обери план під свої обсяги. Якщо потрібно — зможеш вимкнути
+                автоподовження.
+              </Typography>
+            </Stack>
 
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2.5}
-        alignItems="stretch"
-      >
-        {PLANS.map((plan) => {
-          const isCurrent = plan.id === currentPlanFromApi;
-          const disabled =
-            isCurrent ||
-            !userId ||
-            subscriptionStatus === "pending" ||
-            checkoutMutation.isPending ||
-            setPlanMutation.isPending ||
-            cancelSubMutation.isPending;
-
-          return (
-            <Card
-              key={plan.id}
-              elevation={3}
-              sx={{
-                borderRadius: 3,
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              justifyContent="flex-end"
             >
-              <CardHeader
-                avatar={<WorkspacePremiumIcon sx={{ color: "#111827" }} />}
-                title={
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    {plan.title}
-                  </Typography>
-                }
-                subheader={
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {plan.subtitle}
-                  </Typography>
-                }
-                sx={{ pb: 0 }}
-              />
-
-              <CardContent
+              <Chip
+                label={topChipLabel}
                 sx={{
-                  pt: 1.5,
-                  display: "flex",
-                  flexDirection: "column",
-                  height: "100%",
+                  bgcolor: "rgba(254,190,88,0.18)",
+                  border: "1px solid rgba(254,190,88,0.35)",
+                  fontWeight: 950,
+                  color: DARK,
+                }}
+              />
+              {subscriptionStatus === "past_due" && (
+                <Chip
+                  icon={<WarningAmberIcon />}
+                  label="Проблема з оплатою"
+                  sx={{
+                    bgcolor: "#fff1f2",
+                    border: "1px solid #fecdd3",
+                    fontWeight: 950,
+                  }}
+                />
+              )}
+              {cancelAtPeriodEnd && (
+                <Chip
+                  icon={<CancelIcon />}
+                  label="Автоподовження вимкнено"
+                  sx={{
+                    bgcolor: "#f8fafc",
+                    border: `1px solid ${BORDER}`,
+                    fontWeight: 950,
+                  }}
+                />
+              )}
+
+              <Button
+                variant="outlined"
+                color="inherit"
+                disabled={!canCancelAutorenew || cancelSubMutation.isPending}
+                onClick={() => cancelSubMutation.mutate()}
+                startIcon={<DoNotDisturbOnIcon />}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 999,
+                  whiteSpace: "nowrap",
+                  borderColor: BORDER,
+                  bgcolor: "#fff",
+                  fontWeight: 950,
+                  "&:hover": { bgcolor: "#f8fafc", borderColor: "#cbd5e1" },
                 }}
               >
-                <List dense sx={{ py: 0 }}>
-                  {plan.features.map((f: string) => (
-                    <ListItem key={f} disableGutters sx={{ py: 0.25 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        <CheckCircleIcon
-                          sx={{ fontSize: 18, color: "#16a34a" }}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body2" sx={{ color: "#4b5563" }}>
-                            {f}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
+                {cancelSubMutation.isPending
+                  ? "Скасовуємо..."
+                  : "Скасувати автоподовження"}
+              </Button>
+            </Stack>
+          </Stack>
+        </Stack>
 
-                <Divider sx={{ my: 1.5 }} />
+        {/* ✅ CARDS — same vibe as landing feature cards */}
+        <Grid container spacing={{ xs: 2.5, md: 3 }} justifyContent="center">
+          {PLANS.map((plan, idx) => {
+            const isCurrent = plan.id === currentPlanFromApi;
 
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  spacing={2}
+            const disabled =
+              isCurrent ||
+              !userId ||
+              subscriptionStatus === "pending" ||
+              checkoutMutation.isPending ||
+              setPlanMutation.isPending ||
+              cancelSubMutation.isPending;
+
+            const isPayingThis =
+              checkoutMutation.isPending &&
+              checkoutMutation.variables === plan.id;
+
+            const badge = planBadge(plan.id);
+
+            return (
+              <Grid item xs={12} md={4} key={plan.id}>
+                <MotionPaper
+                  elevation={0}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.45, delay: idx * 0.06 }}
+                  whileHover={{ y: -4 }}
+                  sx={{
+                    ...softCardSx,
+                    height: "100%",
+                    p: { xs: 3, md: 4 },
+                    position: "relative",
+                    overflow: "hidden",
+                    border:
+                      plan.id === "BASIC"
+                        ? "2px solid rgba(254,190,88,0.55)"
+                        : `1px solid ${BORDER}`,
+                  }}
                 >
-                  <Typography sx={{ fontWeight: 800, fontSize: 18 }}>
-                    {formatPrice(plan.priceMonthly)} {plan.currency}
-                    <Typography
-                      component="span"
-                      sx={{ color: "text.secondary", fontWeight: 500 }}
-                    >
-                      {" "}
-                      / міс
-                    </Typography>
-                  </Typography>
-
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() => handleChoosePlan(plan.id)}
-                    disabled={disabled}
+                  {/* subtle header glow like landing */}
+                  <Box
                     sx={{
-                      textTransform: "none",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      px: 2.5,
-                      whiteSpace: "nowrap",
-                      "&.Mui-disabled": {
-                        backgroundColor: "#2e7d32",
-                        color: "#fff",
-                        opacity: 1,
-                      },
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: "none",
+                      background:
+                        plan.id === "BASIC"
+                          ? "radial-gradient(900px 320px at 50% 0%, rgba(243,107,22,0.18), transparent 60%)"
+                          : "radial-gradient(900px 320px at 50% 0%, rgba(17,24,39,0.06), transparent 60%)",
                     }}
-                  >
-                    {isCurrent
-                      ? "План активний"
-                      : checkoutMutation.isPending &&
-                          checkoutMutation.variables === plan.id
-                        ? "Відкриваємо оплату..."
-                        : plan.ctaLabel}
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </Stack>
+                  />
 
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={3500}
-        onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
+                  <Stack spacing={1.4} sx={{ position: "relative" }}>
+                    {/* header row */}
+                    <Stack
+                      direction="row"
+                      spacing={1.2}
+                      alignItems="center"
+                      justifyContent="space-between"
+                    >
+                      <Stack direction="row" spacing={1.2} alignItems="center">
+                        <Box
+                          sx={{
+                            width: 52,
+                            height: 52,
+                            borderRadius: 4,
+                            border: `1px solid ${BORDER}`,
+                            bgcolor: "#ffffff",
+                            display: "grid",
+                            placeItems: "center",
+                          }}
+                        >
+                          {planAvatar(plan.id)}
+                        </Box>
+
+                        <Stack spacing={0.2}>
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            flexWrap="wrap"
+                          >
+                            <Typography
+                              sx={{
+                                fontWeight: 950,
+                                color: DARK,
+                                fontSize: 18,
+                              }}
+                            >
+                              {plan.title}
+                            </Typography>
+
+                            <Chip
+                              size="small"
+                              label={badge.label}
+                              sx={{
+                                ...pillSx,
+                                fontWeight: 950,
+                                ...(badge.kind === "best"
+                                  ? {
+                                      bgcolor: "rgba(254,190,88,0.18)",
+                                      border: "1px solid rgba(254,190,88,0.35)",
+                                    }
+                                  : {}),
+                              }}
+                            />
+
+                            {isCurrent ? (
+                              <Chip
+                                size="small"
+                                label="Активний"
+                                sx={{
+                                  bgcolor: "rgba(34,197,94,0.12)",
+                                  border: "1px solid rgba(34,197,94,0.28)",
+                                  color: DARK,
+                                  fontWeight: 950,
+                                }}
+                              />
+                            ) : null}
+                          </Stack>
+
+                          <Typography sx={{ color: MUTED, lineHeight: 1.6 }}>
+                            {plan.subtitle}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </Stack>
+
+                    {/* price */}
+                    <Stack direction="row" spacing={1} alignItems="baseline">
+                      <Typography
+                        sx={{
+                          fontWeight: 950,
+                          color: DARK,
+                          letterSpacing: "-0.03em",
+                          fontSize: { xs: 34, md: 38 },
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formatPrice(plan.priceMonthly)} {plan.currency}
+                      </Typography>
+                      <Typography sx={{ color: MUTED, fontWeight: 700 }}>
+                        / міс
+                      </Typography>
+                    </Stack>
+
+                    {/* CTA */}
+                    <Button
+                      variant="contained"
+                      onClick={() => handleChoosePlan(plan.id)}
+                      disabled={disabled}
+                      endIcon={<ArrowForwardIcon />}
+                      sx={{
+                        bgcolor: ORANGE,
+                        color: DARK,
+                        textTransform: "none",
+                        fontWeight: 950,
+                        borderRadius: 999,
+                        px: 3,
+                        py: 1.25,
+                        boxShadow: "none",
+                        "&:hover": {
+                          bgcolor: plan.id === "BASIC" ? "#fdb17f" : "#000",
+                          boxShadow: "none",
+                        },
+                        "&.Mui-disabled": {
+                          backgroundColor: "#2e7d32",
+                          color: "#fff",
+                          opacity: 1,
+                        },
+                      }}
+                    >
+                      {isCurrent
+                        ? "План активний"
+                        : isPayingThis
+                          ? "Відкриваємо оплату..."
+                          : plan.ctaLabel}
+                    </Button>
+
+                    {/* features */}
+                    <Divider />
+
+                    <List dense sx={{ py: 0 }}>
+                      {plan.features.map((f: string) => (
+                        <ListItem key={f} disableGutters sx={{ py: 0.25 }}>
+                          <ListItemIcon sx={{ minWidth: 32 }}>
+                            <CheckCircleIcon
+                              sx={{ fontSize: 18, color: ORANGE }}
+                            />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Typography
+                                variant="body2"
+                                sx={{ color: MUTED, lineHeight: 1.6 }}
+                              >
+                                {f}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+
+                    {/* limits (if exist) */}
+                    {"limits" in plan && (plan as any).limits?.length ? (
+                      <>
+                        <Divider />
+                        <Typography
+                          sx={{ fontWeight: 950, color: DARK, fontSize: 13 }}
+                        >
+                          Не входить:
+                        </Typography>
+                        <List dense sx={{ py: 0 }}>
+                          {(plan as any).limits.map((x: string) => (
+                            <ListItem key={x} disableGutters sx={{ py: 0.2 }}>
+                              <ListItemIcon sx={{ minWidth: 32 }}>
+                                <Box
+                                  sx={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: 999,
+                                    bgcolor: "rgba(100,116,139,0.65)",
+                                    ml: 1,
+                                  }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ color: MUTED, lineHeight: 1.6 }}
+                                  >
+                                    {x}
+                                  </Typography>
+                                }
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </>
+                    ) : null}
+
+                    {/* tiny trust line like landing */}
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                      sx={{ pt: 0.5 }}
+                    >
+                      <SecurityIcon sx={{ fontSize: 18, color: MUTED }} />
+                      <Typography
+                        sx={{ fontSize: 13, color: MUTED, lineHeight: 1.6 }}
+                      >
+                        Документи приватні, доступ лише для твоєї організації
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </MotionPaper>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        <Snackbar
+          open={snack.open}
+          autoHideDuration={3500}
           onClose={() => setSnack((s) => ({ ...s, open: false }))}
-          severity={snack.severity}
-          sx={{ width: "100%" }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {snack.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert
+            onClose={() => setSnack((s) => ({ ...s, open: false }))}
+            severity={snack.severity}
+            sx={{ width: "100%" }}
+          >
+            {snack.message}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </Box>
   );
 }

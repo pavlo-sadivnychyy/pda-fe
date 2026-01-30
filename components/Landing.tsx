@@ -14,25 +14,38 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Tooltip,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Icons
-import SmartToyIcon from "@mui/icons-material/SmartToy";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import BoltIcon from "@mui/icons-material/Bolt";
-import ForumIcon from "@mui/icons-material/Forum";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import DescriptionIcon from "@mui/icons-material/Description";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
-import VerifiedIcon from "@mui/icons-material/Verified";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import EmailIcon from "@mui/icons-material/Email";
 import SecurityIcon from "@mui/icons-material/Security";
-import Image from "next/image";
+import InsightsIcon from "@mui/icons-material/Insights";
+import BoltIcon from "@mui/icons-material/Bolt";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+import DownloadIcon from "@mui/icons-material/Download";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // framer-motion
 import { motion, AnimatePresence } from "framer-motion";
+
+/* ================== DESIGN TOKENS ================== */
 
 const ORANGE = "#febe58";
 const DARK = "#111827";
@@ -45,16 +58,6 @@ const glassShadow = "0 24px 60px rgba(15, 23, 42, 0.12)";
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
 
-const navLinkSx = {
-  textTransform: "none",
-  fontWeight: 900,
-  color: DARK,
-  borderRadius: 999,
-  px: 1.8,
-  py: 0.9,
-  "&:hover": { bgcolor: "#f9fafb" },
-};
-
 const pillSx = {
   bgcolor: "#ffffff",
   border: `1px solid ${BORDER}`,
@@ -62,79 +65,270 @@ const pillSx = {
   fontWeight: 900,
 };
 
+const softCardSx = {
+  borderRadius: 4,
+  border: `1px solid ${BORDER}`,
+  bgcolor: "#ffffff",
+  boxShadow: "0 24px 60px rgba(15, 23, 42, 0.08)",
+};
+
+/* ================== PRICING (COPY MATCHES REAL FEATURES) ================== */
+
+type PlanId = "FREE" | "BASIC" | "PRO";
+
+type Plan = {
+  id: PlanId;
+  title: string;
+  subtitle: string;
+  priceMonthly: string | number;
+  currency: string;
+  ctaLabel: string;
+  highlight?: boolean;
+  features: string[];
+  limits?: string[];
+};
+
+const PLANS: Plan[] = [
+  {
+    id: "FREE",
+    title: "FREE",
+    subtitle: "Спробуй процес і наведи базовий порядок",
+    priceMonthly: "0",
+    currency: "$",
+    ctaLabel: "Почати безкоштовно",
+    features: [
+      "1 організація",
+      "До 3 клієнтів",
+      "До 3 інвойсів/місяць + PDF",
+      "Завантаження до 3 документів",
+      "Todo-лист",
+      "Історія документів",
+      "AI: до 5 запитів/місяць",
+    ],
+    limits: [
+      "Акти та КП + PDF",
+      "Відправка документів на email",
+      "Нагадування про оплату інвойсів",
+      "Експорт CSV / XLSX",
+      "Розширена аналітика",
+    ],
+  },
+  {
+    id: "BASIC",
+    title: "BASIC",
+    subtitle: "Щоденна робота ФОП без рутини",
+    priceMonthly: 9.99,
+    currency: "$",
+    highlight: true,
+    ctaLabel: "Обрати BASIC",
+    features: [
+      "До 20 клієнтів",
+      "До 20 інвойсів/місяць + PDF",
+      "Акти + PDF",
+      "Комерційні пропозиції + PDF",
+      "Відправка документів на email",
+      "Завантаження до 20 документів",
+      "Todo-лист без обмежень",
+      "Історія документів",
+      "AI: до 50 запитів/місяць",
+    ],
+    limits: [
+      "Нагадування про оплату інвойсів",
+      "AI без обмежень",
+      "Розширена аналітика",
+      "Експорт CSV / XLSX",
+    ],
+  },
+  {
+    id: "PRO",
+    title: "PRO",
+    subtitle: "Безліміти + контроль + аналітика",
+    priceMonthly: 19.99,
+    currency: "$",
+    ctaLabel: "Обрати PRO",
+    features: [
+      "Безліміт клієнтів",
+      "Безліміт інвойсів + PDF",
+      "Акти + PDF",
+      "Комерційні пропозиції + PDF",
+      "Відправка документів на email",
+      "Ручні нагадування про оплату",
+      "Документи без обмежень",
+      "Todo-лист без обмежень",
+      "Історія документів",
+      "AI без обмежень",
+      "Розширена аналітика доходів і клієнтів",
+      "Експорт CSV / XLSX",
+      "Пріоритетна підтримка",
+    ],
+  },
+];
+
+/* ================== CONTENT ================== */
+
 const featureCards = [
   {
-    icon: <ForumIcon sx={{ color: DARK }} />,
-    title: "AI-чат як бізнес-помічник",
-    desc: "Відповіді клієнтам, продажні тексти, сценарії дій — у твоєму стилі та контексті бізнесу.",
+    icon: <ReceiptLongIcon sx={{ color: DARK }} />,
+    title: "Інвойси + PDF без нервів",
+    desc: "Створюй інвойси швидко, тримай історію й віддавай клієнту акуратний PDF.",
     bullets: [
-      "Відповіді на запити та заперечення",
-      "Пости/сторіз/комерційні тексти за хвилини",
-      "Сценарії: що сказати і що зробити далі",
+      "Інвойс → PDF в 1 клік",
+      "Історія інвойсів і повторення",
+      "Зручно для регулярних оплат",
     ],
-    badge: "Найпопулярніше",
+    badge: "Must-have",
+  },
+  {
+    icon: <PeopleAltIcon sx={{ color: DARK }} />,
+    title: "Клієнти в порядку",
+    desc: "Контакти, інвойси та документи по кожному клієнту — все зібрано й не губиться.",
+    bullets: [
+      "Швидкий пошук по клієнтах",
+      "Документи привʼязані до клієнта",
+      "Менше хаосу в переписках",
+    ],
+    badge: "Системність",
   },
   {
     icon: <DescriptionIcon sx={{ color: DARK }} />,
-    title: "Документи без болю",
-    desc: "Пояснює, перевіряє, допомагає створювати шаблони і приводити тексти до ладу.",
+    title: "Акти та КП як у дорослого бізнесу",
+    desc: "Готуй акти виконаних робіт і комерційні пропозиції з PDF і нормальною структурою.",
     bullets: [
-      "Пояснює договори простими словами",
-      "Підсвічує ризики та місця для уточнень",
-      "Швидко збирає шаблони під твою нішу",
+      "Акти + PDF",
+      "Комерційні пропозиції + PDF",
+      "Охайно й переконливо",
     ],
-    badge: "Для власників",
+    badge: "Продажі",
   },
   {
-    icon: <AutoAwesomeIcon sx={{ color: DARK }} />,
-    title: "Памʼять бізнесу",
-    desc: "Асистент “в темі”: послуги, аудиторія, стиль бренду, контекст — не треба повторювати з нуля.",
+    icon: <EmailIcon sx={{ color: DARK }} />,
+    title: "Відправка документів на email",
+    desc: "Надсилай інвойси/акти/КП клієнтам одразу з системи — менше ручної рутини.",
     bullets: [
-      "Знає твої послуги",
-      "Памʼятає історію діалогів",
-      "Говорить як твій бренд",
+      "Відправка документів клієнту",
+      "Зручно для повторних кейсів",
+      "Швидше закриття оплат",
     ],
-    badge: "Твоя перевага",
+    badge: "Швидкість",
   },
   {
-    icon: <PlaylistAddCheckIcon sx={{ color: DARK }} />,
-    title: "Шаблони та сценарії",
-    desc: "Готові рішення для типових задач: комунікація, контент, FAQ, документи.",
+    icon: <UploadFileIcon sx={{ color: DARK }} />,
+    title: "Документи в одному місці",
+    desc: "Завантажуй файли й тримай все під рукою: без папок “нові-нові(2)”.",
     bullets: [
-      "FAQ, відповіді на негатив",
-      "Офери й комерційні",
-      "Контент-плани під продажі",
+      "Завантаження документів",
+      "Привʼязка до клієнтів/дій",
+      "Історія документів",
     ],
-    badge: "Економить час",
+    badge: "Порядок",
+  },
+  {
+    icon: <SmartToyIcon sx={{ color: DARK }} />,
+    title: "AI-помічник для текстів та рішень",
+    desc: "Сформулює відповідь клієнту, текст для КП або підкаже тактику — швидко й по-людськи.",
+    bullets: [
+      "Відповіді на заперечення/знижки",
+      "Тексти для КП та листів",
+      "Підказки “що робити далі”",
+    ],
+    badge: "Турбо",
+  },
+];
+
+const howItWorks = [
+  {
+    step: "1",
+    title: "Створи організацію",
+    desc: "Пара кліків — і робочий простір готовий.",
+    icon: <VerifiedIcon sx={{ color: ORANGE }} />,
+  },
+  {
+    step: "2",
+    title: "Додай клієнта",
+    desc: "Контакти та вся історія по ньому — в одному місці.",
+    icon: <PeopleAltIcon sx={{ color: ORANGE }} />,
+  },
+  {
+    step: "3",
+    title: "Зроби документ",
+    desc: "Інвойс / акт / КП → одразу PDF. Без “намалювати в Word”.",
+    icon: <ReceiptLongIcon sx={{ color: ORANGE }} />,
+  },
+  {
+    step: "4",
+    title: "Відправ і закрий задачу",
+    desc: "Надсилай документ на email, став задачі й тримай контроль.",
+    icon: <TaskAltIcon sx={{ color: ORANGE }} />,
+  },
+];
+
+const outcomes7days = [
+  {
+    icon: <BoltIcon sx={{ color: ORANGE }} />,
+    title: "Документи не розкидані",
+    desc: "Інвойси/акти/КП + файли зберігаються системно, з історією.",
+  },
+  {
+    icon: <EmailIcon sx={{ color: ORANGE }} />,
+    title: "Менше ручних пересилок",
+    desc: "Відправка документів клієнту — не через “знайти PDF → прикріпити → написати лист”.",
+  },
+  {
+    icon: <InsightsIcon sx={{ color: ORANGE }} />,
+    title: "Кращий контроль по оплатах",
+    desc: "Видно, кому і що виставлено, легко повторити документ і не загубити ланцюжок.",
+  },
+  {
+    icon: <DownloadIcon sx={{ color: ORANGE }} />,
+    title: "Експорт та звітність",
+    desc: "На PRO — CSV/XLSX для бухобліку чи своїх звітів. Без ручного копіпасту.",
   },
 ];
 
 const faqs = [
   {
-    q: "Чи треба вміти писати промпти?",
-    a: "Ні. Ти просто формулюєш задачу як людині. Контекст бізнесу та документи підтягуються автоматично.",
+    q: "Це про AI чи про документи?",
+    a: "Spravly — це про операційку ФОП: клієнти, інвойси/акти/КП, PDF, email-відправка, документи, todo та історія. AI — як помічник для текстів і рішень, щоб робити все швидше.",
   },
   {
-    q: "Чи безпечно додавати документи?",
-    a: "Так. Документи приватні, доступні тільки авторизованим користувачам твоєї організації.",
+    q: "Чим це краще за таблицю?",
+    a: "Тут усе повʼязано: клієнт → документ → PDF → відправка → історія. У таблиці це завжди ручний менеджмент і високий шанс щось загубити або зробити помилку.",
   },
   {
-    q: "Це заміна юриста?",
-    a: "Ні. Асистент допомагає читати/пояснювати/готувати чернетки, але фінальні юридичні рішення — за фахівцем.",
+    q: "Чи безпечно завантажувати документи?",
+    a: "Документи приватні й доступні лише авторизованим користувачам твоєї організації.",
+  },
+  {
+    q: "Який план обрати?",
+    a: "FREE — щоб відчути процес. BASIC — регулярна робота з інвойсами/актами/КП + email-відправка. PRO — безліміти, AI без обмежень, аналітика та експорт CSV/XLSX.",
   },
 ];
 
 const liveFeed = [
-  "Згенеровано відповідь клієнту (2 варіанти)",
-  "Створено офер для послуги + короткий опис",
-  "Пояснено договір: ризики + що уточнити",
-  "Складено FAQ для сайту (10 пунктів)",
-  "Підготовлено відповідь на негативний відгук",
+  "Створено інвойс + PDF",
+  "Відправлено документ клієнту на email",
+  "Згенеровано комерційну пропозицію + PDF",
+  "Сформовано акт виконаних робіт + PDF",
+  "AI підготував відповідь клієнту (2 варіанти)",
 ];
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
+
+function formatPrice(v: string | number) {
+  if (typeof v === "string") return v;
+  const fixed = Math.round(v * 100) / 100;
+  return fixed.toString();
+}
+
+function planAccent(planId: PlanId) {
+  if (planId === "BASIC") return "rgba(254,190,88,0.18)";
+  if (planId === "PRO") return "rgba(17,24,39,0.06)";
+  return "#fff";
+}
+
+/* ================== COMPONENT ================== */
 
 export default function AisdrStyleLanding() {
   const router = useRouter();
@@ -162,11 +356,12 @@ export default function AisdrStyleLanding() {
 
   const heroPills = useMemo(
     () => [
-      "Відповіді клієнтам",
-      "Документи",
-      "Контент",
-      "Сценарії",
-      "Історія діалогів",
+      "Клієнти",
+      "Інвойси + PDF",
+      "Акти + PDF",
+      "КП + PDF",
+      "Email-відправка",
+      "Todo + історія",
     ],
     [],
   );
@@ -181,6 +376,7 @@ export default function AisdrStyleLanding() {
           top: 0,
           zIndex: 1000,
           borderBottom: `1px solid ${BORDER}`,
+          backdropFilter: "blur(10px)",
         }}
       >
         <Container maxWidth="lg">
@@ -199,7 +395,6 @@ export default function AisdrStyleLanding() {
                 sx={{
                   width: 40,
                   height: 40,
-                  bgcolor: "#ffffff",
                   display: "grid",
                   placeItems: "center",
                 }}
@@ -217,10 +412,33 @@ export default function AisdrStyleLanding() {
               >
                 Spravly
               </Typography>
+
+              <Chip
+                size="small"
+                label="для ФОП"
+                sx={{
+                  ml: 1,
+                  bgcolor: "rgba(254,190,88,0.18)",
+                  color: DARK,
+                  border: `1px solid rgba(254,190,88,0.35)`,
+                  fontWeight: 950,
+                }}
+              />
             </Stack>
 
             <Stack direction="row" spacing={1.2} alignItems="center">
-              <Button onClick={() => router.push("/sign-in")} sx={navLinkSx}>
+              <Button
+                onClick={() => router.push("/sign-in")}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 900,
+                  color: DARK,
+                  borderRadius: 999,
+                  px: 1.8,
+                  py: 0.9,
+                  "&:hover": { bgcolor: "#f9fafb" },
+                }}
+              >
                 Увійти
               </Button>
               <Button
@@ -254,13 +472,13 @@ export default function AisdrStyleLanding() {
           overflow: "hidden",
         }}
       >
-        {/* pointer glow + subtle gradients */}
+        {/* pointer glow */}
         <Box
           sx={{
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
-            background: `radial-gradient(500px 260px at ${mouse.x}% ${mouse.y}%, rgba(243,107,22,0.16), transparent 60%),
+            background: `radial-gradient(560px 320px at ${mouse.x}% ${mouse.y}%, rgba(243,107,22,0.16), transparent 60%),
                          radial-gradient(900px 420px at 50% 0%, rgba(17,24,39,0.08), transparent 65%)`,
           }}
         />
@@ -274,28 +492,44 @@ export default function AisdrStyleLanding() {
             spacing={{ xs: 4, md: 6 }}
             alignItems="center"
             justifyContent="center"
-            sx={{ textAlign: { xs: "center", md: "center" } }}
           >
             {/* Left */}
-            <Grid item xs={12} md={12}>
-              <Stack
-                spacing={2.2}
-                alignItems={{ xs: "center", md: "center" }}
-                sx={{ px: { xs: 2, sm: 0 } }}
-              >
+            <Grid item xs={12} md={7}>
+              <Stack spacing={2.2} sx={{ px: { xs: 2, sm: 0 } }}>
                 <MotionBox
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45 }}
                 >
-                  <Chip
-                    label="Менше рутини • Більше продажів • Контекст бізнесу"
-                    sx={{
-                      ...pillSx,
-                      fontWeight: 950,
-                      borderRadius: 999,
-                    }}
-                  />
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    flexWrap="wrap"
+                    alignItems="center"
+                  >
+                    <Chip
+                      label="Менше рутини"
+                      sx={{ ...pillSx, borderRadius: 999 }}
+                    />
+                    <Chip
+                      label="Більше порядку"
+                      sx={{ ...pillSx, borderRadius: 999 }}
+                    />
+                    <Chip
+                      label="PDF + email"
+                      sx={{ ...pillSx, borderRadius: 999 }}
+                    />
+                    <Chip
+                      label="AI як турбо-кнопка"
+                      sx={{
+                        bgcolor: "rgba(254,190,88,0.18)",
+                        border: `1px solid rgba(254,190,88,0.35)`,
+                        color: DARK,
+                        fontWeight: 950,
+                        borderRadius: 999,
+                      }}
+                    />
+                  </Stack>
                 </MotionBox>
 
                 <MotionBox
@@ -312,10 +546,11 @@ export default function AisdrStyleLanding() {
                       lineHeight: 1.05,
                       fontSize: { xs: "2.1rem", sm: "2.7rem", md: "3.6rem" },
                       maxWidth: 760,
-                      mx: { xs: "auto", md: 0 },
                     }}
                   >
-                    AI-асистент, який знає твій бізнес і робить задачі за тебе
+                    Інвойси, акти й комерційні — в одному місці.
+                    <br />
+                    Плюс AI-помічник.
                   </Typography>
                 </MotionBox>
 
@@ -329,13 +564,13 @@ export default function AisdrStyleLanding() {
                       color: MUTED,
                       fontSize: { xs: "1.05rem", sm: "1.15rem" },
                       lineHeight: 1.8,
-                      maxWidth: 720,
-                      mx: { xs: "auto", md: 0 },
+                      maxWidth: 760,
                     }}
                   >
-                    Відповіді клієнтам, контент, документи та сценарії — в
-                    одному місці. Профіль бізнесу + документи = асистент
-                    відповідає точно і в твоєму стилі.
+                    Spravly допомагає ФОПу вести клієнтів, створювати
+                    інвойси/акти/КП з PDF, відправляти документи на email і
+                    тримати порядок у задачах. AI — щоб тексти й відповіді
+                    робились швидше.
                   </Typography>
                 </MotionBox>
 
@@ -343,15 +578,8 @@ export default function AisdrStyleLanding() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.24 }}
-                  sx={{ width: "100%" }}
                 >
-                  <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={1.5}
-                    justifyContent={{ xs: "center", md: "center" }}
-                    alignItems="center"
-                    sx={{ width: "100%" }}
-                  >
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                     <Button
                       variant="contained"
                       size="large"
@@ -365,11 +593,10 @@ export default function AisdrStyleLanding() {
                         px: 4,
                         py: 1.55,
                         boxShadow: "none",
-                        minWidth: { xs: "100%", sm: 240 },
                         "&:hover": { bgcolor: "#fdb17f", boxShadow: "none" },
                       }}
                     >
-                      Почати без налаштувань
+                      Почати безкоштовно
                     </Button>
                     <Button
                       variant="outlined"
@@ -383,7 +610,6 @@ export default function AisdrStyleLanding() {
                         borderRadius: 999,
                         px: 4,
                         py: 1.55,
-                        minWidth: { xs: "100%", sm: 240 },
                         "&:hover": {
                           borderColor: "#cbd5e1",
                           bgcolor: "#fafafa",
@@ -399,7 +625,6 @@ export default function AisdrStyleLanding() {
                   direction="row"
                   spacing={1}
                   flexWrap="wrap"
-                  justifyContent={{ xs: "center", md: "flex-start" }}
                   sx={{ pt: 1 }}
                 >
                   {heroPills.map((t, i) => (
@@ -418,11 +643,30 @@ export default function AisdrStyleLanding() {
                           border: `1px solid ${BORDER}`,
                           color: DARK,
                           fontWeight: 900,
-                          "& .MuiChip-icon": { ml: 0.5 },
                         }}
                       />
                     </MotionBox>
                   ))}
+                </Stack>
+
+                {/* mini trust-ish row */}
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={1}
+                  sx={{ pt: 0.8, color: MUTED }}
+                >
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <SecurityIcon sx={{ fontSize: 18, color: MUTED }} />
+                    <Typography sx={{ fontSize: 13 }}>
+                      Доступ лише для авторизованих користувачів організації
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <CheckCircleIcon sx={{ fontSize: 18, color: MUTED }} />
+                    <Typography sx={{ fontSize: 13 }}>
+                      Стартуєш за 5–10 хвилин — без “налаштувань на півдня”
+                    </Typography>
+                  </Stack>
                 </Stack>
               </Stack>
             </Grid>
@@ -442,6 +686,7 @@ export default function AisdrStyleLanding() {
                     border: `1px solid ${BORDER}`,
                     overflow: "hidden",
                     boxShadow: glassShadow,
+                    bgcolor: "#fff",
                   }}
                 >
                   <Box
@@ -469,13 +714,19 @@ export default function AisdrStyleLanding() {
                         <SmartToyIcon sx={{ color: DARK, fontSize: 18 }} />
                       </Box>
                       <Typography sx={{ fontWeight: 950, color: DARK }}>
-                        Як це виглядає
+                        Демо: як це виглядає
                       </Typography>
                     </Stack>
+
                     <Chip
                       size="small"
                       label="Live"
-                      sx={{ ...pillSx, fontWeight: 950 }}
+                      sx={{
+                        bgcolor: "rgba(254,190,88,0.18)",
+                        border: `1px solid rgba(254,190,88,0.35)`,
+                        color: DARK,
+                        fontWeight: 950,
+                      }}
                     />
                   </Box>
 
@@ -520,12 +771,12 @@ export default function AisdrStyleLanding() {
                           }}
                         >
                           <Typography sx={{ fontWeight: 950, fontSize: 13 }}>
-                            Ось 2 варіанти відповіді + тактика:
+                            Ось 2 варіанти + наступний крок:
                           </Typography>
                           <Typography
                             sx={{ mt: 0.8, fontSize: 13, lineHeight: 1.6 }}
                           >
-                            1) “Можу дати знижку при пакеті/обʼємі. Так ми
+                            1) “Можу дати знижку при пакеті/обʼємі. Так
                             збережемо якість і терміни.”
                             <br />
                             2) “Знижка можлива, якщо замінимо X на Y — результат
@@ -534,7 +785,8 @@ export default function AisdrStyleLanding() {
                           <Typography
                             sx={{ mt: 0.8, fontSize: 12, color: MUTED }}
                           >
-                            Підкажу, який варіант краще під твою аудиторію.
+                            Підкажу, як краще під твою аудиторію + можу
+                            сформувати текст для КП.
                           </Typography>
                         </Box>
                       </Box>
@@ -547,11 +799,35 @@ export default function AisdrStyleLanding() {
                         flexWrap="wrap"
                         justifyContent="center"
                       >
-                        {["Відповідь", "Офер", "Сценарій", "Документ"].map(
-                          (x) => (
-                            <Chip key={x} size="small" label={x} sx={pillSx} />
-                          ),
-                        )}
+                        {[
+                          {
+                            label: "Інвойс",
+                            icon: <ReceiptLongIcon sx={{ fontSize: 16 }} />,
+                          },
+                          {
+                            label: "Акт",
+                            icon: <DescriptionIcon sx={{ fontSize: 16 }} />,
+                          },
+                          {
+                            label: "КП",
+                            icon: <DescriptionIcon sx={{ fontSize: 16 }} />,
+                          },
+                          {
+                            label: "Email",
+                            icon: <EmailIcon sx={{ fontSize: 16 }} />,
+                          },
+                        ].map((x) => (
+                          <Chip
+                            key={x.label}
+                            size="small"
+                            icon={x.icon}
+                            label={x.label}
+                            sx={{
+                              ...pillSx,
+                              "& .MuiChip-icon": { color: DARK },
+                            }}
+                          />
+                        ))}
                       </Stack>
 
                       <Box
@@ -668,14 +944,15 @@ export default function AisdrStyleLanding() {
               color: DARK,
               letterSpacing: "-0.03em",
               fontSize: { xs: "1.8rem", sm: "2.2rem", md: "2.8rem" },
-              maxWidth: 900,
+              maxWidth: 980,
             }}
           >
-            Сервіс, який закриває щоденну бізнес-рутину
+            Сервіс, який закриває щоденну рутину ФОП
           </Typography>
-          <Typography sx={{ color: MUTED, maxWidth: 820, lineHeight: 1.8 }}>
-            Не “погрались і забули”. Це робочий інструмент: клієнти, контент,
-            документи, сценарії.
+          <Typography sx={{ color: MUTED, maxWidth: 900, lineHeight: 1.8 }}>
+            Не “чергова тулза”. Це місце, де у тебе зібрані клієнти, документи,
+            PDF, email-відправка, задачі та історія. AI — допомагає з текстами,
+            щоб не витрачати на це півдня.
           </Typography>
         </Stack>
 
@@ -692,22 +969,15 @@ export default function AisdrStyleLanding() {
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
-                transition={{ duration: 0.45, delay: idx * 0.06 }}
+                transition={{ duration: 0.45, delay: idx * 0.05 }}
                 whileHover={{ y: -4 }}
-                sx={{
-                  height: "100%",
-                  p: { xs: 3, md: 4 },
-                  borderRadius: 4,
-                  border: `1px solid ${BORDER}`,
-                  bgcolor: "#ffffff",
-                  boxShadow: "0 24px 60px rgba(15, 23, 42, 0.08)",
-                }}
+                sx={{ ...softCardSx, height: "100%", p: { xs: 3, md: 4 } }}
               >
                 <Stack spacing={1.4} alignItems="center" textAlign="center">
                   <Box
                     sx={{
-                      width: 52,
-                      height: 52,
+                      width: 56,
+                      height: 56,
                       borderRadius: 4,
                       border: `1px solid ${BORDER}`,
                       bgcolor: "#ffffff",
@@ -769,7 +1039,7 @@ export default function AisdrStyleLanding() {
         </Grid>
       </Container>
 
-      {/* VALUE / BENEFITS */}
+      {/* HOW IT WORKS */}
       <Box
         sx={{
           bgcolor: "#ffffff",
@@ -784,7 +1054,7 @@ export default function AisdrStyleLanding() {
             textAlign="center"
             sx={{ px: { xs: 2, sm: 0 } }}
           >
-            <Chip label="Чому це вигідно" sx={{ ...pillSx, fontWeight: 950 }} />
+            <Chip label="Як працює" sx={{ ...pillSx, fontWeight: 950 }} />
             <Typography
               variant="h2"
               sx={{
@@ -795,11 +1065,11 @@ export default function AisdrStyleLanding() {
                 maxWidth: 900,
               }}
             >
-              Одна підписка, яка економить час і гроші
+              4 кроки — і у тебе порядок
             </Typography>
             <Typography sx={{ color: MUTED, maxWidth: 820, lineHeight: 1.8 }}>
-              Асистент допомагає робити більше без розширення штату та без
-              нескінченних “поясни ще раз”.
+              Логіка проста: організація → клієнт → документ → PDF/відправка →
+              історія + задачі.
             </Typography>
           </Stack>
 
@@ -809,66 +1079,503 @@ export default function AisdrStyleLanding() {
             sx={{ mt: 3 }}
             justifyContent="center"
           >
-            {[
-              {
-                icon: <BoltIcon sx={{ color: ORANGE }} />,
-                title: "Замість 3 підрядників",
-                desc: "Відповіді, контент, документи — без копірайтера, маркетолога і “юриста на годину” на щодень.",
-              },
-              {
-                icon: <VerifiedIcon sx={{ color: ORANGE }} />,
-                title: "Не треба вчитись промптам",
-                desc: "Працюєш як з людиною: ставиш задачу — отримуєш готовий результат у твоєму стилі.",
-              },
-              {
-                icon: <SecurityIcon sx={{ color: ORANGE }} />,
-                title: "Конфіденційно",
-                desc: "Документи приватні, доступ лише для твоєї організації.",
-              },
-            ].map((b, idx) => (
-              <Grid item xs={12} md={4} key={b.title}>
+            {howItWorks.map((s, idx) => (
+              <Grid item xs={12} md={3} key={s.step}>
                 <MotionPaper
                   elevation={0}
                   initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.25 }}
                   transition={{ duration: 0.45, delay: idx * 0.06 }}
-                  sx={{
-                    height: "100%",
-                    p: 3,
-                    borderRadius: 4,
-                    border: `1px solid ${BORDER}`,
-                    bgcolor: "#ffffff",
-                    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.08)",
-                  }}
+                  sx={{ ...softCardSx, height: "100%", p: 3 }}
                 >
-                  <Stack spacing={1.2} alignItems="center" textAlign="center">
+                  <Stack spacing={1.1} alignItems="center" textAlign="center">
+                    <Chip
+                      label={`Крок ${s.step}`}
+                      sx={{
+                        bgcolor: "rgba(17,24,39,0.06)",
+                        border: `1px solid ${BORDER}`,
+                        color: DARK,
+                        fontWeight: 950,
+                      }}
+                    />
                     <Box
                       sx={{
                         width: 48,
                         height: 48,
                         borderRadius: 4,
                         border: `1px solid ${BORDER}`,
-                        bgcolor: "#ffffff",
+                        bgcolor: "#fff",
                         display: "grid",
                         placeItems: "center",
                       }}
                     >
-                      {b.icon}
+                      {s.icon}
                     </Box>
                     <Typography
-                      sx={{ fontWeight: 950, color: DARK, fontSize: 18 }}
+                      sx={{ fontWeight: 950, color: DARK, fontSize: 16 }}
                     >
-                      {b.title}
+                      {s.title}
                     </Typography>
-                    <Typography sx={{ color: MUTED, lineHeight: 1.8 }}>
-                      {b.desc}
+                    <Typography
+                      sx={{ color: MUTED, lineHeight: 1.8, fontSize: 14 }}
+                    >
+                      {s.desc}
                     </Typography>
                   </Stack>
                 </MotionPaper>
               </Grid>
             ))}
           </Grid>
+
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            justifyContent="center"
+            alignItems="center"
+            sx={{ mt: 4 }}
+          >
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => router.push("/sign-up")}
+              endIcon={<ArrowForwardIcon />}
+              sx={{
+                bgcolor: ORANGE,
+                textTransform: "none",
+                fontWeight: 950,
+                borderRadius: 999,
+                px: 4,
+                py: 1.55,
+                boxShadow: "none",
+                minWidth: { xs: "100%", sm: 260 },
+                "&:hover": { bgcolor: "#fdb17f", boxShadow: "none" },
+              }}
+            >
+              Створити акаунт
+            </Button>
+            <Tooltip title="Якщо хочеш лише глянути — можна стартувати на FREE">
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => router.push("/sign-in")}
+                sx={{
+                  borderColor: BORDER,
+                  color: DARK,
+                  textTransform: "none",
+                  fontWeight: 950,
+                  borderRadius: 999,
+                  px: 4,
+                  py: 1.55,
+                  minWidth: { xs: "100%", sm: 260 },
+                  "&:hover": { borderColor: "#cbd5e1", bgcolor: "#fafafa" },
+                }}
+              >
+                Увійти
+              </Button>
+            </Tooltip>
+          </Stack>
+        </Container>
+      </Box>
+
+      {/* VALUE / BENEFITS */}
+      <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+        <Stack
+          spacing={1.2}
+          alignItems="center"
+          textAlign="center"
+          sx={{ px: { xs: 2, sm: 0 } }}
+        >
+          <Chip label="Що зміниться" sx={{ ...pillSx, fontWeight: 950 }} />
+          <Typography
+            variant="h2"
+            sx={{
+              fontWeight: 950,
+              color: DARK,
+              letterSpacing: "-0.03em",
+              fontSize: { xs: "1.8rem", sm: "2.2rem", md: "2.8rem" },
+              maxWidth: 980,
+            }}
+          >
+            Тиждень зі Spravly — і ти відчуєш різницю
+          </Typography>
+          <Typography sx={{ color: MUTED, maxWidth: 880, lineHeight: 1.8 }}>
+            Не магія й не “ще один сервіс”. Просто зникає хаос: документи в
+            одному місці, клієнти з історією, відправка з системи, а тексти не
+            з’їдають купу часу.
+          </Typography>
+        </Stack>
+
+        <Grid
+          container
+          spacing={{ xs: 2.5, md: 3 }}
+          sx={{ mt: 3 }}
+          justifyContent="center"
+        >
+          {outcomes7days.map((b, idx) => (
+            <Grid item xs={12} md={3} key={b.title}>
+              <MotionPaper
+                elevation={0}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: idx * 0.06 }}
+                sx={{ ...softCardSx, height: "100%", p: 3 }}
+              >
+                <Stack spacing={1.2} alignItems="center" textAlign="center">
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 4,
+                      border: `1px solid ${BORDER}`,
+                      bgcolor: "#fff",
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    {b.icon}
+                  </Box>
+                  <Typography
+                    sx={{ fontWeight: 950, color: DARK, fontSize: 16 }}
+                  >
+                    {b.title}
+                  </Typography>
+                  <Typography
+                    sx={{ color: MUTED, lineHeight: 1.8, fontSize: 14 }}
+                  >
+                    {b.desc}
+                  </Typography>
+                </Stack>
+              </MotionPaper>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* micro-story row */}
+        <Grid container spacing={3} sx={{ mt: 3 }} justifyContent="center">
+          <Grid item xs={12} md={6}>
+            <Paper elevation={0} sx={{ ...softCardSx, p: 3 }}>
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <BoltIcon sx={{ color: ORANGE }} />
+                  <Typography sx={{ fontWeight: 950, color: DARK }}>
+                    Мікро-сценарій, який знайомий кожному ФОП
+                  </Typography>
+                </Stack>
+                <Typography sx={{ color: MUTED, lineHeight: 1.8 }}>
+                  Було: “знайти шаблон → підставити реквізити → зберегти PDF →
+                  написати лист → прикріпити файл → згадати, кому що відправив”.
+                  <br />
+                  Стало: “клієнт → документ → PDF → відправка → історія”. І це
+                  не дрібниця — це щоденна економія часу.
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper elevation={0} sx={{ ...softCardSx, p: 3 }}>
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <SmartToyIcon sx={{ color: ORANGE }} />
+                  <Typography sx={{ fontWeight: 950, color: DARK }}>
+                    AI не “замість тебе” — він “разом з тобою”
+                  </Typography>
+                </Stack>
+                <Typography sx={{ color: MUTED, lineHeight: 1.8 }}>
+                  Коли треба швидко: відповідь клієнту, текст для КП,
+                  формулювання умов, ввічлива відмова, реакція на “давайте
+                  дешевше”. Ти задаєш контекст — AI підкидає готові варіанти.
+                </Typography>
+              </Stack>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+
+      {/* PRICING */}
+      <Box
+        sx={{
+          bgcolor: "#ffffff",
+          borderTop: `1px solid ${BORDER}`,
+          borderBottom: `1px solid ${BORDER}`,
+        }}
+      >
+        <Container maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
+          <Stack
+            spacing={1.2}
+            alignItems="center"
+            textAlign="center"
+            sx={{ px: { xs: 2, sm: 0 } }}
+          >
+            <Chip label="Тарифи" sx={{ ...pillSx, fontWeight: 950 }} />
+            <Typography
+              variant="h2"
+              sx={{
+                fontWeight: 950,
+                color: DARK,
+                letterSpacing: "-0.03em",
+                fontSize: { xs: "1.8rem", sm: "2.2rem", md: "2.8rem" },
+                maxWidth: 980,
+              }}
+            >
+              Обери рівень під свої обсяги
+            </Typography>
+            <Typography sx={{ color: MUTED, maxWidth: 900, lineHeight: 1.8 }}>
+              FREE — щоб спробувати. BASIC — коли документи вже щодня. PRO —
+              коли хочеш безліміти, аналітику та експорт.
+            </Typography>
+          </Stack>
+
+          <Grid
+            container
+            spacing={{ xs: 2.5, md: 3 }}
+            sx={{ mt: 3 }}
+            justifyContent="center"
+          >
+            {PLANS.map((p, idx) => (
+              <Grid item xs={12} md={4} key={p.id}>
+                <MotionPaper
+                  elevation={0}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.45, delay: idx * 0.06 }}
+                  whileHover={{ y: -4 }}
+                  sx={{
+                    ...softCardSx,
+                    height: "100%",
+                    p: 3,
+                    position: "relative",
+                    overflow: "hidden",
+                    border: p.highlight
+                      ? `2px solid rgba(254,190,88,0.55)`
+                      : `1px solid ${BORDER}`,
+                  }}
+                >
+                  {/* subtle top glow */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: -80,
+                      left: -80,
+                      width: 220,
+                      height: 220,
+                      borderRadius: "50%",
+                      background: `radial-gradient(circle, ${planAccent(p.id)} 0%, transparent 60%)`,
+                      pointerEvents: "none",
+                    }}
+                  />
+
+                  <Stack spacing={1.3} sx={{ position: "relative" }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                      justifyContent="space-between"
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Box
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            border: `1px solid ${BORDER}`,
+                            display: "grid",
+                            placeItems: "center",
+                            bgcolor: "#fff",
+                          }}
+                        >
+                          {p.id === "PRO" ? (
+                            <WorkspacePremiumIcon
+                              sx={{ color: DARK, fontSize: 18 }}
+                            />
+                          ) : p.id === "BASIC" ? (
+                            <BoltIcon sx={{ color: DARK, fontSize: 18 }} />
+                          ) : (
+                            <VerifiedIcon sx={{ color: DARK, fontSize: 18 }} />
+                          )}
+                        </Box>
+                        <Typography
+                          sx={{ fontWeight: 950, color: DARK, fontSize: 18 }}
+                        >
+                          {p.title}
+                        </Typography>
+                      </Stack>
+
+                      {p.highlight ? (
+                        <Chip
+                          label="Найкращий старт"
+                          size="small"
+                          sx={{
+                            bgcolor: "rgba(254,190,88,0.18)",
+                            border: `1px solid rgba(254,190,88,0.35)`,
+                            color: DARK,
+                            fontWeight: 950,
+                          }}
+                        />
+                      ) : null}
+                    </Stack>
+
+                    <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                      {p.subtitle}
+                    </Typography>
+
+                    <Stack direction="row" spacing={1} alignItems="baseline">
+                      <Typography
+                        sx={{
+                          fontWeight: 950,
+                          color: DARK,
+                          fontSize: 34,
+                          letterSpacing: "-0.03em",
+                        }}
+                      >
+                        {p.currency}
+                        {formatPrice(p.priceMonthly)}
+                      </Typography>
+                      <Typography sx={{ color: MUTED }}>/ місяць</Typography>
+                    </Stack>
+
+                    <Button
+                      variant={p.highlight ? "contained" : "outlined"}
+                      onClick={() => router.push("/sign-up")}
+                      endIcon={<ArrowForwardIcon />}
+                      sx={{
+                        mt: 0.5,
+                        textTransform: "none",
+                        fontWeight: 950,
+                        borderRadius: 999,
+                        py: 1.2,
+                        bgcolor: p.highlight ? ORANGE : "transparent",
+                        color: p.highlight ? DARK : DARK,
+                        borderColor: p.highlight ? "transparent" : BORDER,
+                        boxShadow: "none",
+                        "&:hover": {
+                          bgcolor: p.highlight ? "#fdb17f" : "#fafafa",
+                          boxShadow: "none",
+                          borderColor: p.highlight ? "transparent" : "#cbd5e1",
+                        },
+                      }}
+                    >
+                      {p.ctaLabel}
+                    </Button>
+
+                    <Divider sx={{ my: 1.2 }} />
+
+                    <Typography
+                      sx={{ fontWeight: 950, color: DARK, fontSize: 14 }}
+                    >
+                      Що входить:
+                    </Typography>
+
+                    <List dense sx={{ py: 0 }}>
+                      {p.features.map((x) => (
+                        <ListItem key={x} sx={{ py: 0.3 }}>
+                          <ListItemIcon sx={{ minWidth: 28 }}>
+                            <CheckCircleIcon
+                              sx={{ color: ORANGE, fontSize: 18 }}
+                            />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={x}
+                            primaryTypographyProps={{
+                              sx: {
+                                color: MUTED,
+                                fontSize: 14,
+                                lineHeight: 1.6,
+                              },
+                            }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+
+                    {p.limits?.length ? (
+                      <>
+                        <Divider sx={{ my: 1.2 }} />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <WarningAmberIcon
+                            sx={{ color: MUTED, fontSize: 18 }}
+                          />
+                          <Typography
+                            sx={{ fontWeight: 950, color: DARK, fontSize: 14 }}
+                          >
+                            Недоступно на цьому плані:
+                          </Typography>
+                        </Stack>
+                        <List dense sx={{ py: 0 }}>
+                          {p.limits.map((x) => (
+                            <ListItem key={x} sx={{ py: 0.25 }}>
+                              <ListItemIcon sx={{ minWidth: 28 }}>
+                                <Box
+                                  sx={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: 999,
+                                    bgcolor: "rgba(100,116,139,0.6)",
+                                    ml: 1,
+                                  }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={x}
+                                primaryTypographyProps={{
+                                  sx: {
+                                    color: MUTED,
+                                    fontSize: 13.5,
+                                    lineHeight: 1.6,
+                                  },
+                                }}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </>
+                    ) : null}
+                  </Stack>
+                </MotionPaper>
+              </Grid>
+            ))}
+          </Grid>
+
+          <Paper elevation={0} sx={{ ...softCardSx, mt: 3, p: 2.5 }}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              alignItems={{ xs: "flex-start", md: "center" }}
+              justifyContent="space-between"
+            >
+              <Stack spacing={0.5}>
+                <Typography sx={{ fontWeight: 950, color: DARK }}>
+                  Підказка по вибору
+                </Typography>
+                <Typography sx={{ color: MUTED, lineHeight: 1.7 }}>
+                  Якщо ти вже регулярно виставляєш інвойси й відправляєш
+                  документи клієнтам — найчастіше заходить BASIC. Якщо хочеш
+                  аналітику/експорт і безліміти — PRO.
+                </Typography>
+              </Stack>
+              <Button
+                variant="contained"
+                onClick={() => router.push("/sign-up")}
+                endIcon={<ArrowForwardIcon />}
+                sx={{
+                  bgcolor: DARK,
+                  color: "#fff",
+                  textTransform: "none",
+                  fontWeight: 950,
+                  borderRadius: 999,
+                  px: 3,
+                  py: 1.2,
+                  boxShadow: "none",
+                  "&:hover": { bgcolor: "#000", boxShadow: "none" },
+                  minWidth: { xs: "100%", md: 240 },
+                }}
+              >
+                Почати зараз
+              </Button>
+            </Stack>
+          </Paper>
         </Container>
       </Box>
 
@@ -891,7 +1598,10 @@ export default function AisdrStyleLanding() {
               maxWidth: 780,
             }}
           >
-            Відповіді на часті питання
+            Часті питання
+          </Typography>
+          <Typography sx={{ color: MUTED, maxWidth: 820, lineHeight: 1.8 }}>
+            Коротко й по суті — щоб не шукати відповідь по чатам.
           </Typography>
         </Stack>
 
@@ -965,17 +1675,20 @@ export default function AisdrStyleLanding() {
               >
                 Почни сьогодні — і завтра буде легше
               </Typography>
+
               <Typography
                 sx={{
                   color: MUTED,
-                  maxWidth: 900,
+                  maxWidth: 920,
                   mx: "auto",
                   lineHeight: 1.8,
                   mb: 2.5,
                 }}
               >
-                Реєстрація → профіль бізнесу → документи → чат. 5–10 хвилин, і
-                асистент працює в твоєму контексті.
+                Реєстрація → організація → клієнт → документ → PDF → відправка.
+                <br />
+                5–10 хвилин — і в тебе вже не “хаос у файлах”, а нормальний
+                процес.
               </Typography>
 
               <Stack
@@ -983,7 +1696,7 @@ export default function AisdrStyleLanding() {
                 spacing={1.5}
                 justifyContent="center"
                 alignItems="center"
-                sx={{ maxWidth: 700, mx: "auto" }}
+                sx={{ maxWidth: 720, mx: "auto" }}
               >
                 <Button
                   variant="contained"
@@ -998,8 +1711,8 @@ export default function AisdrStyleLanding() {
                     px: 4,
                     py: 1.55,
                     boxShadow: "none",
-                    minWidth: { xs: "100%", sm: 240 },
-                    "&:hover": { bgcolor: "#d95a0f", boxShadow: "none" },
+                    minWidth: { xs: "100%", sm: 260 },
+                    "&:hover": { bgcolor: "#fdb17f", boxShadow: "none" },
                   }}
                 >
                   Створити акаунт
@@ -1016,7 +1729,7 @@ export default function AisdrStyleLanding() {
                     borderRadius: 999,
                     px: 4,
                     py: 1.55,
-                    minWidth: { xs: "100%", sm: 240 },
+                    minWidth: { xs: "100%", sm: 260 },
                     "&:hover": { borderColor: "#cbd5e1", bgcolor: "#fafafa" },
                   }}
                 >
@@ -1032,10 +1745,11 @@ export default function AisdrStyleLanding() {
                 sx={{ pt: 2 }}
               >
                 {[
-                  "Без промптів",
-                  "Контекст бізнесу",
+                  "PDF в 1 клік",
+                  "Email-відправка",
+                  "Клієнти з історією",
+                  "AI для текстів",
                   "Документи приватні",
-                  "Історія діалогів",
                 ].map((t) => (
                   <Chip
                     key={t}
@@ -1083,12 +1797,14 @@ export default function AisdrStyleLanding() {
             <Typography
               sx={{
                 color: "rgba(255,255,255,0.72)",
-                maxWidth: 720,
+                maxWidth: 820,
                 lineHeight: 1.8,
               }}
             >
-              Менше рутини — більше системності. Відповіді клієнтам, контент і
-              документи — в одному місці.
+              Клієнти, інвойси/акти/КП, PDF та відправка на email — в одному
+              місці.
+              <br />
+              Менше рутини — більше контролю.
             </Typography>
 
             <Divider
