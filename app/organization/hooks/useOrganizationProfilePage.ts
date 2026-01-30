@@ -24,17 +24,33 @@ type Organization = {
   targetAudience?: string | null;
   brandStyle?: string | null;
 
-  // ✅ Payment details (shared for UA + International)
-  legalName?: string | null;
-  legalAddress?: string | null;
-  vatId?: string | null;
-  registrationNumber?: string | null;
-  iban?: string | null;
-  swiftBic?: string | null;
-  bankName?: string | null;
-  bankAddress?: string | null;
-  beneficiaryName?: string | null;
-  paymentReferenceHint?: string | null;
+  // =========================
+  // ✅ UA payment details
+  // =========================
+  uaCompanyName?: string | null;
+  uaCompanyAddress?: string | null;
+  uaEdrpou?: string | null;
+  uaIpn?: string | null;
+  uaIban?: string | null;
+  uaBankName?: string | null;
+  uaMfo?: string | null;
+  uaAccountNumber?: string | null;
+  uaBeneficiaryName?: string | null;
+  uaPaymentPurposeHint?: string | null;
+
+  // =========================
+  // ✅ International payment details
+  // =========================
+  intlLegalName?: string | null;
+  intlBeneficiaryName?: string | null;
+  intlLegalAddress?: string | null;
+  intlVatId?: string | null;
+  intlRegistrationNumber?: string | null;
+  intlIban?: string | null;
+  intlSwiftBic?: string | null;
+  intlBankName?: string | null;
+  intlBankAddress?: string | null;
+  intlPaymentReferenceHint?: string | null;
 };
 
 type OrganizationMembership = { organization: Organization };
@@ -51,17 +67,33 @@ export type FormValues = {
   targetAudience: string;
   brandStyle: string;
 
-  // payment details (shared)
-  legalName: string;
-  beneficiaryName: string;
-  legalAddress: string;
-  vatId: string;
-  registrationNumber: string;
-  iban: string;
-  swiftBic: string;
-  bankName: string;
-  bankAddress: string;
-  paymentReferenceHint: string;
+  // =========================
+  // ✅ UA payment details
+  // =========================
+  uaCompanyName: string;
+  uaCompanyAddress: string;
+  uaEdrpou: string;
+  uaIpn: string;
+  uaIban: string;
+  uaBankName: string;
+  uaMfo: string;
+  uaAccountNumber: string;
+  uaBeneficiaryName: string;
+  uaPaymentPurposeHint: string;
+
+  // =========================
+  // ✅ International payment details
+  // =========================
+  intlLegalName: string;
+  intlBeneficiaryName: string;
+  intlLegalAddress: string;
+  intlVatId: string;
+  intlRegistrationNumber: string;
+  intlIban: string;
+  intlSwiftBic: string;
+  intlBankName: string;
+  intlBankAddress: string;
+  intlPaymentReferenceHint: string;
 };
 
 type ViewMode = "view" | "edit" | "create";
@@ -76,16 +108,27 @@ const emptyForm: FormValues = {
   targetAudience: "",
   brandStyle: "",
 
-  legalName: "",
-  beneficiaryName: "",
-  legalAddress: "",
-  vatId: "",
-  registrationNumber: "",
-  iban: "",
-  swiftBic: "",
-  bankName: "",
-  bankAddress: "",
-  paymentReferenceHint: "",
+  uaCompanyName: "",
+  uaCompanyAddress: "",
+  uaEdrpou: "",
+  uaIpn: "",
+  uaIban: "",
+  uaBankName: "",
+  uaMfo: "",
+  uaAccountNumber: "",
+  uaBeneficiaryName: "",
+  uaPaymentPurposeHint: "",
+
+  intlLegalName: "",
+  intlBeneficiaryName: "",
+  intlLegalAddress: "",
+  intlVatId: "",
+  intlRegistrationNumber: "",
+  intlIban: "",
+  intlSwiftBic: "",
+  intlBankName: "",
+  intlBankAddress: "",
+  intlPaymentReferenceHint: "",
 };
 
 const mapOrgToForm = (org: Organization): FormValues => ({
@@ -98,16 +141,27 @@ const mapOrgToForm = (org: Organization): FormValues => ({
   targetAudience: org.targetAudience ?? "",
   brandStyle: org.brandStyle ?? "",
 
-  legalName: org.legalName ?? "",
-  beneficiaryName: org.beneficiaryName ?? "",
-  legalAddress: org.legalAddress ?? "",
-  vatId: org.vatId ?? "",
-  registrationNumber: org.registrationNumber ?? "",
-  iban: org.iban ?? "",
-  swiftBic: org.swiftBic ?? "",
-  bankName: org.bankName ?? "",
-  bankAddress: org.bankAddress ?? "",
-  paymentReferenceHint: org.paymentReferenceHint ?? "",
+  uaCompanyName: org.uaCompanyName ?? "",
+  uaCompanyAddress: org.uaCompanyAddress ?? "",
+  uaEdrpou: org.uaEdrpou ?? "",
+  uaIpn: org.uaIpn ?? "",
+  uaIban: org.uaIban ?? "",
+  uaBankName: org.uaBankName ?? "",
+  uaMfo: org.uaMfo ?? "",
+  uaAccountNumber: org.uaAccountNumber ?? "",
+  uaBeneficiaryName: org.uaBeneficiaryName ?? "",
+  uaPaymentPurposeHint: org.uaPaymentPurposeHint ?? "",
+
+  intlLegalName: org.intlLegalName ?? "",
+  intlBeneficiaryName: org.intlBeneficiaryName ?? "",
+  intlLegalAddress: org.intlLegalAddress ?? "",
+  intlVatId: org.intlVatId ?? "",
+  intlRegistrationNumber: org.intlRegistrationNumber ?? "",
+  intlIban: org.intlIban ?? "",
+  intlSwiftBic: org.intlSwiftBic ?? "",
+  intlBankName: org.intlBankName ?? "",
+  intlBankAddress: org.intlBankAddress ?? "",
+  intlPaymentReferenceHint: org.intlPaymentReferenceHint ?? "",
 });
 
 const calculateProfileCompletion = (form: FormValues): number => {
@@ -128,7 +182,7 @@ const calculateProfileCompletion = (form: FormValues): number => {
 // ================================
 // ✅ Payment readiness validation
 // ================================
-type PaymentReadiness = {
+export type PaymentReadiness = {
   ua: { ready: boolean; missing: string[] };
   international: { ready: boolean; missing: string[] };
 };
@@ -136,37 +190,45 @@ type PaymentReadiness = {
 const normalize = (v?: string | null) => (v ?? "").trim();
 
 function computePaymentReadiness(form: FormValues): PaymentReadiness {
-  // IMPORTANT:
-  // - org.name завжди існує, але для "оплати" бажано мати beneficiary/legalName.
-  // - мінімум для UA: IBAN + Bank name + (Beneficiary OR Legal name OR Org name)
-  // - мінімум для INTL: IBAN + SWIFT/BIC + Bank name + Beneficiary(або legalName/name)
   const missingUa: string[] = [];
   const missingIntl: string[] = [];
 
-  const hasBeneficiary =
-    Boolean(normalize(form.beneficiaryName)) ||
-    Boolean(normalize(form.legalName)) ||
-    Boolean(normalize(form.name));
+  // UA requirements
+  if (!normalize(form.uaBeneficiaryName) && !normalize(form.uaCompanyName)) {
+    missingUa.push("Отримувач (uaBeneficiaryName) або Назва (uaCompanyName)");
+  }
+  if (!normalize(form.uaIban)) missingUa.push("IBAN (uaIban)");
+  if (!normalize(form.uaBankName)) missingUa.push("Назва банку (uaBankName)");
+  // optional but часто треба
+  // if (!normalize(form.uaEdrpou)) missingUa.push("ЄДРПОУ (uaEdrpou)");
 
-  const hasIban = Boolean(normalize(form.iban));
-  const hasBankName = Boolean(normalize(form.bankName));
-  const hasSwift = Boolean(normalize(form.swiftBic));
-
-  // UA
-  if (!hasBeneficiary) missingUa.push("Отримувач (Beneficiary / Legal name)");
-  if (!hasIban) missingUa.push("IBAN");
-  if (!hasBankName) missingUa.push("Назва банку");
-
-  // International
-  if (!hasBeneficiary) missingIntl.push("Beneficiary / Legal name");
-  if (!hasIban) missingIntl.push("IBAN");
-  if (!hasSwift) missingIntl.push("SWIFT / BIC");
-  if (!hasBankName) missingIntl.push("Bank name");
+  // Intl requirements
+  if (!normalize(form.intlBeneficiaryName) && !normalize(form.intlLegalName)) {
+    missingIntl.push("Beneficiary або Legal name");
+  }
+  if (!normalize(form.intlIban)) missingIntl.push("IBAN (intlIban)");
+  if (!normalize(form.intlSwiftBic))
+    missingIntl.push("SWIFT / BIC (intlSwiftBic)");
+  if (!normalize(form.intlBankName))
+    missingIntl.push("Bank name (intlBankName)");
 
   return {
     ua: { ready: missingUa.length === 0, missing: missingUa },
     international: { ready: missingIntl.length === 0, missing: missingIntl },
   };
+}
+
+// ✅ максимально “терпимий” витяг id з response create
+function getCreatedOrgId(d: any): string | null {
+  const candidate =
+    d?.id ??
+    d?.organization?.id ??
+    d?.data?.id ??
+    d?.data?.organization?.id ??
+    d?.item?.organization?.id ??
+    d?.item?.id;
+
+  return typeof candidate === "string" && candidate.trim() ? candidate : null;
 }
 
 export function useOrganizationProfilePage() {
@@ -177,6 +239,7 @@ export function useOrganizationProfilePage() {
     data,
     isLoading: isOrgLoading,
     isError,
+    refetch: refetchOrganization,
   } = useOrganization(currentUserId || undefined);
 
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -190,6 +253,16 @@ export function useOrganizationProfilePage() {
   });
 
   const closeSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
+
+  const orgIdFromQuery = useMemo(() => {
+    const typed = data as OrganizationsForUserResponse | undefined;
+    const id = typed?.items?.[0]?.organization?.id;
+    return typeof id === "string" && id.trim() ? id : null;
+  }, [data]);
+
+  const effectiveOrgId = organization?.id?.trim()
+    ? organization.id
+    : orgIdFromQuery;
 
   useEffect(() => {
     if (!data) return;
@@ -210,15 +283,17 @@ export function useOrganizationProfilePage() {
 
   const { mutate: createOrganization, isLoading: isCreating } =
     useCreateOrganization({
-      onSuccess: (_d, { values }) => {
+      onSuccess: async (d: any, { values }: any) => {
         setSnackbar({
           open: true,
           message: "Профіль створено",
           severity: "success",
         });
 
+        const createdId = getCreatedOrgId(d);
+
         setOrganization((prev) => ({
-          id: prev?.id ?? "",
+          id: createdId ?? prev?.id ?? "",
           name: values.name,
           industry: values.industry || null,
           description: values.description || null,
@@ -233,20 +308,34 @@ export function useOrganizationProfilePage() {
           targetAudience: values.targetAudience || null,
           brandStyle: values.brandStyle || null,
 
-          legalName: values.legalName || null,
-          beneficiaryName: values.beneficiaryName || null,
-          legalAddress: values.legalAddress || null,
-          vatId: values.vatId || null,
-          registrationNumber: values.registrationNumber || null,
-          iban: values.iban || null,
-          swiftBic: values.swiftBic || null,
-          bankName: values.bankName || null,
-          bankAddress: values.bankAddress || null,
-          paymentReferenceHint: values.paymentReferenceHint || null,
+          // UA
+          uaCompanyName: values.uaCompanyName || null,
+          uaCompanyAddress: values.uaCompanyAddress || null,
+          uaEdrpou: values.uaEdrpou || null,
+          uaIpn: values.uaIpn || null,
+          uaIban: values.uaIban || null,
+          uaBankName: values.uaBankName || null,
+          uaMfo: values.uaMfo || null,
+          uaAccountNumber: values.uaAccountNumber || null,
+          uaBeneficiaryName: values.uaBeneficiaryName || null,
+          uaPaymentPurposeHint: values.uaPaymentPurposeHint || null,
+
+          // Intl
+          intlLegalName: values.intlLegalName || null,
+          intlBeneficiaryName: values.intlBeneficiaryName || null,
+          intlLegalAddress: values.intlLegalAddress || null,
+          intlVatId: values.intlVatId || null,
+          intlRegistrationNumber: values.intlRegistrationNumber || null,
+          intlIban: values.intlIban || null,
+          intlSwiftBic: values.intlSwiftBic || null,
+          intlBankName: values.intlBankName || null,
+          intlBankAddress: values.intlBankAddress || null,
+          intlPaymentReferenceHint: values.intlPaymentReferenceHint || null,
         }));
 
         setForm(values);
         setMode("view");
+        await refetchOrganization();
       },
       onError: (error: any) => {
         console.error(error);
@@ -261,7 +350,7 @@ export function useOrganizationProfilePage() {
 
   const { mutate: updateOrganization, isLoading: isUpdating } =
     useUpdateOrganization({
-      onSuccess: (_d, { values }) => {
+      onSuccess: (_d: any, { values }: any) => {
         setSnackbar({
           open: true,
           message: "Зміни збережено",
@@ -291,14 +380,24 @@ export function useOrganizationProfilePage() {
       );
     };
 
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form || !currentUserId) return;
 
-    if (organization) {
+    if (organization && !effectiveOrgId) {
+      setSnackbar({
+        open: true,
+        message: "Організація ще створюється. Спробуй ще раз за секунду.",
+        severity: "error",
+      });
+      await refetchOrganization();
+      return;
+    }
+
+    if (effectiveOrgId) {
       updateOrganization({
         values: form,
-        organizationId: organization.id,
+        organizationId: effectiveOrgId,
         currentUserId,
       });
     } else {
@@ -334,6 +433,7 @@ export function useOrganizationProfilePage() {
   };
 
   return {
+    refetchOrganization,
     currentUserId,
     userData,
     organization,
@@ -346,7 +446,7 @@ export function useOrganizationProfilePage() {
     isLoading,
     isError,
     hasOrganization,
-    paymentReadiness, // ✅ NEW
+    paymentReadiness,
     actions: {
       onChange,
       onSubmit,

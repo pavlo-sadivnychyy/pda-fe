@@ -57,7 +57,7 @@ export const ServicesCard = ({
             "&:hover": { bgcolor: "#0b1220" },
           }}
         >
-          Додати послугу
+          Додати
         </Button>
       </Box>
 

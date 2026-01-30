@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Chip,
   Stack,
   Typography,
 } from "@mui/material";
@@ -23,7 +24,6 @@ export function AssistantInfoCard() {
   const items = [
     "відповідати з урахуванням вашої ніші, послуг та аудиторії;",
     "формувати тексти у стилі вашого бренду;",
-    "швидше створювати комерційні пропозиції, листи, описи послуг, контент та документи;",
     "пропонувати релевантні ідеї, сценарії продажів та автоматизацію саме для вашого бізнесу.",
   ];
 
@@ -56,22 +56,51 @@ export function AssistantInfoCard() {
           </Typography>
         }
       />
+
       <CardContent>
         <Stack spacing={1.2}>
           <Typography variant="body2" sx={{ color: "#111827" }}>
             Асистент враховує ці дані, щоб:
           </Typography>
 
-          {items.map((t) => (
-            <Stack key={t} direction="row" spacing={1} alignItems="flex-start">
-              <CheckCircleIcon
-                sx={{ fontSize: 18, color: "#16a34a", mt: "2px" }}
+          {/* ✅ Chips in one line (wrap if not enough space) */}
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1,
+              alignItems: "center",
+            }}
+          >
+            {items.map((t) => (
+              <Chip
+                key={t}
+                icon={
+                  <CheckCircleIcon
+                    sx={{
+                      fontSize: 18,
+                      color: "#16a34a !important",
+                    }}
+                  />
+                }
+                label={t}
+                variant="outlined"
+                sx={{
+                  borderRadius: 999,
+                  bgcolor: "#f8fafc",
+                  borderColor: "#e2e8f0",
+                  color: "#334155",
+                  fontSize: 13,
+                  height: 34,
+                  "& .MuiChip-label": {
+                    px: 1,
+                    py: 0,
+                    whiteSpace: "nowrap",
+                  },
+                }}
               />
-              <Typography variant="body2" sx={{ color: "#334155" }}>
-                {t}
-              </Typography>
-            </Stack>
-          ))}
+            ))}
+          </Box>
 
           <Typography variant="body2" sx={{ color: "#64748B", mt: 1 }}>
             Ви можете оновлювати профіль у будь-який момент — асистент

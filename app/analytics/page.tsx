@@ -142,12 +142,61 @@ function PaywallState({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
+function AnalyticsContent({ organizationId }: { organizationId: string }) {
+  const {
+    data,
+    currency,
+    totals,
+    totalAll,
+    periodLabel,
+    showSpinner,
+    errorText,
+  } = useFinancialAnalytics(organizationId);
+
+  return (
+    <>
+      <AnalyticsHeader periodLabel={periodLabel} />
+
+      {showSpinner && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {!showSpinner && errorText && (
+        <Box sx={{ py: 4 }}>
+          <Typography color="error" align="center">
+            {errorText}
+          </Typography>
+        </Box>
+      )}
+
+      {!showSpinner && !errorText && data && (
+        <>
+          <KpiCards
+            currency={currency}
+            paid={totals.paid}
+            outstanding={totals.outstanding}
+            overdue={totals.overdue}
+            totalAll={totalAll}
+          />
+
+          <DonutCard
+            currency={currency}
+            paid={totals.paid}
+            outstanding={totals.outstanding}
+            overdue={totals.overdue}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 const FinancialAnalyticsPage: React.FC = () => {
   const router = useRouter();
   const { organizationId, planId, isUserLoading, isOrgLoading } =
     useOrganizationContext();
-
-  // ✅ якщо нема org — показуємо empty state
 
   const isBootstrapping =
     isUserLoading || isOrgLoading || typeof planId === "undefined";
@@ -232,7 +281,6 @@ const FinancialAnalyticsPage: React.FC = () => {
             flexDirection: "column",
           }}
         >
-          {/* Header */}
           <Box sx={{ mb: 2.5 }}>
             <Button
               onClick={() => router.push("/dashboard")}
@@ -288,7 +336,6 @@ const FinancialAnalyticsPage: React.FC = () => {
             </Typography>
           </Box>
 
-          {/* Center */}
           <Box
             sx={{
               flex: 1,
@@ -305,21 +352,10 @@ const FinancialAnalyticsPage: React.FC = () => {
     );
   }
 
-  // ✅ тепер можна безпечно вантажити аналітику
-  const {
-    data,
-    currency,
-    totals,
-    totalAll,
-    periodLabel,
-    showSpinner,
-    errorText,
-  } = useFinancialAnalytics(organizationId);
-
+  // ✅ organizationId є, planId === "PRO" — можна рендерити контент, який юзає хук
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", padding: "32px 0" }}>
       <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-        {/* ✅ Уніфікований сторінковий хедер */}
         <Box sx={{ mb: 2.5 }}>
           <Button
             onClick={() => router.push("/dashboard")}
@@ -358,7 +394,8 @@ const FinancialAnalyticsPage: React.FC = () => {
             </Stack>
 
             <Chip
-              label={periodLabel}
+              // periodLabel тепер всередині AnalyticsContent, тому тут залишимо статичний плейсхолдер
+              label="Період"
               size="small"
               sx={{
                 bgcolor: "#ffffff",
@@ -374,7 +411,6 @@ const FinancialAnalyticsPage: React.FC = () => {
             платежі та загальна картина по інвойсах.
           </Typography>
 
-          {/* ✅ Friendly hint block */}
           <Box sx={{ mt: 2 }}>
             <Alert
               icon={<ErrorOutlineIcon sx={{ fontSize: 20 }} />}
@@ -439,7 +475,6 @@ const FinancialAnalyticsPage: React.FC = () => {
           </Box>
         </Box>
 
-        {/* ✅ Основна картка контенту */}
         <Box
           sx={{
             borderRadius: 5,
@@ -448,40 +483,7 @@ const FinancialAnalyticsPage: React.FC = () => {
             p: { xs: 3, md: 4 },
           }}
         >
-          <AnalyticsHeader periodLabel={periodLabel} />
-
-          {showSpinner && (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-              <CircularProgress />
-            </Box>
-          )}
-
-          {!showSpinner && errorText && (
-            <Box sx={{ py: 4 }}>
-              <Typography color="error" align="center">
-                {errorText}
-              </Typography>
-            </Box>
-          )}
-
-          {!showSpinner && !errorText && data && (
-            <>
-              <KpiCards
-                currency={currency}
-                paid={totals.paid}
-                outstanding={totals.outstanding}
-                overdue={totals.overdue}
-                totalAll={totalAll}
-              />
-
-              <DonutCard
-                currency={currency}
-                paid={totals.paid}
-                outstanding={totals.outstanding}
-                overdue={totals.overdue}
-              />
-            </>
-          )}
+          <AnalyticsContent organizationId={organizationId} />
         </Box>
       </Container>
     </Box>

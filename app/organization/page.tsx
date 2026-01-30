@@ -56,7 +56,7 @@ export default function OrganizationProfilePage() {
       <Box
         sx={{ minHeight: "100vh", bgcolor: "#f3f4f6", py: { xs: 2, md: 4 } }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <PageHeader
             mode={vm.mode}
             profileCompletion={vm.profileCompletion}
@@ -64,42 +64,44 @@ export default function OrganizationProfilePage() {
             onView={vm.actions.toView}
           />
 
-          <Grid container spacing={2.5}>
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 8 }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-                <ProfileCard
-                  mode={vm.mode}
-                  hasOrganization={vm.hasOrganization}
-                  organization={vm.organization}
-                  form={vm.form}
-                  profileCompletion={vm.profileCompletion}
-                  isSaving={vm.isSaving}
-                  onEdit={vm.actions.toEdit}
-                  onCancel={vm.actions.cancelEdit}
-                  onChange={vm.actions.onChange}
-                  onSubmit={vm.actions.onSubmit}
-                />
-
-                {/* ✅ NEW: International payment details card */}
-                <PaymentDetailsCard
-                  mode={vm.mode}
-                  hasOrganization={vm.hasOrganization}
-                  organization={vm.organization}
-                  form={vm.form}
-                  isSaving={vm.isSaving}
-                  onEdit={vm.actions.toEdit}
-                  onCancel={vm.actions.cancelEdit}
-                  onChange={vm.actions.onChange}
-                  onSubmit={vm.actions.onSubmit}
-                  paymentReadiness={vm.paymentReadiness}
-                />
-              </Box>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 4 }}>
+          <Grid container spacing={2.5} pb={2.5}>
+            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                 <AssistantInfoCard />
               </Box>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2.5}>
+            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              <ProfileCard
+                mode={vm.mode}
+                hasOrganization={vm.hasOrganization}
+                organization={vm.organization}
+                form={vm.form}
+                profileCompletion={vm.profileCompletion}
+                isSaving={vm.isSaving}
+                onEdit={vm.actions.toEdit}
+                onCancel={vm.actions.cancelEdit}
+                onChange={vm.actions.onChange}
+                onSubmit={vm.actions.onSubmit}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>
+              {/* ✅ UA + International, separated */}
+              <PaymentDetailsCard
+                mode={vm.mode}
+                hasOrganization={vm.hasOrganization}
+                organization={vm.organization}
+                form={vm.form}
+                isSaving={vm.isSaving}
+                onEdit={vm.actions.toEdit}
+                onCancel={vm.actions.cancelEdit}
+                onChange={vm.actions.onChange}
+                onSubmit={vm.actions.onSubmit}
+                paymentReadiness={vm.paymentReadiness}
+              />
             </Grid>
           </Grid>
         </Container>
