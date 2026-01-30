@@ -27,6 +27,9 @@ import {
   CardContent,
   Alert,
   Snackbar,
+  FormControlLabel,
+  Switch,
+  Tooltip,
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import AddIcon from "@mui/icons-material/Add";
@@ -36,8 +39,10 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import MenuIcon from "@mui/icons-material/Menu";
 import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 
 import { useKnowledgeBaseBootstrap } from "@/hooks/useKnowledgeBaseBootstrap";
 import { useChatSessions } from "@/hooks/useChatSessions";
@@ -46,6 +51,7 @@ import { useCreateChatSession } from "@/hooks/useCreateChatSession";
 import { useSendChatMessage } from "@/hooks/useSendChatMessage";
 import { useDeleteChatSession } from "@/hooksNew/useDeleteChatSession";
 import { useSnackbar } from "@/app/clients/components/useSnackbar";
+import { api } from "@/libs/axios";
 
 function formatDateStable(dateStr: string) {
   const d = new Date(dateStr);
@@ -207,21 +213,18 @@ export default function ChatClient() {
     canUseChat ? apiUser.id : undefined,
   ) as any;
 
-  // const serverMessages = sessionData?.session?.messages ?? [];
-
   const [localMessages, setLocalMessages] = useState<any[]>([]);
 
   // ✅ стабільний "key" для повідомлень (міняється тільки коли реально змінився список)
   const serverMessagesKey = useMemo(() => {
     const msgs = sessionData?.session?.messages ?? [];
-    // якщо у меседжів є id + createdAt — цього більш ніж досить
     return msgs.map((m: any) => `${m.id}:${m.createdAt ?? ""}`).join("|");
   }, [sessionData?.session?.messages]);
 
   // ✅ 1) очищаємо локальні меседжі ТІЛЬКИ коли чат недоступний
   useEffect(() => {
     if (canUseChat) return;
-    setLocalMessages((prev) => (prev.length ? [] : prev)); // ✅ не сетимо стейт якщо вже порожньо
+    setLocalMessages((prev) => (prev.length ? [] : prev));
   }, [canUseChat]);
 
   // ✅ 2) синхронізуємо з сервером ТІЛЬКИ коли реально змінились повідомлення/сесія
@@ -249,6 +252,52 @@ export default function ChatClient() {
     string | null
   >(null);
 
+  // ✅ toggle KB access (documents)
+  const allowKnowledgeBaseFromServer =
+    sessionData?.session?.allowKnowledgeBase ?? true;
+  const [allowKnowledgeBaseLocal, setAllowKnowledgeBaseLocal] = useState(true);
+
+  useEffect(() => {
+    if (!selectedSessionId) return;
+    setAllowKnowledgeBaseLocal(Boolean(allowKnowledgeBaseFromServer));
+  }, [selectedSessionId, allowKnowledgeBaseFromServer]);
+
+  const setKnowledgeAccessMutation = useMutation({
+    mutationFn: async (payload: {
+      sessionId: string;
+      allowKnowledgeBase: boolean;
+    }) => {
+      const res = await api.post(
+        `/chat/sessions/${payload.sessionId}/knowledge-access`,
+        { allowKnowledgeBase: payload.allowKnowledgeBase },
+      );
+      return res.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["chat-session"] });
+      await queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+      try {
+        refetchSession?.();
+      } catch {}
+      snackbar.show("Налаштування доступу до документів оновлено", "success");
+    },
+    onError: () => {
+      setAllowKnowledgeBaseLocal(Boolean(allowKnowledgeBaseFromServer));
+      snackbar.show("Не вдалося оновити доступ. Спробуй ще раз.", "error");
+    },
+  });
+
+  const handleToggleKnowledgeBase = (next: boolean) => {
+    if (!canUseChat || !selectedSessionId) return;
+
+    setAllowKnowledgeBaseLocal(next);
+
+    setKnowledgeAccessMutation.mutate({
+      sessionId: selectedSessionId,
+      allowKnowledgeBase: next,
+    });
+  };
+
   const handleCreateSession = (title?: string) => {
     if (!canUseChat) return;
 
@@ -257,7 +306,8 @@ export default function ChatClient() {
         organizationId: organization.id,
         createdById: apiUser.id,
         title: title?.trim() ? title : "Новий діалог",
-      },
+        allowKnowledgeBase: true,
+      } as any,
       {
         onSuccess: (data: any) => {
           setSelectedSessionId(data.session.id);
@@ -283,7 +333,8 @@ export default function ChatClient() {
           organizationId: organization.id,
           createdById: apiUser.id,
           title: "Новий діалог",
-        },
+          allowKnowledgeBase: true,
+        } as any,
         {
           onSuccess: (data: any) => {
             setSelectedSessionId(data.session.id);
@@ -331,7 +382,8 @@ export default function ChatClient() {
           organizationId: organization.id,
           createdById: apiUser.id,
           title: smartTitle,
-        },
+          allowKnowledgeBase: true,
+        } as any,
         {
           onSuccess: (data: any) => {
             setSelectedSessionId(data.session.id);
@@ -444,7 +496,7 @@ export default function ChatClient() {
           queryClient.invalidateQueries({ queryKey: ["chat-session"] });
           queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
         },
-        onError: (error) => {
+        onError: (error: any) => {
           if (error?.status === 403) {
             snackbar.show("Ліміт повідомлень вичерпано", "error");
           }
@@ -745,6 +797,123 @@ export default function ChatClient() {
                   </Box>
 
                   <Paper sx={styles.chatPanel} variant="outlined">
+                    {/* ✅ Knowledge base access banner */}
+                    {selectedSessionId && (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            borderRadius: 3,
+                            borderColor: allowKnowledgeBaseLocal
+                              ? "rgba(16,185,129,0.35)"
+                              : "rgba(245,158,11,0.45)",
+                            bgcolor: allowKnowledgeBaseLocal
+                              ? "rgba(16,185,129,0.08)"
+                              : "rgba(245,158,11,0.10)",
+                            p: 1.2,
+                          }}
+                        >
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            alignItems={{ xs: "flex-start", sm: "center" }}
+                            justifyContent="space-between"
+                            gap={1}
+                          >
+                            <Stack direction="row" alignItems="center" gap={1}>
+                              <Box
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  borderRadius: 999,
+                                  display: "grid",
+                                  placeItems: "center",
+                                  bgcolor: "#ffffff",
+                                  border: "1px solid rgba(0,0,0,0.08)",
+                                }}
+                              >
+                                {allowKnowledgeBaseLocal ? (
+                                  <DescriptionOutlinedIcon />
+                                ) : (
+                                  <LockOutlinedIcon />
+                                )}
+                              </Box>
+
+                              <Box>
+                                <Typography
+                                  variant="subtitle2"
+                                  sx={{ fontWeight: 800, color: "#0f172a" }}
+                                >
+                                  Документи для AI:{" "}
+                                  {allowKnowledgeBaseLocal
+                                    ? "Увімкнено"
+                                    : "Вимкнено"}
+                                </Typography>
+
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: "#475569", display: "block" }}
+                                >
+                                  {allowKnowledgeBaseLocal
+                                    ? "Асистент може використовувати базу знань і твої документи для точніших відповідей."
+                                    : "Асистент не бачить документи. Відповіді будуть лише з бізнес-профілю та даних системи."}
+                                </Typography>
+                              </Box>
+                            </Stack>
+
+                            <Tooltip
+                              title={
+                                allowKnowledgeBaseLocal
+                                  ? "Вимкни, якщо не хочеш, щоб AI використовував документи в цьому діалозі"
+                                  : "Увімкни, щоб AI міг використовувати документи в цьому діалозі"
+                              }
+                            >
+                              <FormControlLabel
+                                sx={{ m: 0 }}
+                                control={
+                                  <Switch
+                                    checked={allowKnowledgeBaseLocal}
+                                    onChange={(e) =>
+                                      handleToggleKnowledgeBase(
+                                        e.target.checked,
+                                      )
+                                    }
+                                    disabled={
+                                      !canUseChat ||
+                                      isSessionLoading ||
+                                      setKnowledgeAccessMutation.isPending
+                                    }
+                                  />
+                                }
+                                label={
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ color: "#0f172a", fontWeight: 700 }}
+                                  >
+                                    Доступ до документів
+                                  </Typography>
+                                }
+                              />
+                            </Tooltip>
+                          </Stack>
+
+                          {!allowKnowledgeBaseLocal && (
+                            <Alert
+                              severity="warning"
+                              sx={{
+                                mt: 1,
+                                borderRadius: 2,
+                                bgcolor: "rgba(245,158,11,0.12)",
+                              }}
+                            >
+                              Документи вимкнені. Якщо питаєш про конкретний
+                              файл — увімкни доступ, і тоді AI зможе знайти
+                              відповідь.
+                            </Alert>
+                          )}
+                        </Paper>
+                      </Box>
+                    )}
+
                     <Box sx={styles.messagesScroll}>
                       {isSessionLoading && selectedSessionId && (
                         <Stack
@@ -945,6 +1114,7 @@ export default function ChatClient() {
           </Button>
         </DialogActions>
       </Dialog>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
