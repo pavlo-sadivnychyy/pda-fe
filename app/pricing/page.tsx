@@ -702,7 +702,7 @@ export default function PricingPage({ currentPlanId = "FREE" }: Props) {
                         py: 1.25,
                         boxShadow: "none",
                         "&:hover": {
-                          bgcolor: plan.id === "BASIC" ? "#fdb17f" : "#000",
+                          bgcolor: "#fdb17f",
                           boxShadow: "none",
                         },
                         "&.Mui-disabled": {
