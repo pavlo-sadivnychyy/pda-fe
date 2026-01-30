@@ -412,18 +412,6 @@ export default function AisdrStyleLanding() {
               >
                 Spravly
               </Typography>
-
-              <Chip
-                size="small"
-                label="для ФОП"
-                sx={{
-                  ml: 1,
-                  bgcolor: "rgba(254,190,88,0.18)",
-                  color: DARK,
-                  border: `1px solid rgba(254,190,88,0.35)`,
-                  fontWeight: 950,
-                }}
-              />
             </Stack>
 
             <Stack direction="row" spacing={1.2} alignItems="center">
@@ -506,6 +494,7 @@ export default function AisdrStyleLanding() {
                     spacing={1}
                     flexWrap="wrap"
                     alignItems="center"
+                    justifyContent={"center"}
                   >
                     <Chip
                       label="Менше рутини"
@@ -540,6 +529,7 @@ export default function AisdrStyleLanding() {
                   <Typography
                     variant="h1"
                     sx={{
+                      textAlign: "center",
                       fontWeight: 950,
                       color: DARK,
                       letterSpacing: "-0.03em",
@@ -561,6 +551,7 @@ export default function AisdrStyleLanding() {
                 >
                   <Typography
                     sx={{
+                      textAlign: "center",
                       color: MUTED,
                       fontSize: { xs: "1.05rem", sm: "1.15rem" },
                       lineHeight: 1.8,
@@ -579,7 +570,14 @@ export default function AisdrStyleLanding() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.24 }}
                 >
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                  <Stack
+                    direction={{
+                      xs: "column",
+                      sm: "row",
+                    }}
+                    justifyContent={"center"}
+                    spacing={1.5}
+                  >
                     <Button
                       variant="contained"
                       size="large"
