@@ -107,7 +107,7 @@ export default function PrivacyPolicyPage() {
               px: 1,
             }}
           >
-            Назад
+            На головну
           </Button>
 
           <SoftCard>
