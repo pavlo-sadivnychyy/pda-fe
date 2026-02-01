@@ -115,7 +115,7 @@ export function InvoiceItemsEditor({
                   disabled={form.items.length === 1}
                   size="small"
                   sx={{
-                    color: "#0f172a",
+                    color: "#ef4444",
                     "&:hover": { bgcolor: "#f1f5f9" },
                     "&.Mui-disabled": { color: "#cbd5e1" },
                   }}
