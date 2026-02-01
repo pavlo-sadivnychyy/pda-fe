@@ -604,6 +604,46 @@ export function CreateQuoteDialog({
 
                             updateItem(idx, "addToMyServices", false);
                           }}
+                          renderOption={(props, opt) => (
+                            <li {...props} key={opt.id}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 2,
+                                  width: "100%",
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 900,
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {opt?.label}
+                                  </Typography>
+                                  {opt.description ? (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ color: "text.secondary" }}
+                                    >
+                                      {opt?.description}
+                                    </Typography>
+                                  ) : null}
+                                </Box>
+
+                                <Typography
+                                  sx={{ fontWeight: 900, whiteSpace: "nowrap" }}
+                                >
+                                  {Number(opt?.price ?? 0).toFixed(2)}
+                                </Typography>
+                              </Box>
+                            </li>
+                          )}
                           renderInput={(params) => (
                             <TextField
                               {...params}
