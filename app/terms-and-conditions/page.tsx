@@ -12,7 +12,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 
 /**
  * Файл:
@@ -103,21 +102,59 @@ export default function TermsAndConditionsPage() {
       <Container maxWidth="md">
         <Stack spacing={2}>
           {/* Back */}
-          <Button
-            component={Link}
-            href="/"
-            startIcon={<ArrowBackIosNewIcon sx={{ fontSize: 14 }} />}
-            sx={{
-              alignSelf: "flex-start",
-              textTransform: "none",
-              fontWeight: 900,
-              color: ui.text,
-              borderRadius: 999,
-              px: 1,
-            }}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", sm: "center" }}
           >
-            Назад
-          </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                component={Link}
+                href="/privacy-policy"
+                size="small"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 800,
+                  color: ui.textMuted,
+                  "&:hover": { bgcolor: "#f8fafc" },
+                }}
+              >
+                Політика конфіденційності
+              </Button>
+
+              <Button
+                component={Link}
+                href="/refund-policy"
+                size="small"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 800,
+                  color: ui.textMuted,
+                  "&:hover": { bgcolor: "#f8fafc" },
+                }}
+              >
+                Політика повернень
+              </Button>
+            </Stack>
+
+            <Button
+              component={Link}
+              href="/"
+              variant="contained"
+              sx={{
+                textTransform: "none",
+                borderRadius: 999,
+                fontWeight: 900,
+                bgcolor: "#0F172A",
+                boxShadow: "none",
+                color: "white",
+                "&:hover": { bgcolor: "#0B1220", boxShadow: "none" },
+              }}
+            >
+              Повернутись на головну
+            </Button>
+          </Stack>
 
           <SoftCard>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
