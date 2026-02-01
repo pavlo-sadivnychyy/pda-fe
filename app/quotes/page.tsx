@@ -601,7 +601,7 @@ export default function QuotesPage() {
           <PlanLimitBanner
             current={quotesCount}
             limit={planLimit}
-            onUpgrade={() => router.push("/billing")}
+            onUpgrade={() => router.push("/pricing")}
           />
         )}
 

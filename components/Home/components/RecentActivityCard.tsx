@@ -276,7 +276,7 @@ export function RecentActivityCard({
                   cursor: "pointer",
                   "&:hover": { bgcolor: "#f8fafc" },
                 }}
-                onClick={() => onOpenEntity(e.entityType, e.entityId)}
+                onClick={onOpenHistory}
               >
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Box

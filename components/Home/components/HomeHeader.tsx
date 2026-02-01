@@ -17,6 +17,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
@@ -69,7 +70,17 @@ export function HomeHeader({
   return (
     <Box sx={{ mb: 3 }}>
       {/* Header #1: Welcome */}
-      <Card elevation={4} sx={{ borderRadius: 3, overflow: "hidden" }}>
+      <Card
+        elevation={4}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: "1px solid #eef2f7",
+          boxShadow:
+            "0px 20px 25px -5px rgba(0,0,0,0.06), 0px 10px 10px -5px rgba(0,0,0,0.04)",
+          bgcolor: "#fff",
+        }}
+      >
         <CardContent sx={{ p: 3 }}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
@@ -84,10 +95,73 @@ export function HomeHeader({
               >
                 Привіт, {firstName ?? "👋"}
               </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", maxWidth: 720 }}
+              >
                 Чим сьогодні допомогти? Обери дію нижче або відкрий чат з
                 асистентом.
               </Typography>
+
+              {/* ✅ CTA row (як в SaaS хедері): mini-pill + link button */}
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                flexWrap="wrap"
+                sx={{ mt: 1.25 }}
+              >
+                <Chip
+                  icon={<GavelRoundedIcon sx={{ fontSize: 18 }} />}
+                  label="Умови користування"
+                  onClick={() => router.push("/terms-and-conditions")}
+                  clickable
+                  sx={{
+                    borderRadius: 999,
+                    fontWeight: 900,
+                    bgcolor: "rgba(59,130,246,0.08)",
+                    color: "#1D4ED8",
+                    border: "1px solid rgba(59,130,246,0.22)",
+                    "& .MuiChip-icon": { color: "#1D4ED8" },
+                    "&:hover": {
+                      bgcolor: "rgba(59,130,246,0.12)",
+                      borderColor: "rgba(59,130,246,0.28)",
+                    },
+                  }}
+                />
+
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => router.push("/privacy-policy")}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 900,
+                    color: "#0F172A",
+                    px: 0.75,
+                    borderRadius: 999,
+                    "&:hover": { bgcolor: "rgba(15,23,42,0.06)" },
+                  }}
+                >
+                  Політика конфіденційності
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => router.push("/refund-policy")}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 900,
+                    color: "#0F172A",
+                    px: 0.75,
+                    borderRadius: 999,
+                    "&:hover": { bgcolor: "rgba(15,23,42,0.06)" },
+                  }}
+                >
+                  Політика повернення
+                </Button>
+              </Stack>
             </Box>
 
             {/* компактний юзер справа, без кнопок */}
@@ -155,10 +229,6 @@ export function HomeHeader({
         />
       </Card>
 
-      {/* Header #2: Context bar */}
-      {/* Header #2: Context bar */}
-      {/* Header #2: Context bar */}
-      {/* Header #2: Context bar */}
       <Card
         elevation={0}
         sx={{
