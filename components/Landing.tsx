@@ -44,6 +44,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // framer-motion
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 /* ================== DESIGN TOKENS ================== */
 
@@ -1812,6 +1813,36 @@ export default function AisdrStyleLanding() {
             <Typography sx={{ color: "rgba(255,255,255,0.60)", fontSize: 14 }}>
               © 2026 Spravly. Всі права захищені.
             </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <Typography
+                component={Link}
+                href="/privacy-policy"
+                sx={{ color: "rgba(255,255,255,0.60)", fontSize: 14 }}
+              >
+                Політика конфіденційності
+              </Typography>
+              <Typography
+                component={Link}
+                href="/refund-policy"
+                sx={{ color: "rgba(255,255,255,0.60)", fontSize: 14 }}
+              >
+                Політика повернень
+              </Typography>
+              <Typography
+                component={Link}
+                href="/terms-and-conditions"
+                sx={{ color: "rgba(255,255,255,0.60)", fontSize: 14 }}
+              >
+                Умови користування
+              </Typography>
+            </Box>
           </Stack>
         </Container>
       </Box>
