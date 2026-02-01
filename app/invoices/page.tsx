@@ -549,7 +549,7 @@ export default function InvoicesPage() {
           <PlanLimitBanner
             current={invoicesCount}
             limit={planLimit}
-            onUpgrade={() => router.push("/billing")}
+            onUpgrade={() => router.push("/pricing")}
           />
         )}
 
