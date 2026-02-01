@@ -624,7 +624,7 @@ export function CreateQuoteDialog({
                                       whiteSpace: "nowrap",
                                     }}
                                   >
-                                    {opt?.label}
+                                    {opt?.name}
                                   </Typography>
                                   {opt.description ? (
                                     <Typography
