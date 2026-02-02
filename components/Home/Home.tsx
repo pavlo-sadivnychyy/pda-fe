@@ -115,7 +115,6 @@ export default function HomePage() {
         justifyContent: "center",
         alignItems: "flex-start",
         py: 3,
-        px: 2,
       }}
     >
       <Box sx={{ width: "100%", maxWidth: "90%" }}>
