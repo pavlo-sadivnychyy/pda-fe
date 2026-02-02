@@ -102,7 +102,6 @@ export const ActivityGrid = ({
 
       const toEmailText = r.toEmail || "—";
 
-      // можна витягнути з meta номер (якщо ти його пишеш)
       const number =
         (r.meta &&
           (r.meta.number || r.meta.invoiceNumber || r.meta.docNumber)) ||
@@ -123,7 +122,6 @@ export const ActivityGrid = ({
     });
   }, [rows]);
 
-  // ✅ пошук по всіх колонках
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return gridRows;
@@ -156,12 +154,10 @@ export const ActivityGrid = ({
         headerName: "Зміна статусу",
         flex: 1,
         minWidth: 220,
-        // valueGetter: (params) => uaStatusFromString(params.value as any),
         renderCell: (params) => uaStatusFromString(params.value),
       },
       { field: "toEmail", headerName: "Кому", flex: 1, minWidth: 220 },
       { field: "actor", headerName: "Хто", flex: 1, minWidth: 180 },
-      // { field: "entityId", headerName: "ID", width: 110 },
     ],
     [],
   );
@@ -184,6 +180,10 @@ export const ActivityGrid = ({
           direction={{ xs: "column", sm: "row" }}
           spacing={1}
           alignItems={{ xs: "stretch", sm: "center" }}
+          sx={{
+            // важливо для flex-елементів з overflow/ellipsis
+            minWidth: 0,
+          }}
         >
           <TextField
             value={query}
@@ -194,6 +194,8 @@ export const ActivityGrid = ({
             sx={{
               bgcolor: "#fff",
               "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
+              minWidth: 0,
+              flex: 1,
             }}
             InputProps={{
               startAdornment: (
@@ -220,7 +222,10 @@ export const ActivityGrid = ({
             size="small"
             value={queryEntityType ?? "ALL"}
             onChange={(e) => setQueryEntityType(e.target.value)}
-            sx={{ minWidth: 190 }}
+            sx={{
+              minWidth: { xs: "100%", sm: 190 },
+              flexShrink: 0,
+            }}
             label="Документ"
           >
             <MenuItem value="ALL">Всі</MenuItem>
@@ -234,7 +239,10 @@ export const ActivityGrid = ({
             size="small"
             value={queryEventType ?? "ALL"}
             onChange={(e) => setQueryEventType(e.target.value)}
-            sx={{ minWidth: 220 }}
+            sx={{
+              minWidth: { xs: "100%", sm: 220 },
+              flexShrink: 0,
+            }}
             label="Подія"
           >
             <MenuItem value="ALL">Всі</MenuItem>
@@ -257,7 +265,17 @@ export const ActivityGrid = ({
               borderColor: "#e2e8f0",
               color: "#111827",
               "&:hover": { bgcolor: "#f3f4f6", borderColor: "#e2e8f0" },
+
+              // ✅ фікс “вилазить за межі”
+              width: { xs: "100%", sm: "auto" },
+              maxWidth: { xs: "100%", sm: 220 },
+              minWidth: 0,
+              flexShrink: 0,
+
+              // ✅ еліпсис замість “вилазить”
               whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {loadingMore
