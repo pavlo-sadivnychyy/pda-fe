@@ -12,10 +12,14 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 
 /**
- * Файл:
+ * File:
  * app/terms-and-conditions/page.tsx
+ *
+ * Updated to explicitly include the legal business name "Spravly"
+ * to satisfy Paddle verification requirements.
  */
 
 const ui = {
@@ -93,68 +97,35 @@ function Li({ children }: { children: React.ReactNode }) {
 }
 
 export default function TermsAndConditionsPage() {
-  const lastUpdated = "01.02.2026";
-  const productName = "Spravly";
+  const lastUpdated = "02.02.2026";
+
+  /**
+   * IMPORTANT FOR PADDLE:
+   * This must clearly state the legal business name.
+   * Replace with the registered entity name in the future if needed.
+   */
+  const legalBusinessName = "Spravly";
   const supportEmail = "support@spravly.app";
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: ui.pageBg, py: { xs: 2, md: 4 } }}>
       <Container maxWidth="md">
         <Stack spacing={2}>
-          {/* Back */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            justifyContent="space-between"
-            alignItems={{ xs: "stretch", sm: "center" }}
+          <Button
+            component={Link}
+            href="/"
+            startIcon={<ArrowBackIosNewIcon sx={{ fontSize: 14 }} />}
+            sx={{
+              alignSelf: "flex-start",
+              textTransform: "none",
+              fontWeight: 900,
+              color: ui.text,
+              borderRadius: 999,
+              px: 1,
+            }}
           >
-            <Stack direction="row" spacing={1}>
-              <Button
-                component={Link}
-                href="/privacy-policy"
-                size="small"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 800,
-                  color: ui.textMuted,
-                  "&:hover": { bgcolor: "#f8fafc" },
-                }}
-              >
-                Політика конфіденційності
-              </Button>
-
-              <Button
-                component={Link}
-                href="/refund-policy"
-                size="small"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 800,
-                  color: ui.textMuted,
-                  "&:hover": { bgcolor: "#f8fafc" },
-                }}
-              >
-                Політика повернень
-              </Button>
-            </Stack>
-
-            <Button
-              component={Link}
-              href="/"
-              variant="contained"
-              sx={{
-                textTransform: "none",
-                borderRadius: 999,
-                fontWeight: 900,
-                bgcolor: "#0F172A",
-                boxShadow: "none",
-                color: "white",
-                "&:hover": { bgcolor: "#0B1220", boxShadow: "none" },
-              }}
-            >
-              Повернутись на головну
-            </Button>
-          </Stack>
+            Назад
+          </Button>
 
           <SoftCard>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -169,157 +140,107 @@ export default function TermsAndConditionsPage() {
 
               <Divider sx={{ my: 2, borderColor: ui.border }} />
 
+              {/* ✅ LEGAL BUSINESS NAME — REQUIRED BY PADDLE */}
               <P>
-                Ласкаво просимо до <b>{productName}</b> (далі — «Сервіс»). Ці
-                Умови користування (далі — «Умови») регулюють доступ та
-                використання додатку {productName}, вебсайту та пов’язаних
-                сервісів.
+                Ці Умови користування є юридично обов’язковою угодою між вами та{" "}
+                <b>{legalBusinessName}</b>, що є юридичною назвою бізнесу та
+                власником сервісу Spravly (далі — «Компанія», «ми», «наш»).
               </P>
 
-              <P>
-                Використовуючи Сервіс або створюючи обліковий запис, ви
-                підтверджуєте, що ознайомились і погоджуєтесь з цими Умовами.
-                Якщо ви не погоджуєтесь з будь-якою частиною Умов — не
-                використовуйте Сервіс.
-              </P>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                sx={{ my: 2 }}
+              >
+                <Button
+                  component={Link}
+                  href="/privacy-policy"
+                  variant="outlined"
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: 999,
+                    borderColor: ui.border,
+                    color: ui.text,
+                    fontWeight: 900,
+                    bgcolor: "#fff",
+                    "&:hover": {
+                      bgcolor: "#f8fafc",
+                      borderColor: ui.border,
+                    },
+                  }}
+                >
+                  Політика конфіденційності
+                </Button>
+
+                <Button
+                  component={Link}
+                  href="/refund-policy"
+                  variant="outlined"
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: 999,
+                    borderColor: ui.border,
+                    color: ui.text,
+                    fontWeight: 900,
+                    bgcolor: "#fff",
+                    "&:hover": {
+                      bgcolor: "#f8fafc",
+                      borderColor: ui.border,
+                    },
+                  }}
+                >
+                  Політика повернення коштів
+                </Button>
+              </Stack>
 
               <SectionTitle>1. Визначення</SectionTitle>
               <Box component="ul" sx={{ pl: 2.5 }}>
                 <Li>
-                  <b>Сервіс</b> — додаток {productName}, включно з усіма
-                  функціями, AI-інструментами, підписками та контентом.
+                  <b>Сервіс</b> — програмний продукт Spravly, що належить та
+                  управляється компанією {legalBusinessName}.
                 </Li>
                 <Li>
-                  <b>Користувач</b> — фізична або юридична особа, яка
+                  <b>Користувач</b> — будь-яка фізична або юридична особа, яка
                   користується Сервісом.
                 </Li>
                 <Li>
-                  <b>Підписка</b> — тарифний план (FREE, BASIC, PRO), що
-                  визначає доступні функції та ліміти.
+                  <b>Підписка</b> — платний або безкоштовний тарифний план.
                 </Li>
                 <Li>
-                  <b>Контент</b> — будь-які дані, документи, інвойси, файли або
-                  матеріали, завантажені чи створені Користувачем.
+                  <b>Контент</b> — дані, документи, інвойси та файли, створені
+                  або завантажені Користувачем.
                 </Li>
               </Box>
 
               <SectionTitle>2. Реєстрація акаунту</SectionTitle>
               <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>
-                  Ви зобов’язані надавати достовірну та актуальну інформацію.
-                </Li>
-                <Li>
-                  Ви несете відповідальність за збереження доступу до свого
-                  акаунту.
-                </Li>
-                <Li>
-                  Усі дії, виконані з вашого акаунту, вважаються виконаними
-                  вами.
-                </Li>
+                <Li>Ви зобов’язані надавати достовірну інформацію.</Li>
+                <Li>Ви відповідаєте за збереження доступу до акаунту.</Li>
+                <Li>Усі дії в акаунті вважаються виконаними вами.</Li>
               </Box>
 
-              <SectionTitle>3. Плани підписки</SectionTitle>
+              <SectionTitle>3. Плани та оплата</SectionTitle>
               <P>
-                {productName} пропонує безкоштовні та платні підписки.
-                Функціонал, ліміти та ціни можуть змінюватися з попереднім
-                повідомленням.
+                Доступ до деяких функцій надається на умовах платної підписки.
+                Оплата обробляється платіжним провайдером Paddle.
               </P>
 
-              <Box sx={{ mt: 1 }}>
-                <Typography sx={{ fontWeight: 900, color: ui.text }}>
-                  FREE
-                </Typography>
-                <Box component="ul" sx={{ pl: 2.5 }}>
-                  <Li>Вартість: $0</Li>
-                  <Li>Обмежений доступ до функцій.</Li>
-                  <Li>Призначений для тестування сервісу.</Li>
-                </Box>
-
-                <Typography sx={{ fontWeight: 900, color: ui.text, mt: 2 }}>
-                  BASIC
-                </Typography>
-                <Box component="ul" sx={{ pl: 2.5 }}>
-                  <Li>Вартість: $9.99 / місяць</Li>
-                  <Li>Для щоденної роботи ФОП та малого бізнесу.</Li>
-                  <Li>Збільшені ліміти та доступ до PDF-документів.</Li>
-                </Box>
-
-                <Typography sx={{ fontWeight: 900, color: ui.text, mt: 2 }}>
-                  PRO
-                </Typography>
-                <Box component="ul" sx={{ pl: 2.5 }}>
-                  <Li>Вартість: $19.99 / місяць</Li>
-                  <Li>Повний доступ до функціоналу без лімітів.</Li>
-                  <Li>AI без обмежень, аналітика та пріоритетна підтримка.</Li>
-                </Box>
-              </Box>
-
-              <SectionTitle>4. Оплата та білінг</SectionTitle>
-              <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>Оплата здійснюється щомісяця.</Li>
-                <Li>Платежі обробляються стороннім платіжним провайдером.</Li>
-                <Li>
-                  Кошти не повертаються, окрім випадків, передбачених
-                  законодавством.
-                </Li>
-                <Li>
-                  Податки (включно з ПДВ, якщо застосовно) можуть додаватися
-                  залежно від країни користувача.
-                </Li>
-              </Box>
-
-              <SectionTitle>5. Продовження та скасування</SectionTitle>
-              <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>Платні підписки поновлюються автоматично.</Li>
-                <Li>Скасування доступне у будь-який момент у налаштуваннях.</Li>
-                <Li>
-                  Після скасування підписка діє до кінця оплаченого періоду.
-                </Li>
-                <Li>
-                  Пониження тарифу може призвести до втрати доступу до частини
-                  даних понад нові ліміти.
-                </Li>
-              </Box>
-
-              <SectionTitle>6. AI-асистент</SectionTitle>
-              <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>
-                  AI-асистент надає рекомендації та автоматизує робочі процеси.
-                </Li>
-                <Li>
-                  Результати роботи AI можуть містити помилки або неточності.
-                </Li>
-                <Li>
-                  Користувач самостійно перевіряє та несе відповідальність за
-                  використання AI-контенту.
-                </Li>
-              </Box>
-
-              <SectionTitle>7. Контент і права</SectionTitle>
-              <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>Усі права на Контент залишаються за Користувачем.</Li>
-                <Li>
-                  Ви надаєте {productName} обмежене право обробляти Контент лише
-                  для надання Сервісу.
-                </Li>
-              </Box>
-
-              <SectionTitle>8. Доступність сервісу</SectionTitle>
-              <Box component="ul" sx={{ pl: 2.5 }}>
-                <Li>Сервіс надається «як є».</Li>
-                <Li>
-                  Можливі тимчасові перебої через оновлення або технічні роботи.
-                </Li>
-              </Box>
-
-              <SectionTitle>9. Обмеження відповідальності</SectionTitle>
+              <SectionTitle>4. AI-функціонал</SectionTitle>
               <P>
-                {productName} не несе відповідальності за непрямі збитки, втрату
-                прибутку або даних. Максимальна відповідальність обмежується
-                сумою, сплаченою за останні 12 місяців користування Сервісом.
+                AI-інструменти надаються «як є». Компанія не гарантує
+                безпомилковість результатів. Користувач самостійно несе
+                відповідальність за використання результатів.
               </P>
 
-              <SectionTitle>10. Контакти</SectionTitle>
+              <SectionTitle>5. Обмеження відповідальності</SectionTitle>
+              <P>
+                Компанія {legalBusinessName} не несе відповідальності за непрямі
+                збитки, втрату прибутку або даних. Загальна відповідальність
+                обмежується сумою, сплаченою за останні 12 місяців користування
+                Сервісом.
+              </P>
+
+              <SectionTitle>6. Контакти</SectionTitle>
               <P>
                 Якщо у вас є питання щодо цих Умов, звертайтесь на{" "}
                 <b>{supportEmail}</b>.
@@ -327,22 +248,57 @@ export default function TermsAndConditionsPage() {
 
               <Divider sx={{ my: 2.5, borderColor: ui.border }} />
 
-              <Button
-                component={Link}
-                href="/"
-                variant="contained"
-                sx={{
-                  textTransform: "none",
-                  borderRadius: 999,
-                  fontWeight: 900,
-                  bgcolor: "#0F172A",
-                  boxShadow: "none",
-                  color: "white",
-                  "&:hover": { bgcolor: "#0B1220", boxShadow: "none" },
-                }}
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                justifyContent="space-between"
               >
-                Повернутись на головну
-              </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    component={Link}
+                    href="/privacy-policy"
+                    size="small"
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 800,
+                      color: ui.textMuted,
+                      "&:hover": { bgcolor: "#f8fafc" },
+                    }}
+                  >
+                    Privacy Policy
+                  </Button>
+                  <Button
+                    component={Link}
+                    href="/refund-policy"
+                    size="small"
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 800,
+                      color: ui.textMuted,
+                      "&:hover": { bgcolor: "#f8fafc" },
+                    }}
+                  >
+                    Refund Policy
+                  </Button>
+                </Stack>
+
+                <Button
+                  component={Link}
+                  href="/"
+                  variant="contained"
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: 999,
+                    fontWeight: 900,
+                    bgcolor: "#0F172A",
+                    boxShadow: "none",
+                    color: "white",
+                    "&:hover": { bgcolor: "#0B1220", boxShadow: "none" },
+                  }}
+                >
+                  На головну
+                </Button>
+              </Stack>
             </CardContent>
           </SoftCard>
         </Stack>
