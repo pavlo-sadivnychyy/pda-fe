@@ -7,7 +7,7 @@ import type {
   InvoiceStatus,
 } from "../types";
 
-const defaultItem: InvoiceItemForm = {
+const createDefaultItem = (): InvoiceItemForm => ({
   serviceId: null,
   name: "",
   description: "",
@@ -15,7 +15,7 @@ const defaultItem: InvoiceItemForm = {
   unitPrice: "0",
   taxRate: "",
   addToMyServices: false,
-};
+});
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -35,7 +35,7 @@ export const useInvoiceForm = () => {
     dueDate: "",
     currency: "UAH",
     notes: "",
-    items: [defaultItem],
+    items: [createDefaultItem()],
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({ items: [] });
@@ -47,7 +47,7 @@ export const useInvoiceForm = () => {
       dueDate: "",
       currency: "UAH",
       notes: "",
-      items: [defaultItem],
+      items: [createDefaultItem()], // ✅ новий об’єкт щоразу
     });
     setFormStatus("DRAFT");
     setErrors({ items: [] });
@@ -73,15 +73,12 @@ export const useInvoiceForm = () => {
       } else {
         let processedValue = String(value ?? "");
 
-        // Валідація і нормалізація для числових полів
         if (field === "quantity") {
-          // Дозволяємо тільки цілі числа
           processedValue = processedValue.replace(/[^\d]/g, "");
         } else if (field === "unitPrice" || field === "taxRate") {
-          // Дозволяємо числа з крапкою
           processedValue = processedValue
             .replace(/[^\d.]/g, "")
-            .replace(/(\..*)\./g, "$1"); // тільки одна крапка
+            .replace(/(\..*)\./g, "$1");
         }
 
         (next as any)[field] = processedValue;
@@ -91,7 +88,6 @@ export const useInvoiceForm = () => {
       return { ...prev, items };
     });
 
-    // Очищаємо помилку для цього поля
     if (field === "name" || field === "quantity" || field === "unitPrice") {
       setErrors((prev) => {
         const newItems = [...prev.items];
@@ -106,15 +102,18 @@ export const useInvoiceForm = () => {
   const addItem = () => {
     setInvoiceForm((prev) => ({
       ...prev,
-      items: [...prev.items, { ...defaultItem }],
+      items: [...prev.items, createDefaultItem()], // ✅ завжди чистий item
     }));
   };
 
   const removeItem = (index: number) => {
     setInvoiceForm((prev) => {
       if (prev.items.length === 1) return prev;
-      return { ...prev, items: prev.items.filter((_, i) => i !== index) };
+
+      const nextItems = prev.items.filter((_, i) => i !== index);
+      return { ...prev, items: nextItems };
     });
+
     setErrors((prev) => ({
       items: prev.items.filter((_, i) => i !== index),
     }));
@@ -131,13 +130,11 @@ export const useInvoiceForm = () => {
         unitPrice?: string;
       } = {};
 
-      // Валідація назви послуги/товару
       if (!item.name || !item.name.trim()) {
         itemErrors.name = "Обов'язкове поле";
         isValid = false;
       }
 
-      // Валідація кількості
       if (!item.quantity || !item.quantity.trim()) {
         itemErrors.quantity = "Обов'язкове поле";
         isValid = false;
@@ -149,7 +146,6 @@ export const useInvoiceForm = () => {
         }
       }
 
-      // Валідація ціни
       if (!item.unitPrice || !item.unitPrice.trim()) {
         itemErrors.unitPrice = "Обов'язкове поле";
         isValid = false;
