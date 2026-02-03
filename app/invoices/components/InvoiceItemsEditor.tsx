@@ -15,7 +15,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import type { InvoiceCreateFormState, InvoiceItemForm } from "../types";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { UserService } from "@/app/invoices/hooks/useServicesQueries";
 import type { ValidationErrors } from "../hooks/useInvoiceForm";
 
@@ -67,11 +67,6 @@ export function InvoiceItemsEditor({
     [services],
   );
 
-  const [inputs, setInputs] = useState<Record<number, string>>({});
-
-  const setInput = (index: number, v: string) =>
-    setInputs((p) => ({ ...p, [index]: v }));
-
   return (
     <Box>
       <Typography sx={{ fontWeight: 900, color: "#0f172a", mb: 1.2 }}>
@@ -91,13 +86,16 @@ export function InvoiceItemsEditor({
             ? (options.find((o) => o.id === item.serviceId) ?? null)
             : null;
 
-          const inputValue =
-            inputs[index] ?? (selected ? selected.label : (item.name ?? ""));
+          // ✅ ЄДИНЕ джерело правди для input — item.name
+          const inputValue = String(item.name ?? "");
 
           const itemErrors = errors.items[index] || {};
 
           return (
-            <Box key={index} sx={{ p: 2 }}>
+            <Box
+              key={`${index}-${item.serviceId ?? ""}`} // key ок, бо ми прибрали локальний inputs; але можна покращити до stable id (якщо додаси)
+              sx={{ p: 2 }}
+            >
               <Box
                 sx={{
                   display: "flex",
@@ -143,13 +141,13 @@ export function InvoiceItemsEditor({
                   }
                   isOptionEqualToValue={(a, b) => a.id === b.id}
                   onInputChange={(_, v) => {
-                    setInput(index, v);
+                    // ✅ якщо юзер друкує — це ручний ввід
                     onItemChange(index, "serviceId", null);
                     onItemChange(index, "name", v);
                   }}
                   onChange={(_, v) => {
+                    // ✅ якщо обрали зі списку
                     if (v && typeof v !== "string") {
-                      setInput(index, v.label);
                       onItemChange(index, "serviceId", v.id);
                       onItemChange(index, "name", v.label);
                       onItemChange(index, "unitPrice", String(v.price ?? 0));
@@ -165,8 +163,8 @@ export function InvoiceItemsEditor({
                       return;
                     }
 
+                    // ✅ якщо вписали і підтвердили як string
                     if (typeof v === "string") {
-                      setInput(index, v);
                       onItemChange(index, "serviceId", null);
                       onItemChange(index, "name", v);
                     }
