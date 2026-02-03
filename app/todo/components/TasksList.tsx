@@ -105,11 +105,11 @@ export const TasksList = (props: {
               textTransform: "none",
               borderRadius: 999,
               borderColor: "#020617",
-              color: "#020617",
               fontWeight: 500,
               fontSize: { xs: 12, md: 13 },
-              "&:hover": { borderColor: "#020617", bgcolor: "#e5e7eb" },
-              whiteSpace: "nowrap",
+              bgcolor: "#111827",
+              color: "white",
+              "&:hover": { bgcolor: "#020617" },
             }}
           >
             Додати задачу
