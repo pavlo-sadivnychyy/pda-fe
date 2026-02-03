@@ -213,7 +213,9 @@ export const TasksList = (props: {
                     disabled={isDeleting}
                     onClick={() => onDelete(task.id)}
                   >
-                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                    <DeleteOutlineIcon
+                      sx={{ fontSize: 18, color: "#ef4444" }}
+                    />
                   </IconButton>
                 </span>
               </Tooltip>
