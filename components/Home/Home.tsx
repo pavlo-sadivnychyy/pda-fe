@@ -28,6 +28,7 @@ import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortc
 import { completeOnboarding } from "@/components/Onboarding/api";
 import { OrgGateModal } from "@/components/Onboarding/OrgGateModal";
 import { InvoiceDeadlinesCard } from "@/components/Home/components/InvoiceDeadlinesCard";
+import { Footer } from "@/components/Home/components/Footer";
 
 export default function HomePage() {
   const router = useRouter();
@@ -177,6 +178,7 @@ export default function HomePage() {
             <DocumentsCard />
           </Grid>
         </Grid>
+        <Footer />
       </Box>
     </Box>
   );
