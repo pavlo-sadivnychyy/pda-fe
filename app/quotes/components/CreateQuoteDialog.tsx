@@ -334,6 +334,7 @@ export function CreateQuoteDialog({
 
   const handleClose = () => {
     if (isLoading) return;
+    reset();
     onClose();
   };
 

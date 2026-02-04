@@ -6,7 +6,6 @@ import {
   IconButton,
   InputAdornment,
   MenuItem,
-  Stack,
   TextField,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -22,6 +21,9 @@ import type {
   ActivityLog,
 } from "../hooks/useActivityLogs";
 import { uaStatusFromString } from "@/app/activity/utils/activityLabels";
+
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import type { Dayjs } from "dayjs";
 
 function formatWhen(iso: string) {
   const d = new Date(iso);
@@ -61,6 +63,14 @@ function actorLabel(actor?: ActivityLog["actor"]) {
   return name || actor.email || "—";
 }
 
+// ✅ Date helpers (inclusive day range)
+function startOfDayISO(d: Dayjs) {
+  return d.startOf("day").toISOString();
+}
+function endOfDayISO(d: Dayjs) {
+  return d.endOf("day").toISOString();
+}
+
 export const ActivityGrid = ({
   rows,
   loading,
@@ -93,6 +103,9 @@ export const ActivityGrid = ({
 }) => {
   const [query, setQuery] = useState("");
 
+  const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
+  const [dateTo, setDateTo] = useState<Dayjs | null>(null);
+
   const gridRows = useMemo(() => {
     return rows.map((r) => {
       const statusText =
@@ -123,10 +136,19 @@ export const ActivityGrid = ({
   }, [rows]);
 
   const filteredRows = useMemo(() => {
+    const fromISO = dateFrom ? startOfDayISO(dateFrom) : null;
+    const toISO = dateTo ? endOfDayISO(dateTo) : null;
+
     const q = query.trim().toLowerCase();
-    if (!q) return gridRows;
 
     return gridRows.filter((r) => {
+      const createdISO = r.__raw?.createdAt ?? "";
+
+      if (fromISO && createdISO < fromISO) return false;
+      if (toISO && createdISO > toISO) return false;
+
+      if (!q) return true;
+
       const haystack = [
         r.createdAt,
         r.entityType,
@@ -142,7 +164,7 @@ export const ActivityGrid = ({
 
       return haystack.includes(q);
     });
-  }, [gridRows, query]);
+  }, [gridRows, query, dateFrom, dateTo]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -162,6 +184,19 @@ export const ActivityGrid = ({
     [],
   );
 
+  const clearDates = () => {
+    setDateFrom(null);
+    setDateTo(null);
+  };
+
+  // ✅ unified control styles + hard “no overlap”
+  const controlSx = {
+    bgcolor: "#fff",
+    "& .MuiOutlinedInput-root": { borderRadius: 2.5, height: 44 },
+    width: "100%",
+    minWidth: 0,
+  } as const;
+
   return (
     <Box
       sx={{
@@ -174,59 +209,106 @@ export const ActivityGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
-      {/* ✅ Search + filters */}
+      {/* ✅ Controls */}
       <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ xs: "stretch", sm: "center" }}
+        {/* Search */}
+        <TextField
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Пошук по історії… (подія, документ, статус, email, користувач)"
+          fullWidth
+          size="small"
+          sx={{ ...controlSx, mb: 1 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: query ? (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="clear search"
+                  size="small"
+                  onClick={() => setQuery("")}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+
+        {/* ✅ Filters: responsive grid that NEVER overlaps */}
+        <Box
           sx={{
-            // важливо для flex-елементів з overflow/ellipsis
-            minWidth: 0,
+            display: "grid",
+            gap: 1,
+            alignItems: "center",
+
+            // ✅ breakpoints: from strict 1-col → 2-col → 3-col → 6-col
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(3, minmax(0, 1fr))",
+              lg: "repeat(6, minmax(0, 1fr))",
+            },
+
+            // ✅ if something still wants to be wide, allow it to drop to next row
+            gridAutoFlow: "row",
           }}
         >
-          <TextField
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Пошук по історії… (подія, дата, документ, статус, email, користувач)"
-            fullWidth
-            size="small"
-            sx={{
-              bgcolor: "#fff",
-              "& .MuiOutlinedInput-root": { borderRadius: 2.5 },
-              minWidth: 0,
-              flex: 1,
+          <DatePicker
+            label="Від"
+            value={dateFrom}
+            onChange={(v) => {
+              setDateFrom(v);
+              if (v && dateTo && dateTo.isBefore(v, "day")) setDateTo(v);
             }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#64748b" }} fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: query ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="clear search"
-                    size="small"
-                    onClick={() => setQuery("")}
-                  >
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
+            slotProps={{
+              textField: { size: "small", sx: controlSx, fullWidth: true },
             }}
           />
+
+          <DatePicker
+            label="До"
+            value={dateTo}
+            minDate={dateFrom ?? undefined}
+            onChange={(v) => setDateTo(v)}
+            slotProps={{
+              textField: { size: "small", sx: controlSx, fullWidth: true },
+            }}
+          />
+
+          <Button
+            onClick={clearDates}
+            variant="outlined"
+            disabled={!dateFrom && !dateTo}
+            sx={{
+              height: 44,
+              textTransform: "none",
+              borderRadius: 999,
+              fontWeight: 700,
+              borderColor: "#e2e8f0",
+              color: "#111827",
+              "&:hover": { bgcolor: "#f3f4f6", borderColor: "#e2e8f0" },
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              width: "100%",
+              minWidth: 0,
+            }}
+          >
+            Очистити дату
+          </Button>
 
           <TextField
             select
             size="small"
             value={queryEntityType ?? "ALL"}
             onChange={(e) => setQueryEntityType(e.target.value)}
-            sx={{
-              minWidth: { xs: "100%", sm: 190 },
-              flexShrink: 0,
-            }}
             label="Документ"
+            sx={controlSx}
           >
             <MenuItem value="ALL">Всі</MenuItem>
             <MenuItem value="INVOICE">Інвойси</MenuItem>
@@ -239,11 +321,8 @@ export const ActivityGrid = ({
             size="small"
             value={queryEventType ?? "ALL"}
             onChange={(e) => setQueryEventType(e.target.value)}
-            sx={{
-              minWidth: { xs: "100%", sm: 220 },
-              flexShrink: 0,
-            }}
             label="Подія"
+            sx={controlSx}
           >
             <MenuItem value="ALL">Всі</MenuItem>
             <MenuItem value="CREATED">Створено</MenuItem>
@@ -259,23 +338,21 @@ export const ActivityGrid = ({
             onClick={loadMore}
             endIcon={<ExpandMoreIcon />}
             sx={{
+              height: 44,
               textTransform: "none",
               borderRadius: 999,
               fontWeight: 700,
               borderColor: "#e2e8f0",
               color: "#111827",
               "&:hover": { bgcolor: "#f3f4f6", borderColor: "#e2e8f0" },
-
-              // ✅ фікс “вилазить за межі”
-              width: { xs: "100%", sm: "auto" },
-              maxWidth: { xs: "100%", sm: 220 },
-              minWidth: 0,
-              flexShrink: 0,
-
-              // ✅ еліпсис замість “вилазить”
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              width: "100%",
+              minWidth: 0,
+
+              // ✅ on large screens keep it to the right vibe
+              justifySelf: { lg: "end" },
             }}
           >
             {loadingMore
@@ -284,7 +361,7 @@ export const ActivityGrid = ({
                 ? "Завантажити ще"
                 : "Все завантажено"}
           </Button>
-        </Stack>
+        </Box>
       </Box>
 
       <DataGrid
@@ -298,9 +375,10 @@ export const ActivityGrid = ({
           pagination: { paginationModel: { pageSize: 10, page: 0 } },
         }}
         localeText={{
-          noRowsLabel: query.trim()
-            ? "Нічого не знайдено за вашим запитом"
-            : "Подій поки немає",
+          noRowsLabel:
+            query.trim() || dateFrom || dateTo
+              ? "Нічого не знайдено за вашими фільтрами"
+              : "Подій поки немає",
         }}
       />
     </Box>
