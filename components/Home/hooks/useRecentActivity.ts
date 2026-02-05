@@ -14,26 +14,17 @@ export type ActivityEventType =
 export type ActivityLog = {
   id: string;
   organizationId: string;
-
   entityType: ActivityEntityType;
   entityId: string;
-
   eventType: ActivityEventType;
-
   fromStatus?: string | null;
   toStatus?: string | null;
-
   toEmail?: string | null;
-
   createdAt: string;
-
-  // optional meta (якщо ти з бекенду віддаєш JSON)
   meta?: any;
 };
 
-type RecentActivityResponse = {
-  items: ActivityLog[];
-};
+type RecentActivityResponse = { items: ActivityLog[] };
 
 export const activityKeys = {
   recent: (orgId?: string, limit = 3) =>
@@ -44,7 +35,10 @@ export function useRecentActivity(organizationId: string | null, limit = 3) {
   const query = useQuery<RecentActivityResponse>({
     queryKey: activityKeys.recent(organizationId ?? undefined, limit),
     enabled: Boolean(organizationId),
-    staleTime: 10_000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const res = await api.get<RecentActivityResponse>("/activity/recent", {
         params: { organizationId, limit },

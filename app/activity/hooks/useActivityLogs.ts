@@ -44,8 +44,24 @@ export type ActivityListResponse = {
   nextCursor: string | null;
 };
 
+// ✅ робимо ключ стабільним: тільки примітиви
 export const activityKeys = {
-  list: (params: any) => ["activity", "list", params] as const,
+  list: (p: {
+    organizationId?: string;
+    limit?: number;
+    entityType?: ActivityEntityType;
+    eventType?: ActivityEventType;
+    entityId?: string;
+  }) =>
+    [
+      "activity",
+      "list",
+      p.organizationId ?? null,
+      p.limit ?? 30,
+      p.entityType ?? null,
+      p.eventType ?? null,
+      p.entityId ?? null,
+    ] as const,
 };
 
 export function useActivityLogs(params: {
@@ -59,6 +75,15 @@ export function useActivityLogs(params: {
     queryKey: activityKeys.list(params),
     enabled: Boolean(params.organizationId),
     initialPageParam: null as string | null,
+
+    // ✅ не кешуємо між переходами
+    staleTime: 0,
+    gcTime: 0, // v5 (в v4: cacheTime: 0)
+
+    // ✅ завжди тягнемо заново при заході/поверненні
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+
     queryFn: async ({ pageParam }) => {
       const res = await api.get<ActivityListResponse>("/activity", {
         params: {
@@ -72,8 +97,8 @@ export function useActivityLogs(params: {
       });
       return res.data;
     },
+
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    staleTime: 10_000,
   });
 
   const items =

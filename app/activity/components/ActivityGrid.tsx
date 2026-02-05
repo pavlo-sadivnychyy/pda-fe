@@ -215,7 +215,7 @@ export const ActivityGrid = ({
         <TextField
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Пошук по історії… (подія, документ, статус, email, користувач)"
+          placeholder="Пошук по історії… (подія, документ, email, користувач)"
           fullWidth
           size="small"
           sx={{ ...controlSx, mb: 1 }}
