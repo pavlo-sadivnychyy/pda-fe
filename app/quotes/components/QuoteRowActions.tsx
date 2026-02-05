@@ -10,12 +10,14 @@ import {
   Stack,
   Tooltip,
   Typography,
+  Divider,
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import SendIcon from "@mui/icons-material/Send";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import type { QuoteAction, QuoteStatus } from "../types";
 import { QuoteConvertButton } from "./QuoteConvertButton";
@@ -26,6 +28,7 @@ export function QuoteRowActions({
   hasInvoice,
   onAction,
   onConvert,
+  onDelete,
   hasClient,
   clientHasEmail,
 }: {
@@ -34,6 +37,7 @@ export function QuoteRowActions({
   hasInvoice: boolean;
   onAction: (a: QuoteAction) => void;
   onConvert: () => void;
+  onDelete: () => void;
   hasClient: boolean;
   clientHasEmail: boolean;
 }) {
@@ -48,7 +52,6 @@ export function QuoteRowActions({
   const canReject = status === "SENT";
   const canExpire = status === "SENT";
 
-  // ✅ причини, чому send недоступний
   const sendDisabled = busy || !hasClient || !clientHasEmail;
 
   const sendTooltipText = !hasClient
@@ -77,7 +80,6 @@ export function QuoteRowActions({
           disableTouchListener={!sendTooltipText}
           arrow
         >
-          {/* 🔑 Tooltip не працює напряму з disabled Button */}
           <span style={{ display: "inline-flex" }}>
             <Button
               size="small"
@@ -106,7 +108,6 @@ export function QuoteRowActions({
         <Box sx={{ width: 0, flexShrink: 0 }} />
       )}
 
-      {/* 🔑 Convert стає "гумовим": займає доступний простір і обрізає текст */}
       <Tooltip
         title={
           hasInvoice
@@ -118,10 +119,9 @@ export function QuoteRowActions({
       >
         <Box
           sx={{
-            flex: "1 1 auto", // 🔑 може стискатися і рости
-            minWidth: 0, // 🔑 потрібен для text-overflow
+            flex: "1 1 auto",
+            minWidth: 0,
             overflow: "hidden",
-            // Підтискаємо внутрішню кнопку, навіть якщо QuoteConvertButton не приймає sx
             "& .MuiButton-root": {
               width: "100%",
               minWidth: 0,
@@ -130,9 +130,7 @@ export function QuoteRowActions({
               overflow: "hidden",
               textOverflow: "ellipsis",
             },
-            "& .MuiButton-startIcon": {
-              mr: 0.75,
-            },
+            "& .MuiButton-startIcon": { mr: 0.75 },
           }}
         >
           <span style={{ display: "block" }}>
@@ -200,6 +198,27 @@ export function QuoteRowActions({
         >
           <AccessTimeIcon fontSize="small" />
           <Typography variant="body2">Протерміновано</Typography>
+        </MenuItem>
+
+        <Divider />
+
+        {/* ✅ DELETE */}
+        <MenuItem
+          disabled={busy}
+          onClick={() => {
+            setAnchorEl(null);
+            onDelete();
+          }}
+          sx={{
+            gap: 1,
+            color: "#b91c1c",
+            "&:hover": { bgcolor: "rgba(185, 28, 28, 0.08)" },
+          }}
+        >
+          <DeleteOutlineIcon fontSize="small" />
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            Видалити
+          </Typography>
         </MenuItem>
       </Menu>
     </Stack>

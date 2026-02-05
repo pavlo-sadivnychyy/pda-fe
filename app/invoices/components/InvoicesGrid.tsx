@@ -86,17 +86,20 @@ function formatDateUA(value: string | Date | null | undefined): string {
   }).format(d);
 }
 
-// простий “словник” для пошуку по статусу (і англ, і укр)
-const STATUS_LABELS_UA: Partial<Record<string, string>> = {
-  DRAFT: "чернетка",
-  SENT: "надіслано",
-  ISSUED: "виставлено",
-  UNPAID: "не оплачено",
-  PAID: "оплачено",
-  OVERDUE: "прострочено",
-  CANCELED: "скасовано",
-  CANCELLED: "скасовано",
-  VOID: "анульовано",
+/**
+ * Синоніми/варіанти для пошуку по статусу.
+ * Важливо: тут можна сміливо додавати "людські" слова, як користувач реально пише в пошуку.
+ */
+const STATUS_SEARCH_UA: Partial<Record<string, string>> = {
+  DRAFT: "чернетка черновик драфт draft",
+  SENT: "надіслано надісланий відправлено відправлений відправка",
+  ISSUED: "виставлено виставлений видано issued",
+  UNPAID: "не оплачено неоплачено не сплачено борг",
+  PAID: "оплачено оплачений сплачено сплачений",
+  OVERDUE: "прострочено прострочка прострочений overdue",
+  CANCELED: "скасовано відмінено анульовано",
+  CANCELLED: "скасовано відмінено анульовано",
+  VOID: "анульовано скасовано void",
 };
 
 function normalizeText(s: string) {
@@ -272,7 +275,7 @@ export const InvoicesGrid = ({
         const dueUA = formatDateUA(inv.dueDate ?? null);
 
         const statusRaw = String(inv.status ?? "");
-        const statusUa = STATUS_LABELS_UA[statusRaw] ?? "";
+        const statusSearch = STATUS_SEARCH_UA[statusRaw] ?? "";
 
         return {
           id: inv.id,
@@ -293,7 +296,7 @@ export const InvoicesGrid = ({
           total: `${formatMoney(inv.total)} ${inv.currency}`, // для UI
 
           status: inv.status,
-          statusUa, // для пошуку по статусу
+          statusSearch, // ✅ для пошуку по статусу (синоніми)
 
           hasPdf: Boolean(inv.pdfDocumentId),
           hasInternationalPdf: Boolean(inv.pdfInternationalDocumentId),
@@ -319,8 +322,8 @@ export const InvoicesGrid = ({
           r.issueDateISO, // yyyy-mm-dd
           r.dueDateISO, // yyyy-mm-dd
           r.total,
-          String(r.status ?? ""),
-          r.statusUa, // "оплачено", "чернетка"...
+          String(r.status ?? ""), // SENT / PAID ...
+          r.statusSearch, // ✅ "надіслано відправлено ..."
         ]
           .join(" ")
           .replace(/\s+/g, " "),
@@ -329,7 +332,7 @@ export const InvoicesGrid = ({
       // базовий full-text
       const textMatch = hay.includes(q);
 
-      // якщо користувач ввів дату — матчимо строго по ключам дат теж (щоб “05.02.2026” точно знаходилось)
+      // якщо користувач ввів дату — матчимо строго по ключам дат теж
       const dateMatch =
         ddmmyyyy.some((t) => r.issueDate === t || r.dueDate === t) ||
         yyyymmdd.some((t) => r.issueDateISO === t || r.dueDateISO === t);
