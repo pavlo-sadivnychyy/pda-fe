@@ -29,7 +29,7 @@ import { useCallback, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 
 import type { Client, Invoice, InvoiceStatus, InvoiceAction } from "../types";
-import { formatDate, formatMoney, getClientDisplayName } from "../utils";
+import { formatMoney, getClientDisplayName } from "../utils";
 
 import { InvoiceStatusChip } from "./InvoiceStatusChip";
 import { InvoicePdfButton } from "./InvoicePdfButton";
@@ -64,6 +64,85 @@ function escapeCsvCell(value: unknown) {
   // UA/EU Excel часто чекає ';' як розділювач, але лапки все одно потрібні
   if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
   return s;
+}
+
+function toIsoDateOnly(value: string | Date | null | undefined): string | "" {
+  if (!value) return "";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  // YYYY-MM-DD
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDateUA(value: string | Date | null | undefined): string {
+  if (!value) return "—";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  // dd.mm.yyyy (український формат)
+  return new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
+}
+
+// простий “словник” для пошуку по статусу (і англ, і укр)
+const STATUS_LABELS_UA: Partial<Record<string, string>> = {
+  DRAFT: "чернетка",
+  SENT: "надіслано",
+  ISSUED: "виставлено",
+  UNPAID: "не оплачено",
+  PAID: "оплачено",
+  OVERDUE: "прострочено",
+  CANCELED: "скасовано",
+  CANCELLED: "скасовано",
+  VOID: "анульовано",
+};
+
+function normalizeText(s: string) {
+  return s.toLowerCase().trim();
+}
+
+/**
+ * Витягує “датні токени” з рядка пошуку:
+ * - 05.02.2026 / 5.2.2026 / 05/02/2026 / 2026-02-05
+ * Повертає набір нормалізованих ключів:
+ * - dd.mm.yyyy
+ * - yyyy-mm-dd
+ */
+function extractDateTokens(query: string): {
+  ddmmyyyy: string[];
+  yyyymmdd: string[];
+} {
+  const q = query.trim();
+  if (!q) return { ddmmyyyy: [], yyyymmdd: [] };
+
+  const ddmmyyyy: string[] = [];
+  const yyyymmdd: string[] = [];
+
+  // 2026-02-05
+  const isoMatches = q.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/g) ?? [];
+  for (const m of isoMatches) {
+    const [y, mo, d] = m.split("-").map((x) => x.padStart(2, "0"));
+    yyyymmdd.push(`${y}-${mo}-${d}`);
+    ddmmyyyy.push(`${d}.${mo}.${y}`);
+  }
+
+  // 05.02.2026 / 5.2.2026 / 05/02/2026 / 5-2-2026
+  const euMatches = q.match(/\b(\d{1,2})[./-](\d{1,2})[./-](20\d{2})\b/g) ?? [];
+  for (const m of euMatches) {
+    const parts = m.split(/[./-]/);
+    const d = parts[0].padStart(2, "0");
+    const mo = parts[1].padStart(2, "0");
+    const y = parts[2];
+    ddmmyyyy.push(`${d}.${mo}.${y}`);
+    yyyymmdd.push(`${y}-${mo}-${d}`);
+  }
+
+  return {
+    ddmmyyyy: Array.from(new Set(ddmmyyyy)),
+    yyyymmdd: Array.from(new Set(yyyymmdd)),
+  };
 }
 
 /* ---------------- mobile card ---------------- */
@@ -186,17 +265,36 @@ export const InvoicesGrid = ({
       invoices.map((inv) => {
         const clientEmail = getClientEmail(inv, clients);
 
+        const issueISO = toIsoDateOnly(inv.issueDate);
+        const dueISO = toIsoDateOnly(inv.dueDate ?? null);
+
+        const issueUA = formatDateUA(inv.issueDate);
+        const dueUA = formatDateUA(inv.dueDate ?? null);
+
+        const statusRaw = String(inv.status ?? "");
+        const statusUa = STATUS_LABELS_UA[statusRaw] ?? "";
+
         return {
           id: inv.id,
           number: inv.number,
           clientName: getClientDisplayName(inv, clients),
           clientEmail,
-          issueDate: formatDate(inv.issueDate),
-          dueDate: formatDate(inv.dueDate ?? null),
+
+          // UI (UA формат)
+          issueDate: issueUA,
+          dueDate: dueUA,
+
+          // для пошуку (стабільні “ключі”)
+          issueDateISO: issueISO, // YYYY-MM-DD
+          dueDateISO: dueISO, // YYYY-MM-DD
+
           totalValue: inv.total, // для експорту числом
           currency: inv.currency,
           total: `${formatMoney(inv.total)} ${inv.currency}`, // для UI
+
           status: inv.status,
+          statusUa, // для пошуку по статусу
+
           hasPdf: Boolean(inv.pdfDocumentId),
           hasInternationalPdf: Boolean(inv.pdfInternationalDocumentId),
         };
@@ -205,22 +303,39 @@ export const InvoicesGrid = ({
   );
 
   const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeText(query);
     if (!q) return rows;
-    return rows.filter((r) =>
-      [
-        r.number,
-        r.clientName,
-        r.clientEmail ?? "",
-        r.issueDate,
-        r.dueDate,
-        r.total,
-        r.status,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
+
+    const { ddmmyyyy, yyyymmdd } = extractDateTokens(query);
+
+    return rows.filter((r) => {
+      const hay = normalizeText(
+        [
+          r.number,
+          r.clientName,
+          r.clientEmail ?? "",
+          r.issueDate, // dd.mm.yyyy (UA)
+          r.dueDate, // dd.mm.yyyy (UA)
+          r.issueDateISO, // yyyy-mm-dd
+          r.dueDateISO, // yyyy-mm-dd
+          r.total,
+          String(r.status ?? ""),
+          r.statusUa, // "оплачено", "чернетка"...
+        ]
+          .join(" ")
+          .replace(/\s+/g, " "),
+      );
+
+      // базовий full-text
+      const textMatch = hay.includes(q);
+
+      // якщо користувач ввів дату — матчимо строго по ключам дат теж (щоб “05.02.2026” точно знаходилось)
+      const dateMatch =
+        ddmmyyyy.some((t) => r.issueDate === t || r.dueDate === t) ||
+        yyyymmdd.some((t) => r.issueDateISO === t || r.dueDateISO === t);
+
+      return textMatch || dateMatch;
+    });
   }, [rows, query]);
 
   // ---- Export data (desktop)
@@ -234,7 +349,7 @@ export const InvoicesGrid = ({
       "Оплатити до": r.dueDate,
       Сума: r.totalValue, // числом, щоб Excel міг рахувати
       Валюта: r.currency,
-      Статус: r.status,
+      Статус: String(r.status ?? ""),
       PDF: r.hasPdf ? "Так" : "Ні",
       "PDF (International)": r.hasInternationalPdf ? "Так" : "Ні",
     }));
@@ -292,7 +407,7 @@ export const InvoicesGrid = ({
           <TextField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Пошук…"
+            placeholder="Пошук… (номер, клієнт, дата, статус)"
             fullWidth
             size="small"
             sx={{
@@ -418,7 +533,7 @@ export const InvoicesGrid = ({
           <TextField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Пошук по інвойсах…"
+            placeholder="Пошук по інвойсах… (номер, клієнт, дата, статус)"
             fullWidth
             size="small"
             sx={{

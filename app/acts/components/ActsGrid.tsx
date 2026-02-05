@@ -26,6 +26,8 @@ import { ActRowActions } from "./ActRowActions";
 
 import * as XLSX from "xlsx";
 
+/* ---------------- helpers ---------------- */
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -41,6 +43,38 @@ function escapeCsvCell(value: unknown) {
   if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
   return s;
 }
+
+function normalizeText(v: unknown) {
+  return String(v ?? "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Мапа "код статусу" -> "укр текст", щоб пошук знаходив по словам типу "оплачено"
+ * Підлаштуй ключі під свої реальні статуси (якщо відрізняються).
+ */
+const ACT_STATUS_LABELS_UA: Partial<Record<string, string>> = {
+  DRAFT: "чернетка",
+  CREATED: "створено",
+  SENT: "надіслано",
+  SIGNED: "підписано",
+  PAID: "оплачено",
+  UNPAID: "не оплачено",
+  OVERDUE: "прострочено",
+  CANCELED: "скасовано",
+  CANCELLED: "скасовано",
+  VOID: "анульовано",
+};
+
+function getStatusUa(status: unknown) {
+  const key = String(status ?? "")
+    .toUpperCase()
+    .trim();
+  return ACT_STATUS_LABELS_UA[key] ?? "";
+}
+
+/* ---------------- component ---------------- */
 
 export const ActsGrid = ({
   acts,
@@ -93,6 +127,7 @@ export const ActsGrid = ({
       const currency = String(a?.currency ?? "");
 
       const statusText = String(a?.status ?? "");
+      const statusUa = getStatusUa(a?.status);
 
       return {
         ...a,
@@ -103,31 +138,11 @@ export const ActsGrid = ({
         totalFormatted,
         totalValue,
         currency,
-        statusText,
+        statusText, // наприклад "PAID"
+        statusUa, // наприклад "оплачено"
       };
     });
   }, [acts]);
-
-  const filteredRows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rows;
-
-    return rows.filter((r: any) => {
-      const haystack = [
-        r.number ?? "",
-        r.clientName ?? "",
-        r.clientEmail ?? "",
-        r.invoiceNumber ?? "",
-        r.period ?? "",
-        r.totalFormatted ?? "",
-        r.statusText ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(q);
-    });
-  }, [rows, query]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -138,6 +153,9 @@ export const ActsGrid = ({
         flex: 1.6,
         minWidth: 180,
         renderCell: (params) => params.row?.clientName ?? "—",
+        // для пошуку беремо і ім'я, і email
+        valueGetter: (_v, row: any) =>
+          `${row?.clientName ?? ""} ${row?.clientEmail ?? ""}`.trim(),
       },
       {
         field: "relatedInvoice",
@@ -145,6 +163,7 @@ export const ActsGrid = ({
         flex: 1,
         minWidth: 140,
         renderCell: (params) => params.row?.invoiceNumber ?? "—",
+        valueGetter: (_v, row: any) => row?.invoiceNumber ?? "",
       },
       {
         field: "period",
@@ -153,6 +172,7 @@ export const ActsGrid = ({
         minWidth: 160,
         sortable: false,
         renderCell: (params) => params.row?.period ?? "—",
+        valueGetter: (_v, row: any) => row?.period ?? "",
       },
       {
         field: "total",
@@ -160,6 +180,10 @@ export const ActsGrid = ({
         flex: 1,
         minWidth: 140,
         renderCell: (params) => params.row?.totalFormatted ?? "—",
+        valueGetter: (_v, row: any) =>
+          `${row?.totalFormatted ?? ""} ${row?.totalValue ?? ""} ${
+            row?.currency ?? ""
+          }`.trim(),
       },
       {
         field: "status",
@@ -167,6 +191,8 @@ export const ActsGrid = ({
         flex: 0.9,
         minWidth: 130,
         renderCell: (params) => <ActStatusChip status={params.value} />,
+        // ✅ КЛЮЧОВЕ: додаємо і код, і UA-лейбл
+        valueGetter: (_v, row: any) => `${row?.statusUa ?? ""}`.trim(),
       },
       {
         field: "actions",
@@ -201,6 +227,36 @@ export const ActsGrid = ({
     ],
     [onDelete, deleteBusyId, onSend, sendBusyId],
   );
+
+  // "по всіх колонках" — беремо значення саме з колонок (через valueGetter або row[field])
+  const searchableColumns = useMemo(
+    () => columns.filter((c) => c.field !== "actions"),
+    [columns],
+  );
+
+  const filteredRows = useMemo(() => {
+    const q = normalizeText(query);
+    if (!q) return rows;
+
+    return rows.filter((row: any) => {
+      const haystack = searchableColumns
+        .map((col) => {
+          if (typeof col.valueGetter === "function") {
+            try {
+              return col.valueGetter(undefined as any, row);
+            } catch {
+              return "";
+            }
+          }
+          return row?.[col.field];
+        })
+        .map((v) => String(v ?? ""))
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, query, searchableColumns]);
 
   // ---- Export (desktop only in UI)
   const getExportData = useCallback(() => {
@@ -264,7 +320,7 @@ export const ActsGrid = ({
       <TextField
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Пошук по актах… (номер, клієнт, інвойс, період, сума, статус)"
+        placeholder="Пошук по всіх колонках… (в т.ч. статус: оплачено/чернетка/надіслано)"
         fullWidth
         size="small"
         sx={{

@@ -44,7 +44,6 @@ export type ActivityListResponse = {
   nextCursor: string | null;
 };
 
-// ✅ робимо ключ стабільним: тільки примітиви
 export const activityKeys = {
   list: (p: {
     organizationId?: string;
