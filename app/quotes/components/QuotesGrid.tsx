@@ -41,12 +41,18 @@ type Row = {
   clientName: string;
   issueDate: string;
   validUntil: string;
-  total: string; // for UI
-  totalValue: number; // for export numeric
+  total: string;
+  totalValue: number;
   currency: string;
   status: QuoteStatus;
   hasInvoice: boolean;
   invoiceId: string | null;
+
+  // у тебе в rows фактично приходить quote з client усередині, тому не чіпаю
+  client?: {
+    contactName?: string | null;
+    email?: string | null;
+  } | null;
 };
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -60,7 +66,6 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function escapeCsvCell(value: unknown) {
   const s = value == null ? "" : String(value);
-  // wrap if contains quotes, newline, comma, semicolon
   if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
   return s;
 }
@@ -70,6 +75,7 @@ function QuoteMobileCard({
   busy,
   onAction,
   onConvert,
+  onDeleteRequest,
   hasClient,
   clientHasEmail,
 }: {
@@ -77,6 +83,7 @@ function QuoteMobileCard({
   busy: boolean;
   onAction: (id: string, action: QuoteAction) => void;
   onConvert: (id: string) => void;
+  onDeleteRequest: (id: string, label?: string) => void;
   hasClient: boolean;
   clientHasEmail: boolean;
 }) {
@@ -104,7 +111,7 @@ function QuoteMobileCard({
                 {row.number}
               </Typography>
               <Typography variant="body2" sx={{ color: "#475569", mt: 0.25 }}>
-                {row?.client?.contactName}
+                {row?.client?.contactName || "--"}
               </Typography>
             </Box>
 
@@ -152,6 +159,7 @@ function QuoteMobileCard({
               hasInvoice={row.hasInvoice}
               onAction={(a) => onAction(row.id, a)}
               onConvert={() => onConvert(row.id)}
+              onDelete={() => onDeleteRequest(row.id, row.number)}
               hasClient={hasClient}
               clientHasEmail={clientHasEmail}
             />
@@ -190,6 +198,7 @@ export const QuotesGrid = ({
   loading,
   onAction,
   onConvert,
+  onDeleteRequest,
   actionBusyId,
   disbaleExport,
 }: {
@@ -197,6 +206,7 @@ export const QuotesGrid = ({
   loading: boolean;
   onAction: (id: string, action: QuoteAction) => void;
   onConvert: (id: string) => void;
+  onDeleteRequest: (id: string, label?: string) => void;
   actionBusyId: string | null;
   disbaleExport: boolean;
 }) => {
@@ -205,7 +215,6 @@ export const QuotesGrid = ({
 
   const [query, setQuery] = useState("");
 
-  // desktop export menu state
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
     null,
   );
@@ -214,7 +223,7 @@ export const QuotesGrid = ({
     setExportAnchorEl(e.currentTarget);
   const closeExportMenu = () => setExportAnchorEl(null);
 
-  const rows: Row[] = quotes;
+  const rows: Row[] = quotes as any;
 
   const filteredRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -224,8 +233,8 @@ export const QuotesGrid = ({
       const haystack = [
         r.number,
         r?.client?.contactName,
-        dayjs(r.issueDate).format("DD.MM.YYYY"),
-        dayjs(r.validUntil).format("DD.MM.YYYY"),
+        r.issueDate ? dayjs(r.issueDate).format("DD.MM.YYYY") : "",
+        r.validUntil ? dayjs(r.validUntil).format("DD.MM.YYYY") : "",
         r.total,
         mapToStatus(r.status).label,
       ]
@@ -236,7 +245,6 @@ export const QuotesGrid = ({
     });
   }, [rows, query]);
 
-  // --- Export data (desktop)
   const getExportData = useCallback(() => {
     return filteredRows.map((r) => ({
       ID: r.id,
@@ -271,7 +279,6 @@ export const QuotesGrid = ({
       ),
     ];
 
-    // BOM for Excel UTF-8 (UA)
     const csv = "\uFEFF" + lines.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const filename = `quotes_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -306,7 +313,9 @@ export const QuotesGrid = ({
         flex: 1.5,
         minWidth: 180,
         valueGetter: (_, row) => row?.client?.contactName ?? "--",
-        renderCell: (params) => <>{params?.row?.client?.contactName || "--"}</>,
+        renderCell: (params) => (
+          <>{(params as any)?.row?.client?.contactName || "--"}</>
+        ),
       },
       {
         field: "issueDate",
@@ -314,7 +323,7 @@ export const QuotesGrid = ({
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => (
-          <>{dayjs(params?.row?.issueDate).format("DD.MM.YYYY")}</>
+          <>{dayjs((params as any)?.row?.issueDate).format("DD.MM.YYYY")}</>
         ),
       },
       {
@@ -324,8 +333,8 @@ export const QuotesGrid = ({
         minWidth: 140,
         renderCell: (params) => (
           <>
-            {params?.row?.validUntil
-              ? dayjs(params?.row?.validUntil).format("DD.MM.YYYY")
+            {(params as any)?.row?.validUntil
+              ? dayjs((params as any)?.row?.validUntil).format("DD.MM.YYYY")
               : "--"}
           </>
         ),
@@ -336,12 +345,12 @@ export const QuotesGrid = ({
         headerName: "Статус",
         flex: 0.9,
         minWidth: 150,
-        valueGetter: (_, row) => {
-          return mapToStatus(row?.status).label;
-        },
+        valueGetter: (_, row) => mapToStatus(row?.status).label,
         renderCell: (params: GridRenderCellParams<QuoteStatus>) => {
           return (
-            <QuoteStatusChip status={params?.row?.status as QuoteStatus} />
+            <QuoteStatusChip
+              status={(params as any)?.row?.status as QuoteStatus}
+            />
           );
         },
       },
@@ -351,14 +360,17 @@ export const QuotesGrid = ({
         sortable: false,
         filterable: false,
         flex: 1.2,
-        minWidth: 300,
+        minWidth: 320,
         renderCell: (params) => {
-          const id = params.row.id as string;
-          const status = params.row.status as QuoteStatus;
+          const id = (params as any).row.id as string;
+          const status = (params as any).row.status as QuoteStatus;
           const busy = actionBusyId === id;
-          const hasInvoice = params.row.hasInvoice as boolean;
-          const hasClient = params.row.client?.contactName as boolean;
-          const clientHasEmail = params.row.client?.email as boolean;
+          const hasInvoice = (params as any).row.hasInvoice as boolean;
+
+          const hasClient = Boolean((params as any).row.client?.contactName);
+          const clientHasEmail = Boolean((params as any).row.client?.email);
+
+          const number = (params as any).row.number as string | undefined;
 
           return (
             <QuoteRowActions
@@ -369,12 +381,13 @@ export const QuotesGrid = ({
               hasInvoice={hasInvoice}
               onAction={(a) => onAction(id, a)}
               onConvert={() => onConvert(id)}
+              onDelete={() => onDeleteRequest(id, number)}
             />
           );
         },
       },
     ],
-    [onAction, onConvert, actionBusyId],
+    [onAction, onConvert, onDeleteRequest, actionBusyId],
   );
 
   return (
@@ -393,7 +406,7 @@ export const QuotesGrid = ({
         "& .MuiDataGrid-cell": { borderBottom: "1px solid #f1f5f9" },
       }}
     >
-      {/* Search + Export (export only on desktop) */}
+      {/* Search + Export */}
       <Box
         sx={{
           px: 1.5,
@@ -469,7 +482,7 @@ export const QuotesGrid = ({
         )}
       </Box>
 
-      {/* ✅ MOBILE: cards + page scroll */}
+      {/* MOBILE */}
       {isMobile ? (
         <Box sx={{ px: 1.5, pb: 1.5 }}>
           {filteredRows.length === 0 ? (
@@ -492,15 +505,16 @@ export const QuotesGrid = ({
                   busy={actionBusyId === row.id}
                   onAction={onAction}
                   onConvert={onConvert}
-                  hasClient={row?.client?.contactName as boolean}
-                  clientHasEmail={row?.client?.email as boolean}
+                  onDeleteRequest={onDeleteRequest}
+                  hasClient={Boolean(row?.client?.contactName)}
+                  clientHasEmail={Boolean(row?.client?.email)}
                 />
               ))}
             </Stack>
           )}
         </Box>
       ) : (
-        /* ✅ DESKTOP: internal scroll table */
+        /* DESKTOP */
         <Box sx={{ flex: 1, height: { xs: "auto", md: "100%" } }}>
           <DataGrid
             rows={filteredRows}

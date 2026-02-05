@@ -12,14 +12,16 @@ import {
   Typography,
   Card,
   CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useState } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 import { api } from "@/libs/axios";
-
 import { useClientsQueries } from "@/app/clients/hooks/useClientsQueries";
-
 import type { Quote, QuoteAction } from "./types";
 
 import KeyboardReturnIcon from "@mui/icons-material/KeyboardReturn";
@@ -79,6 +81,10 @@ async function postQuoteAction(id: string, action: QuoteAction) {
 async function convertQuoteToInvoice(id: string) {
   const res = await api.post(`/quotes/${id}/convert-to-invoice`);
   return res.data; // { invoice }
+}
+
+async function deleteQuote(id: string) {
+  await api.delete(`/quotes/${id}`);
 }
 
 /* =======================
@@ -292,7 +298,6 @@ export default function QuotesPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // ✅ один контекст як джерело правди
   const { currentUserId, organizationId, planId, isUserLoading, isOrgLoading } =
     useOrganizationContext();
 
@@ -307,6 +312,13 @@ export default function QuotesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
+  // ✅ delete confirm modal state
+  const [deleteState, setDeleteState] = useState<{
+    open: boolean;
+    id: string | null;
+    label?: string;
+  }>({ open: false, id: null });
+
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -315,15 +327,11 @@ export default function QuotesPage() {
 
   const closeSnackbar = () => setSnackbar((p) => ({ ...p, open: false }));
 
-  // ✅ loader щоб не миготів noOrg/paywall
   const isBootstrapping =
     isUserLoading || isOrgLoading || typeof planId === "undefined";
 
-  if (isBootstrapping) {
-    return <FullscreenLoader text="Завантажую..." />;
-  }
+  if (isBootstrapping) return <FullscreenLoader text="Завантажую..." />;
 
-  // ✅ Paywall: quotes only if planId !== FREE
   if (planId === "FREE") {
     return (
       <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
@@ -388,7 +396,6 @@ export default function QuotesPage() {
     );
   }
 
-  // ✅ No org (тільки після bootstrap)
   if (!organizationId) {
     return (
       <Box sx={{ minHeight: "100dvh", bgcolor: "#f3f4f6", py: 4 }}>
@@ -517,9 +524,43 @@ export default function QuotesPage() {
     }
   };
 
+  // ✅ open delete confirm
+  const onRequestDelete = (id: string, label?: string) => {
+    if (!canWork) return;
+    setDeleteState({ open: true, id, label });
+  };
+
+  // ✅ confirm delete
+  const onConfirmDelete = async () => {
+    const id = deleteState.id;
+    if (!id) return;
+
+    try {
+      setBusyId(id);
+      await deleteQuote(id);
+      setDeleteState({ open: false, id: null });
+
+      await refreshQuotes();
+
+      setSnackbar({
+        open: true,
+        message: "Пропозицію видалено",
+        severity: "success",
+      });
+    } catch (e: any) {
+      console.error(e);
+      setSnackbar({
+        open: true,
+        message: e?.response?.data?.message || "Не вдалося видалити",
+        severity: "error",
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const quotesCount = quotes.length;
 
-  // ✅ limit
   const planLimit = PLAN_LIMITS[planId ?? ""] ?? Infinity;
   const isLimitReached = quotesCount >= planLimit;
 
@@ -676,12 +717,7 @@ export default function QuotesPage() {
 
         {/* Main */}
         <Box>
-          <Box
-            sx={{
-              maxWidth: 1700,
-              mx: "auto",
-            }}
-          >
+          <Box sx={{ maxWidth: 1700, mx: "auto" }}>
             <QuotesCard
               count={quotesCount}
               organizationId={organizationId}
@@ -697,7 +733,7 @@ export default function QuotesPage() {
                 }
                 setCreateOpen(true);
               }}
-              isLimitReached={isLimitReached} // ✅ додай у QuotesCard так само як у Clients/Invoices
+              isLimitReached={isLimitReached}
             >
               <QuotesGrid
                 disbaleExport={planId !== "PRO"}
@@ -706,6 +742,7 @@ export default function QuotesPage() {
                 loading={quotesQuery.isLoading || clientsQuery.isLoading}
                 onAction={onAction}
                 onConvert={onConvert}
+                onDeleteRequest={(id, label) => onRequestDelete(id, label)}
                 actionBusyId={busyId}
               />
             </QuotesCard>
@@ -732,6 +769,56 @@ export default function QuotesPage() {
           setSnackbar({ open: true, message: msg, severity: "error" })
         }
       />
+
+      {/* ✅ Delete confirm dialog */}
+      <Dialog
+        open={deleteState.open}
+        onClose={() => setDeleteState({ open: false, id: null })}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            maxWidth: 520,
+            width: "100%",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          Видалити комерційну пропозицію?
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Typography sx={{ color: "text.secondary" }}>
+            {deleteState.label
+              ? `Ви збираєтесь видалити: ${deleteState.label}.`
+              : "Цю дію неможливо відмінити."}
+          </Typography>
+          <Typography sx={{ color: "text.secondary", mt: 0.75 }}>
+            Цю дію неможливо відмінити.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setDeleteState({ open: false, id: null })}
+            variant="outlined"
+            sx={{ borderRadius: 999 }}
+            disabled={busyId === deleteState.id}
+          >
+            Скасувати
+          </Button>
+          <Button
+            onClick={onConfirmDelete}
+            variant="contained"
+            sx={{
+              borderRadius: 999,
+              bgcolor: "#ef4444",
+              color: "white",
+              "&:hover": { bgcolor: "#dc2626" },
+            }}
+            disabled={busyId === deleteState.id}
+          >
+            Видалити
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}
