@@ -11,7 +11,6 @@ import { useTodayTasks } from "@/components/Home/hooks/useTodayTasks";
 import { HomeHeader } from "@/components/Home/components/HomeHeader";
 import { DocumentsCard } from "@/components/Home/components/DocumentsCard";
 import { TodayTasksCard } from "./components/TodayTasksCard";
-import { AiChatCard } from "@/components/Home/components/AiChatCard";
 
 import { useRecentActivity } from "@/components/Home/hooks/useRecentActivity";
 import { RecentActivityCard } from "@/components/Home/components/RecentActivityCard";
@@ -159,7 +158,7 @@ export default function HomePage() {
                 currentPlanFromApi === "FREE" || currentPlanFromApi === "BASIC"
               }
             />
-            <AiChatCard />
+            {/*<AiChatCard />*/}
           </Grid>
 
           {/* RIGHT */}
