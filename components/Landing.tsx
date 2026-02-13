@@ -288,10 +288,6 @@ const outcomes7days = [
 
 const faqs = [
   {
-    q: "Це про AI чи про документи?",
-    a: "Spravly — це про операційку ФОП: клієнти, інвойси/акти/КП, PDF, email-відправка, документи, todo та історія.",
-  },
-  {
     q: "Чим це краще за таблицю?",
     a: "Тут усе повʼязано: клієнт → документ → PDF → відправка → історія. У таблиці це завжди ручний менеджмент і високий шанс щось загубити або зробити помилку.",
   },
@@ -540,8 +536,6 @@ export default function AisdrStyleLanding() {
                     }}
                   >
                     Інвойси, акти й комерційні — в одному місці.
-                    <br />
-                    Плюс AI-помічник.
                   </Typography>
                 </MotionBox>
 
@@ -561,8 +555,7 @@ export default function AisdrStyleLanding() {
                   >
                     Spravly допомагає ФОПу вести клієнтів, створювати
                     інвойси/акти/КП з PDF, відправляти документи на email і
-                    тримати порядок у задачах. AI — щоб тексти й відповіді
-                    робились швидше.
+                    тримати порядок у задачах.
                   </Typography>
                 </MotionBox>
 
@@ -950,8 +943,7 @@ export default function AisdrStyleLanding() {
           </Typography>
           <Typography sx={{ color: MUTED, maxWidth: 900, lineHeight: 1.8 }}>
             Не “чергова тулза”. Це місце, де у тебе зібрані клієнти, документи,
-            PDF, email-відправка, задачі та історія. AI — допомагає з текстами,
-            щоб не витрачати на це півдня.
+            PDF, email-відправка, задачі та історія.
           </Typography>
         </Stack>
 
@@ -1268,23 +1260,6 @@ export default function AisdrStyleLanding() {
                   <br />
                   Стало: “клієнт → документ → PDF → відправка → історія”. І це
                   не дрібниця — це щоденна економія часу.
-                </Typography>
-              </Stack>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ ...softCardSx, p: 3 }}>
-              <Stack spacing={1}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <SmartToyIcon sx={{ color: ORANGE }} />
-                  <Typography sx={{ fontWeight: 950, color: DARK }}>
-                    AI не “замість тебе” — він “разом з тобою”
-                  </Typography>
-                </Stack>
-                <Typography sx={{ color: MUTED, lineHeight: 1.8 }}>
-                  Коли треба швидко: відповідь клієнту, текст для КП,
-                  формулювання умов, ввічлива відмова, реакція на “давайте
-                  дешевше”. Ти задаєш контекст — AI підкидає готові варіанти.
                 </Typography>
               </Stack>
             </Paper>
@@ -1747,7 +1722,6 @@ export default function AisdrStyleLanding() {
                   "PDF в 1 клік",
                   "Email-відправка",
                   "Клієнти з історією",
-                  "AI для текстів",
                   "Документи приватні",
                 ].map((t) => (
                   <Chip
