@@ -509,16 +509,16 @@ export default function AisdrStyleLanding() {
                       label="PDF + email"
                       sx={{ ...pillSx, borderRadius: 999 }}
                     />
-                    <Chip
-                      label="AI як турбо-кнопка"
-                      sx={{
-                        bgcolor: "rgba(254,190,88,0.18)",
-                        border: `1px solid rgba(254,190,88,0.35)`,
-                        color: DARK,
-                        fontWeight: 950,
-                        borderRadius: 999,
-                      }}
-                    />
+                    {/*<Chip*/}
+                    {/*  label="AI як турбо-кнопка"*/}
+                    {/*  sx={{*/}
+                    {/*    bgcolor: "rgba(254,190,88,0.18)",*/}
+                    {/*    border: `1px solid rgba(254,190,88,0.35)`,*/}
+                    {/*    color: DARK,*/}
+                    {/*    fontWeight: 950,*/}
+                    {/*    borderRadius: 999,*/}
+                    {/*  }}*/}
+                    {/*/>*/}
                   </Stack>
                 </MotionBox>
 
