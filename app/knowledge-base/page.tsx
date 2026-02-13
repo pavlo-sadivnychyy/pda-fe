@@ -173,7 +173,7 @@ export default function KnowledgeBasePage() {
               </Box>
 
               <Typography variant="h5" sx={styles.pageTitle}>
-                База знань
+                Документи
               </Typography>
             </Stack>
 
@@ -181,8 +181,8 @@ export default function KnowledgeBasePage() {
           </Stack>
 
           <Typography variant="body2" sx={styles.subtitle}>
-            Завантажуй документи, договори та регламенти — асистент зможе
-            знаходити по них відповіді та використовувати у генерації текстів.
+            Тут зберігаються всі згенеровані Вами акти/інвойси/комерційні
+            пропозиції, а також документі які ви самі завантажите в систему.
           </Typography>
         </Box>
         {isLimitReached && planLimit !== Infinity ? (

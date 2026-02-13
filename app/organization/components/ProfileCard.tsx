@@ -75,8 +75,7 @@ export function ProfileCard({
         }
         title={
           <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Основні дані бізнесу, які асистент буде використовувати у
-            відповідях.
+            Основні дані бізнесу.
           </Typography>
         }
       />

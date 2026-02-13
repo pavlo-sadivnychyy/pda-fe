@@ -158,7 +158,6 @@ export const ProfileFormContent = ({
 
               {/* Блок: профіль для асистента */}
               <Box>
-                <SectionTitle>Профіль для асистента</SectionTitle>
                 <Stack spacing={2}>
                   <TextField
                     variant={"standard"}
