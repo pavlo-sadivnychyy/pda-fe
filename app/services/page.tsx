@@ -119,12 +119,12 @@ export default function ServicesPage() {
   };
 
   const submitting = createService.isPending || updateService.isPending;
-
-  const totalPriceSum = useMemo(() => {
-    // просто приємний “wow” в хедері: сума дефолтних цін
-    const sum = services.reduce((acc, s) => acc + Number(s.price ?? 0), 0);
-    return Number.isFinite(sum) ? sum : 0;
-  }, [services]);
+  //
+  // const totalPriceSum = useMemo(() => {
+  //   // просто приємний “wow” в хедері: сума дефолтних цін
+  //   const sum = services.reduce((acc, s) => acc + Number(s.price ?? 0), 0);
+  //   return Number.isFinite(sum) ? sum : 0;
+  // }, [services]);
 
   return (
     <Box
