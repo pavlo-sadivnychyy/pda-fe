@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Spravly",
-  description: "AI-powered SaaS for your business",
+  description: "Платформа організації Вашого бізнесу",
   icons: {
     icon: "/favicon.png",
   },
