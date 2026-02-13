@@ -12,7 +12,6 @@ import { InfinitySpin } from "react-loader-spinner";
 import { useOrganizationProfilePage } from "./hooks/useOrganizationProfilePage";
 import { PageHeader } from "@/app/organization/components/PageHeader";
 import { ProfileCard } from "./components/ProfileCard";
-import { AssistantInfoCard } from "@/app/organization/components/AssistantInfoCard";
 import { PaymentDetailsCard } from "./components/PaymentDetailsCard";
 
 export default function OrganizationProfilePage() {
@@ -64,13 +63,13 @@ export default function OrganizationProfilePage() {
             onView={vm.actions.toView}
           />
 
-          <Grid container spacing={2.5} pb={2.5}>
-            <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-                <AssistantInfoCard />
-              </Box>
-            </Grid>
-          </Grid>
+          {/*<Grid container spacing={2.5} pb={2.5}>*/}
+          {/*  <Grid size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>*/}
+          {/*    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>*/}
+          {/*      <AssistantInfoCard />*/}
+          {/*    </Box>*/}
+          {/*  </Grid>*/}
+          {/*</Grid>*/}
 
           <Grid container spacing={2.5}>
             <Grid size={{ xs: 12, sm: 12, md: 6, lg: 6 }}>

@@ -78,8 +78,7 @@ export function CreateDocumentDialog(props: Props) {
             Додати документ
           </Typography>
           <Typography variant="body2" sx={{ color: "#6b7280" }}>
-            Завантаж документ, додай назву, опис та теги — асистент буде
-            використовувати його для відповідей.
+            Завантаж документ, додай назву, опис та теги — для швидшого пошуку.
           </Typography>
         </Stack>
       </DialogTitle>

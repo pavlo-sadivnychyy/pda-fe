@@ -67,10 +67,10 @@ export function PageHeader({ mode, profileCompletion }: Props) {
         />
       </Stack>
 
-      <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
-        Заповнюй профіль — і асистент відповідатиме точніше, писатиме в
-        правильному tone of voice і підказуватиме релевантні ідеї.
-      </Typography>
+      {/*<Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>*/}
+      {/*  Заповнюй профіль — і асистент відповідатиме точніше, писатиме в*/}
+      {/*  правильному tone of voice і підказуватиме релевантні ідеї.*/}
+      {/*</Typography>*/}
     </Box>
   );
 }

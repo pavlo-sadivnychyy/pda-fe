@@ -73,11 +73,10 @@ export function DocumentsCard(props: Props) {
         >
           <Stack spacing={0.5}>
             <Typography variant="h5" sx={styles.h1}>
-              Документи бази знань
+              Ваші Документи
             </Typography>
             <Typography variant="body2" sx={styles.muted}>
-              Додавай актуальні документи, щоб асистент працював з реальними
-              матеріалами твого бізнесу.
+              Додавай актуальні документи, щоб завжди мати доступ до них.
             </Typography>
           </Stack>
 
@@ -131,7 +130,7 @@ export function DocumentsCard(props: Props) {
         {!docsLoading && documents.length === 0 && (
           <Typography variant="body2" sx={styles.muted}>
             Поки що немає жодного документа. Додай свій перший контракт,
-            комерційну пропозицію або FAQ — і асистент зможе ними користуватись.
+            комерційну пропозицію щоб вони відобразились тут.
           </Typography>
         )}
 

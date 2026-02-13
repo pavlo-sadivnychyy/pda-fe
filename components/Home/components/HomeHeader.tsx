@@ -101,8 +101,7 @@ export function HomeHeader({
                 variant="body2"
                 sx={{ color: "text.secondary", maxWidth: 720 }}
               >
-                Чим сьогодні допомогти? Обери дію нижче або відкрий чат з
-                асистентом.
+                Чим сьогодні допомогти?
               </Typography>
             </Box>
 

@@ -10,11 +10,11 @@ export function KnowledgeBaseHeader() {
         <Stack spacing={1}>
           <Chip label="Knowledge base" size="small" sx={styles.pill} />
           <Typography variant="h6" sx={{ fontWeight: 600, color: "#111827" }}>
-            База знань
+            Документи
           </Typography>
           <Typography variant="body2" sx={{ color: "#6b7280" }}>
-            Додавай договори, політики, FAQ та інші матеріали — асистент буде
-            опиратися на них при генерації відповідей.
+            Додавай договори, політики, FAQ та інші матеріали — та завжди майте
+            доступ до них з будь якого пристрою.
           </Typography>
         </Stack>
       }
