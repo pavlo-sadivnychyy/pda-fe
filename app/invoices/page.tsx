@@ -422,7 +422,6 @@ export default function InvoicesPage() {
         })),
       };
 
-      // створюємо інвойс
       await createInvoiceMutation.mutateAsync(payload);
 
       // якщо юзер поставив чекбокс — створюємо сервіси
