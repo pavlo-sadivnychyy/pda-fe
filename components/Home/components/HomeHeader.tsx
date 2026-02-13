@@ -11,7 +11,6 @@ import {
   Divider,
   IconButton,
   Stack,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import BusinessIcon from "@mui/icons-material/Business";
@@ -20,7 +19,6 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 
 type PlanId = "FREE" | "STARTER" | "PRO" | "BUSINESS" | "BASIC" | string;
 
@@ -206,12 +204,6 @@ export function HomeHeader({
                 flexWrap: { xs: "wrap", lg: "nowrap" },
               }}
             >
-              <Tooltip title={"Умови користування"}>
-                <GavelRoundedIcon
-                  onClick={() => router.push("/terms-and-conditions")}
-                  sx={{ fontSize: 18, cursor: "pointer" }}
-                />
-              </Tooltip>
               <Chip
                 icon={<BusinessIcon />}
                 label={orgTitle}
