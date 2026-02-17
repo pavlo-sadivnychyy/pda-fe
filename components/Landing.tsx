@@ -724,62 +724,309 @@ export default function AisdrStyleLanding() {
 
                   <Box sx={{ p: 2, bgcolor: "#ffffff" }}>
                     <Stack spacing={1.2}>
-                      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                      {/* ✅ FIX: документ/інвойс замість чат-бульбашок */}
+                      <Box
+                        sx={{
+                          border: `1px solid ${BORDER}`,
+                          borderRadius: 3,
+                          overflow: "hidden",
+                          bgcolor: "#fff",
+                        }}
+                      >
+                        {/* top strip */}
                         <Box
                           sx={{
-                            maxWidth: "92%",
-                            bgcolor: DARK,
-                            color: "#f9fafb",
-                            borderRadius: 2,
                             px: 1.5,
-                            py: 1.2,
+                            py: 1.1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            borderBottom: `1px solid ${BORDER}`,
+                            bgcolor: "#f9fafb",
                           }}
                         >
-                          <Typography
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                          >
+                            <Box
+                              sx={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 2,
+                                border: `1px solid ${BORDER}`,
+                                bgcolor: "#fff",
+                                display: "grid",
+                                placeItems: "center",
+                              }}
+                            >
+                              <ReceiptLongIcon
+                                sx={{ fontSize: 18, color: DARK }}
+                              />
+                            </Box>
+
+                            <Box>
+                              <Typography
+                                sx={{
+                                  fontWeight: 950,
+                                  color: DARK,
+                                  fontSize: 13,
+                                  lineHeight: 1.2,
+                                }}
+                              >
+                                Invoice № INV-00124
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  color: MUTED,
+                                  fontSize: 12,
+                                  mt: 0.2,
+                                }}
+                              >
+                                17.02.2026 • До оплати до 24.02.2026
+                              </Typography>
+                            </Box>
+                          </Stack>
+
+                          <Chip
+                            size="small"
+                            label="PDF готовий"
                             sx={{
-                              fontWeight: 900,
-                              fontSize: 13,
-                              lineHeight: 1.5,
+                              bgcolor: "rgba(254,190,88,0.18)",
+                              border: `1px solid rgba(254,190,88,0.35)`,
+                              color: DARK,
+                              fontWeight: 950,
+                            }}
+                          />
+                        </Box>
+
+                        {/* body */}
+                        <Box sx={{ p: 1.5 }}>
+                          {/* parties */}
+                          <Grid container spacing={1.5}>
+                            <Grid item xs={6}>
+                              <Typography
+                                sx={{
+                                  fontSize: 11.5,
+                                  color: MUTED,
+                                  fontWeight: 900,
+                                }}
+                              >
+                                Від
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: 12.5,
+                                  color: DARK,
+                                  fontWeight: 950,
+                                  mt: 0.3,
+                                }}
+                              >
+                                Spravly Studio
+                              </Typography>
+                              <Typography sx={{ fontSize: 12, color: MUTED }}>
+                                ЄДРПОУ: 12345678
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography
+                                sx={{
+                                  fontSize: 11.5,
+                                  color: MUTED,
+                                  fontWeight: 900,
+                                }}
+                              >
+                                Кому
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: 12.5,
+                                  color: DARK,
+                                  fontWeight: 950,
+                                  mt: 0.3,
+                                }}
+                              >
+                                ТОВ “Agro Partner”
+                              </Typography>
+                              <Typography sx={{ fontSize: 12, color: MUTED }}>
+                                procurement@agro-partner.ua
+                              </Typography>
+                            </Grid>
+                          </Grid>
+
+                          <Divider sx={{ my: 1.2 }} />
+
+                          {/* items table */}
+                          <Box
+                            sx={{
+                              border: `1px solid ${BORDER}`,
+                              borderRadius: 2,
+                              overflow: "hidden",
                             }}
                           >
-                            Клієнт просить знижку. Як відповісти, щоб не
-                            просісти по маржі?
-                          </Typography>
-                        </Box>
-                      </Box>
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 64px 84px",
+                                gap: 1,
+                                px: 1,
+                                py: 0.85,
+                                bgcolor: "#f9fafb",
+                                borderBottom: `1px solid ${BORDER}`,
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: 11.5,
+                                  color: MUTED,
+                                  fontWeight: 950,
+                                }}
+                              >
+                                Позиція
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: 11.5,
+                                  color: MUTED,
+                                  fontWeight: 950,
+                                  textAlign: "right",
+                                }}
+                              >
+                                К-сть
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: 11.5,
+                                  color: MUTED,
+                                  fontWeight: 950,
+                                  textAlign: "right",
+                                }}
+                              >
+                                Сума
+                              </Typography>
+                            </Box>
 
-                      <Box
-                        sx={{ display: "flex", justifyContent: "flex-start" }}
-                      >
-                        <Box
-                          sx={{
-                            maxWidth: "92%",
-                            bgcolor: "#f3f4f6",
-                            color: DARK,
-                            borderRadius: 2,
-                            px: 1.5,
-                            py: 1.2,
-                            border: `1px solid ${BORDER}`,
-                          }}
-                        >
-                          <Typography sx={{ fontWeight: 950, fontSize: 13 }}>
-                            Ось 2 варіанти + наступний крок:
-                          </Typography>
-                          <Typography
-                            sx={{ mt: 0.8, fontSize: 13, lineHeight: 1.6 }}
+                            {[
+                              {
+                                name: "Розробка лендінгу",
+                                qty: "1",
+                                sum: "$300",
+                              },
+                              {
+                                name: "PDF-шаблони документів",
+                                qty: "1",
+                                sum: "$120",
+                              },
+                            ].map((r, idx) => (
+                              <Box
+                                key={r.name}
+                                sx={{
+                                  display: "grid",
+                                  gridTemplateColumns: "1fr 64px 84px",
+                                  gap: 1,
+                                  px: 1,
+                                  py: 0.85,
+                                  borderBottom:
+                                    idx === 1 ? "none" : `1px solid ${BORDER}`,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontSize: 12.5,
+                                    color: DARK,
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  {r.name}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: 12.5,
+                                    color: MUTED,
+                                    textAlign: "right",
+                                  }}
+                                >
+                                  {r.qty}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: 12.5,
+                                    color: DARK,
+                                    fontWeight: 950,
+                                    textAlign: "right",
+                                  }}
+                                >
+                                  {r.sum}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+
+                          {/* totals */}
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            sx={{ mt: 1.2 }}
                           >
-                            1) “Можу дати знижку при пакеті/обʼємі. Так
-                            збережемо якість і терміни.”
-                            <br />
-                            2) “Знижка можлива, якщо замінимо X на Y — результат
-                            той самий, ціна нижча.”
-                          </Typography>
-                          <Typography
-                            sx={{ mt: 0.8, fontSize: 12, color: MUTED }}
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              alignItems="center"
+                            >
+                              <VerifiedIcon
+                                sx={{ color: ORANGE, fontSize: 18 }}
+                              />
+                              <Typography sx={{ fontSize: 12.5, color: MUTED }}>
+                                Статус:{" "}
+                                <Box
+                                  component="span"
+                                  sx={{ color: DARK, fontWeight: 950 }}
+                                >
+                                  Draft
+                                </Box>
+                              </Typography>
+                            </Stack>
+
+                            <Typography
+                              sx={{
+                                fontSize: 14,
+                                color: DARK,
+                                fontWeight: 950,
+                              }}
+                            >
+                              Total: $420
+                            </Typography>
+                          </Stack>
+
+                          {/* quick actions */}
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            flexWrap="wrap"
+                            justifyContent="center"
+                            sx={{ mt: 1.1 }}
                           >
-                            Підкажу, як краще під твою аудиторію + можу
-                            сформувати текст для КП.
-                          </Typography>
+                            <Chip
+                              size="small"
+                              icon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                              label="Завантажити PDF"
+                              sx={{
+                                ...pillSx,
+                                "& .MuiChip-icon": { color: DARK },
+                              }}
+                            />
+                            <Chip
+                              size="small"
+                              icon={<EmailIcon sx={{ fontSize: 16 }} />}
+                              label="Відправити email"
+                              sx={{
+                                ...pillSx,
+                                "& .MuiChip-icon": { color: DARK },
+                              }}
+                            />
+                          </Stack>
                         </Box>
                       </Box>
 
