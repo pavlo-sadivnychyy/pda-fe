@@ -170,13 +170,11 @@ export function RecentActivityCard({
   items,
   loading,
   onOpenHistory,
-  onOpenEntity,
   dragHandle,
 }: {
   items: ActivityLog[];
   loading: boolean;
   onOpenHistory: () => void;
-  onOpenEntity: (type: ActivityLog["entityType"], id: string) => void;
   dragHandle?: React.ReactNode;
 }) {
   const empty = !loading && items?.length === 0;

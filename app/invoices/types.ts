@@ -37,7 +37,10 @@ export type Invoice = {
   total: string | number;
   status: InvoiceStatus;
   notes?: string | null;
+
   pdfDocumentId?: string | null;
+  pdfInternationalDocumentId?: string | null; // ✅ FIX
+
   createdAt: string;
   updatedAt: string;
   client?: Client | null;
@@ -81,7 +84,7 @@ export type InvoiceCreateFormState = {
 
 export type CreateInvoicePayload = {
   organizationId: string;
-  createdById: string;
+  // createdById: string; // у тебе бек сам ставить createdById, краще не слати
   clientId?: string;
   issueDate?: string;
   dueDate?: string;

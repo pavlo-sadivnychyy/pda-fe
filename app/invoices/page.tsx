@@ -20,6 +20,7 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import BusinessIcon from "@mui/icons-material/Business";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LockIcon from "@mui/icons-material/Lock";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { InfinitySpin } from "react-loader-spinner";
 
 import { useMemo, useState } from "react";
@@ -35,12 +36,15 @@ import { InvoicesGrid } from "./components/InvoicesGrid";
 import { CreateInvoiceDialog } from "./components/CreateInvoiceDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 
-import type { InvoiceAction, CreateInvoicePayload } from "./types";
+import type { InvoiceAction, CreateInvoicePayload, Invoice } from "./types";
 import { useServicesQueries } from "@/app/invoices/hooks/useServicesQueries";
 import { useServiceMutations } from "@/app/invoices/hooks/useServiceMutations";
 
-// ✅ NEW
-
+// ✅ NEW recurring
+import { RecurringInvoiceDialog } from "@/app/recurring-invoices/components/RecurringInvoiceDialog";
+import { useRecurringInvoiceMutations } from "@/app/recurring-invoices/hooks/useRecurringInvoiceMutations";
+import { useRecurringInvoicesQueries } from "@/app/recurring-invoices/hooks/useRecurringInvoicesQueries";
+import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
 /* =======================
    Config: plan limits
 ======================= */
@@ -226,6 +230,7 @@ export default function InvoicesPage() {
     useOrganizationContext();
 
   const canWork = Boolean(organizationId);
+  const isPro = planId === "PRO";
 
   const { clientsQuery, invoicesQuery } = useInvoicesQueries(
     canWork ? organizationId : undefined,
@@ -247,15 +252,37 @@ export default function InvoicesPage() {
     removeItem,
     totals,
     reset,
-    errors, // ✅ ДОДАНО
-    validateForm, // ✅ ДОДАНО
+    errors,
+    validateForm,
   } = useInvoiceForm();
 
-  // ✅ NEW: services for select + checkbox "save"
+  // ✅ services for select + checkbox "save"
   const { servicesQuery } = useServicesQueries();
   const { createService } = useServiceMutations();
 
+  // ✅ recurring data for mapping template->profile
+  const { recurringQuery } = useRecurringInvoicesQueries(
+    canWork ? organizationId : undefined,
+    { enabled: Boolean(canWork && isPro) },
+  );
+  const { createRecurring, updateRecurring } = useRecurringInvoiceMutations(
+    canWork ? organizationId : undefined,
+  );
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  // ✅ recurring dialog state
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [recurringTemplateInvoice, setRecurringTemplateInvoice] =
+    useState<Invoice | null>(null);
+
+  const recurringByTemplateId = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const p of recurringQuery.data ?? []) {
+      map.set(p.templateInvoiceId, p);
+    }
+    return map;
+  }, [recurringQuery.data]);
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -381,11 +408,8 @@ export default function InvoicesPage() {
     }
   };
 
-  // Замініть функцію handleSubmit в InvoicesPage.tsx на цю:
-
   const handleSubmit = async () => {
     try {
-      // ✅ ВАЛІДАЦІЯ ПЕРЕД ЗБЕРЕЖЕННЯМ
       if (!validateForm()) {
         showSnackbar("Будь ласка, виправте помилки у формі", "error");
         return;
@@ -434,7 +458,6 @@ export default function InvoicesPage() {
         }))
         .filter((x) => x.name && Number.isFinite(x.price));
 
-      // дедуп по name+price
       const uniq = new Map<string, (typeof candidates)[number]>();
       for (const s of candidates) {
         const key = `${s.name.toLowerCase()}::${s.price}`;
@@ -471,6 +494,41 @@ export default function InvoicesPage() {
     }
   };
 
+  const openRecurringFromInvoice = (inv: Invoice) => {
+    if (!isPro) {
+      showSnackbar("Recurring інвойси доступні лише на PRO", "error");
+      router.push("/pricing");
+      return;
+    }
+    setRecurringTemplateInvoice(inv);
+    setRecurringDialogOpen(true);
+  };
+
+  const handleSaveRecurring = async (payload: any) => {
+    try {
+      // якщо вже є профіль — update, інакше create
+      const existing = payload?.id
+        ? payload
+        : recurringByTemplateId.get(payload.templateInvoiceId);
+
+      if (existing?.id) {
+        await updateRecurring.mutateAsync({
+          id: existing.id,
+          data: payload,
+        });
+      } else {
+        await createRecurring.mutateAsync(payload);
+      }
+
+      showSnackbar("Recurring налаштування збережено", "success");
+      setRecurringDialogOpen(false);
+      setRecurringTemplateInvoice(null);
+    } catch (e) {
+      console.error(e);
+      showSnackbar("Помилка збереження recurring", "error");
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -502,6 +560,7 @@ export default function InvoicesPage() {
             direction={{ xs: "column", sm: "row" }}
             spacing={1}
             alignItems={{ xs: "flex-start", sm: "center" }}
+            justifyContent="space-between"
           >
             <Stack direction="row" spacing={1} alignItems="center">
               <Box
@@ -524,18 +583,56 @@ export default function InvoicesPage() {
               >
                 Інвойси
               </Typography>
+
+              <Chip
+                label={`Всього: ${invoicesCount}`}
+                size="small"
+                sx={{
+                  bgcolor: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  color: "#0f172a",
+                  fontWeight: 700,
+                }}
+              />
             </Stack>
 
-            <Chip
-              label={`Всього: ${invoicesCount}`}
-              size="small"
-              sx={{
-                bgcolor: "#ffffff",
-                border: "1px solid #e2e8f0",
-                color: "#0f172a",
-                fontWeight: 700,
-              }}
-            />
+            <Stack direction="row" spacing={1} alignItems="center">
+              {isPro ? (
+                <Button
+                  onClick={() => router.push("/recurring-invoices")}
+                  startIcon={<AutorenewIcon />}
+                  endIcon={<TrendingFlatIcon />}
+                  sx={{
+                    borderRadius: 999,
+                    textTransform: "none",
+                    fontWeight: 900,
+                    bgcolor: "#111827",
+                    color: "white",
+                    px: 2.2,
+                    "&:hover": { bgcolor: "#020617" },
+                  }}
+                >
+                  Регулярні інвойси
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => router.push("/pricing")}
+                  startIcon={<LockIcon />}
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 999,
+                    textTransform: "none",
+                    fontWeight: 900,
+                    px: 2.2,
+                    borderColor: "#111827",
+                    color: "#111827",
+                    bgcolor: "#fff",
+                  }}
+                >
+                  Регулярні інвойси (PRO)
+                </Button>
+              )}
+            </Stack>
           </Stack>
 
           <Typography variant="body2" sx={{ color: "#64748b", mt: 0.8 }}>
@@ -603,6 +700,10 @@ export default function InvoicesPage() {
                 actionBusyKey={actionBusyKey}
                 onDelete={requestDelete}
                 deleteBusyId={deleteBusyId}
+                // ✅ recurring
+                isPro={isPro}
+                recurringByTemplateId={recurringByTemplateId}
+                onMakeRecurring={openRecurringFromInvoice}
               />
             </InvoicesCard>
           </Box>
@@ -619,7 +720,7 @@ export default function InvoicesPage() {
         formStatus={formStatus}
         setFormStatus={setFormStatus}
         form={invoiceForm}
-        errors={errors} // ✅ ДОДАНО
+        errors={errors}
         setField={setField as any}
         setItemField={setItemField as any}
         addItem={addItem}
@@ -627,6 +728,23 @@ export default function InvoicesPage() {
         totals={totals}
         onSubmit={handleSubmit}
         submitting={createInvoiceMutation.isPending}
+      />
+
+      <RecurringInvoiceDialog
+        open={recurringDialogOpen}
+        onClose={() => {
+          setRecurringDialogOpen(false);
+          setRecurringTemplateInvoice(null);
+        }}
+        isPro={isPro}
+        templateInvoice={recurringTemplateInvoice}
+        existingProfile={
+          recurringTemplateInvoice
+            ? (recurringByTemplateId.get(recurringTemplateInvoice.id) ?? null)
+            : null
+        }
+        onSave={handleSaveRecurring}
+        submitting={createRecurring.isPending || updateRecurring.isPending}
       />
 
       <ConfirmDialog
