@@ -19,6 +19,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LockIcon from "@mui/icons-material/Lock";
 import DesignServicesIcon from "@mui/icons-material/DesignServices";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 
 type ShortcutProps = {
   onClick: () => void;
@@ -279,6 +280,32 @@ export function QuotesShortcutCard({
         <>
           Створюй комерційні пропозиції з переліком послуг або товарів, цінами
           та умовами співпраці — щоб клієнту було легко прийняти рішення.
+        </>,
+      ]}
+      onClick={onClick}
+      dragHandle={dragHandle}
+      notAvailiable={Boolean(notAvailiable)}
+    />
+  );
+}
+
+export function ReсcuringInvoicesShortcutCard({
+  onClick,
+  dragHandle,
+  notAvailiable,
+}: ShortcutProps) {
+  return (
+    <ShortcutCard
+      dataOnb="card-Rec-inv"
+      icon={<AutorenewIcon sx={{ color: "#0f766e" }} />}
+      iconBg="#f0fdfa"
+      title="Регулярні інвойси"
+      subtitle="Автоматизація рахунків"
+      desc={[
+        <>
+          Створюйте та відправляйте інвойси за розкладом (щомісяця/щотижня
+          тощо), ставте на паузу або відновлюйте — без рутини та ручного
+          копіювання.
         </>,
       ]}
       onClick={onClick}

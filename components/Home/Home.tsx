@@ -20,6 +20,7 @@ import {
   AnalyticsShortcutCard,
   ClientsShortcutCard,
   QuotesShortcutCard,
+  ReсcuringInvoicesShortcutCard,
   ServicesShortcutCard,
 } from "./components/FinanceShortcutsCards";
 import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortcutsCards";
@@ -143,6 +144,13 @@ export default function HomePage() {
               organizationId={organizationId}
               minDays={1}
               maxDays={2}
+            />
+
+            <ReсcuringInvoicesShortcutCard
+              onClick={() => router.push("/recurring-invoices")}
+              notAvailiable={
+                currentPlanFromApi === "FREE" || currentPlanFromApi === "BASIC"
+              }
             />
 
             <RecentActivityCard

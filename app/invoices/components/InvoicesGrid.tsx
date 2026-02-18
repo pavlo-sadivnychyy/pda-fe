@@ -15,10 +15,13 @@ import {
   Button,
   Menu,
   MenuItem,
+  Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import DownloadIcon from "@mui/icons-material/Download";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import LockIcon from "@mui/icons-material/Lock";
 import {
   DataGrid,
   type GridColDef,
@@ -61,7 +64,6 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function escapeCsvCell(value: unknown) {
   const s = value == null ? "" : String(value);
-  // UA/EU Excel часто чекає ';' як розділювач, але лапки все одно потрібні
   if (/[",\n\r;]/.test(s)) return `"${s.replaceAll('"', '""')}"`;
   return s;
 }
@@ -70,7 +72,6 @@ function toIsoDateOnly(value: string | Date | null | undefined): string | "" {
   if (!value) return "";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  // YYYY-MM-DD
   return d.toISOString().slice(0, 10);
 }
 
@@ -78,7 +79,6 @@ function formatDateUA(value: string | Date | null | undefined): string {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  // dd.mm.yyyy (український формат)
   return new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
@@ -86,10 +86,6 @@ function formatDateUA(value: string | Date | null | undefined): string {
   }).format(d);
 }
 
-/**
- * Синоніми/варіанти для пошуку по статусу.
- * Важливо: тут можна сміливо додавати "людські" слова, як користувач реально пише в пошуку.
- */
 const STATUS_SEARCH_UA: Partial<Record<string, string>> = {
   DRAFT: "чернетка черновик драфт draft",
   SENT: "надіслано надісланий відправлено відправлений відправка",
@@ -106,13 +102,6 @@ function normalizeText(s: string) {
   return s.toLowerCase().trim();
 }
 
-/**
- * Витягує “датні токени” з рядка пошуку:
- * - 05.02.2026 / 5.2.2026 / 05/02/2026 / 2026-02-05
- * Повертає набір нормалізованих ключів:
- * - dd.mm.yyyy
- * - yyyy-mm-dd
- */
 function extractDateTokens(query: string): {
   ddmmyyyy: string[];
   yyyymmdd: string[];
@@ -123,7 +112,6 @@ function extractDateTokens(query: string): {
   const ddmmyyyy: string[] = [];
   const yyyymmdd: string[] = [];
 
-  // 2026-02-05
   const isoMatches = q.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/g) ?? [];
   for (const m of isoMatches) {
     const [y, mo, d] = m.split("-").map((x) => x.padStart(2, "0"));
@@ -131,7 +119,6 @@ function extractDateTokens(query: string): {
     ddmmyyyy.push(`${d}.${mo}.${y}`);
   }
 
-  // 05.02.2026 / 5.2.2026 / 05/02/2026 / 5-2-2026
   const euMatches = q.match(/\b(\d{1,2})[./-](\d{1,2})[./-](20\d{2})\b/g) ?? [];
   for (const m of euMatches) {
     const parts = m.split(/[./-]/);
@@ -156,12 +143,20 @@ function InvoiceMobileCard({
   onDelete,
   actionBusyKey,
   deleteBusyId,
+  // recurring
+  isPro,
+  onMakeRecurring,
+  hasRecurring,
 }: {
   row: any;
   onAction: (id: string, action: InvoiceAction) => void;
   onDelete: (id: string) => void;
   actionBusyKey: string | null;
   deleteBusyId: string | null;
+
+  isPro: boolean;
+  onMakeRecurring: (invoice: Invoice) => void;
+  hasRecurring: boolean;
 }) {
   const id = row.id as string;
   const busyAction = Boolean(actionBusyKey?.startsWith(`${id}:`));
@@ -176,7 +171,16 @@ function InvoiceMobileCard({
             <InvoiceStatusChip status={row.status as InvoiceStatus} />
           </Stack>
 
-          <Typography sx={{ color: "#475569" }}>{row.clientName}</Typography>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography sx={{ color: "#475569" }}>{row.clientName}</Typography>
+            {hasRecurring ? (
+              <Chip
+                size="small"
+                icon={<AutorenewIcon sx={{ fontSize: 16 }} />}
+                label="Recurring"
+              />
+            ) : null}
+          </Stack>
 
           {row.clientEmail && (
             <Typography variant="body2" sx={{ color: "#64748b" }}>
@@ -209,6 +213,25 @@ function InvoiceMobileCard({
             hasInternationalPdf={row.hasInternationalPdf}
           />
 
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Button
+              onClick={() => onMakeRecurring(row.__rawInvoice as Invoice)}
+              startIcon={isPro ? <AutorenewIcon /> : <LockIcon />}
+              variant={isPro ? "contained" : "outlined"}
+              sx={{
+                borderRadius: 999,
+                textTransform: "none",
+                fontWeight: 900,
+                bgcolor: isPro ? "#111827" : "#fff",
+                color: isPro ? "#fff" : "#111827",
+                borderColor: "#111827",
+                "&:hover": { bgcolor: isPro ? "#020617" : "#f8fafc" },
+              }}
+            >
+              Recurring
+            </Button>
+          </Stack>
+
           <InvoiceRowActions
             status={row.status}
             busy={busyAction}
@@ -239,6 +262,11 @@ export const InvoicesGrid = ({
   onDelete,
   deleteBusyId,
   disbaleExport,
+
+  // recurring
+  isPro,
+  onMakeRecurring,
+  recurringByTemplateId,
 }: {
   invoices: Invoice[];
   clients: Client[];
@@ -248,13 +276,16 @@ export const InvoicesGrid = ({
   onDelete: (id: string) => void;
   deleteBusyId: string | null;
   disbaleExport: boolean;
+
+  isPro: boolean;
+  onMakeRecurring: (invoice: Invoice) => void;
+  recurringByTemplateId: Map<string, any>;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [query, setQuery] = useState("");
 
-  // export menu (desktop only used, but safe regardless)
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
     null,
   );
@@ -277,32 +308,35 @@ export const InvoicesGrid = ({
         const statusRaw = String(inv.status ?? "");
         const statusSearch = STATUS_SEARCH_UA[statusRaw] ?? "";
 
+        const hasRecurring = recurringByTemplateId.has(inv.id);
+
         return {
           id: inv.id,
           number: inv.number,
           clientName: getClientDisplayName(inv, clients),
           clientEmail,
 
-          // UI (UA формат)
           issueDate: issueUA,
           dueDate: dueUA,
 
-          // для пошуку (стабільні “ключі”)
-          issueDateISO: issueISO, // YYYY-MM-DD
-          dueDateISO: dueISO, // YYYY-MM-DD
+          issueDateISO: issueISO,
+          dueDateISO: dueISO,
 
-          totalValue: inv.total, // для експорту числом
+          totalValue: inv.total,
           currency: inv.currency,
-          total: `${formatMoney(inv.total)} ${inv.currency}`, // для UI
+          total: `${formatMoney(inv.total)} ${inv.currency}`,
 
           status: inv.status,
-          statusSearch, // ✅ для пошуку по статусу (синоніми)
+          statusSearch,
 
           hasPdf: Boolean(inv.pdfDocumentId),
-          hasInternationalPdf: Boolean(inv.pdfInternationalDocumentId),
+          hasInternationalPdf: Boolean((inv as any).pdfInternationalDocumentId),
+
+          hasRecurring,
+          __rawInvoice: inv,
         };
       }),
-    [invoices, clients],
+    [invoices, clients, recurringByTemplateId],
   );
 
   const filteredRows = useMemo(() => {
@@ -317,22 +351,20 @@ export const InvoicesGrid = ({
           r.number,
           r.clientName,
           r.clientEmail ?? "",
-          r.issueDate, // dd.mm.yyyy (UA)
-          r.dueDate, // dd.mm.yyyy (UA)
-          r.issueDateISO, // yyyy-mm-dd
-          r.dueDateISO, // yyyy-mm-dd
+          r.issueDate,
+          r.dueDate,
+          r.issueDateISO,
+          r.dueDateISO,
           r.total,
-          String(r.status ?? ""), // SENT / PAID ...
-          r.statusSearch, // ✅ "надіслано відправлено ..."
+          String(r.status ?? ""),
+          r.statusSearch,
+          r.hasRecurring ? "recurring recurring invoices автоплатіж" : "",
         ]
           .join(" ")
           .replace(/\s+/g, " "),
       );
 
-      // базовий full-text
       const textMatch = hay.includes(q);
-
-      // якщо користувач ввів дату — матчимо строго по ключам дат теж
       const dateMatch =
         ddmmyyyy.some((t) => r.issueDate === t || r.dueDate === t) ||
         yyyymmdd.some((t) => r.issueDateISO === t || r.dueDateISO === t);
@@ -341,7 +373,6 @@ export const InvoicesGrid = ({
     });
   }, [rows, query]);
 
-  // ---- Export data (desktop)
   const getExportData = useCallback(() => {
     return filteredRows.map((r) => ({
       ID: r.id,
@@ -350,11 +381,12 @@ export const InvoicesGrid = ({
       "Email клієнта": r.clientEmail ?? "",
       Дата: r.issueDate,
       "Оплатити до": r.dueDate,
-      Сума: r.totalValue, // числом, щоб Excel міг рахувати
+      Сума: r.totalValue,
       Валюта: r.currency,
       Статус: String(r.status ?? ""),
       PDF: r.hasPdf ? "Так" : "Ні",
       "PDF (International)": r.hasInternationalPdf ? "Так" : "Ні",
+      Recurring: r.hasRecurring ? "Так" : "Ні",
     }));
   }, [filteredRows]);
 
@@ -375,7 +407,6 @@ export const InvoicesGrid = ({
       ),
     ];
 
-    // BOM for Excel UTF-8 UA chars
     const csv = "\uFEFF" + lines.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const filename = `invoices_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -401,11 +432,9 @@ export const InvoicesGrid = ({
     closeExportMenu();
   }, [getExportData]);
 
-  /* ---------- Mobile ---------- */
   if (isMobile) {
     return (
       <Box>
-        {/* search */}
         <Box sx={{ px: 1, pb: 1 }}>
           <TextField
             value={query}
@@ -442,6 +471,9 @@ export const InvoicesGrid = ({
             onDelete={onDelete}
             actionBusyKey={actionBusyKey}
             deleteBusyId={deleteBusyId}
+            isPro={isPro}
+            onMakeRecurring={onMakeRecurring}
+            hasRecurring={Boolean(row.hasRecurring)}
           />
         ))}
 
@@ -453,8 +485,6 @@ export const InvoicesGrid = ({
       </Box>
     );
   }
-
-  /* ---------- Desktop ---------- */
 
   const columns: GridColDef[] = [
     { field: "number", headerName: "Номер", flex: 1, minWidth: 120 },
@@ -469,6 +499,35 @@ export const InvoicesGrid = ({
       renderCell: (p: GridRenderCellParams<InvoiceStatus>) => (
         <InvoiceStatusChip status={p.value as InvoiceStatus} />
       ),
+    },
+    {
+      field: "recurring",
+      headerName: "Регулярність",
+      sortable: false,
+      width: 210,
+      renderCell: (p) => {
+        const inv = p.row.__rawInvoice as Invoice;
+        const has = Boolean(p.row.hasRecurring);
+        return (
+          <Button
+            onClick={() => onMakeRecurring(inv)}
+            startIcon={isPro ? <AutorenewIcon /> : <LockIcon />}
+            size="small"
+            variant={isPro ? "contained" : "outlined"}
+            sx={{
+              borderRadius: 999,
+              textTransform: "none",
+              fontWeight: 900,
+              bgcolor: isPro ? "#111827" : "#fff",
+              color: isPro ? "#fff" : "#111827",
+              borderColor: "#111827",
+              "&:hover": { bgcolor: isPro ? "#020617" : "#f8fafc" },
+            }}
+          >
+            {has ? "Налаштувати" : "Зробити регулярним"}
+          </Button>
+        );
+      },
     },
     {
       field: "pdf",
@@ -516,12 +575,7 @@ export const InvoicesGrid = ({
   ];
 
   return (
-    <Box
-      sx={{
-        "& .MuiDataGrid-root": { border: "none" },
-      }}
-    >
-      {/* header: search + export (desktop only) */}
+    <Box sx={{ "& .MuiDataGrid-root": { border: "none" } }}>
       <Box
         sx={{
           px: 1.5,
