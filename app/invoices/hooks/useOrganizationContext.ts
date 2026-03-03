@@ -23,6 +23,7 @@ export const useOrganizationContext = () => {
   return {
     isUserLoading,
     isOrgLoading,
+    orgData,
     currentUserId: currentUserId as string | null,
     organizationId,
     planId: currentPlanFromApi,

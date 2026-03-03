@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
 import GroupIcon from "@mui/icons-material/Group";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -200,6 +201,35 @@ function ShortcutCard({
 /* =======================
    ✅ Exported cards
 ======================= */
+
+export function TaxCalendarShortcutCard({
+  onClick,
+  dragHandle,
+  notAvailiable,
+}: ShortcutProps) {
+  return (
+    <ShortcutCard
+      dataOnb="card-tax-calendar"
+      icon={<CalendarMonthIcon sx={{ color: "#0e7490" }} />}
+      iconBg="#ecfeff"
+      title="Податковий календар"
+      subtitle="Дедлайни та контроль звітності"
+      desc={[
+        <>
+          Автоматично створює <b>події</b> за правилами (<b>шаблонами</b>) і
+          показує конкретні дедлайни на період.
+        </>,
+        <>
+          Відмічай <b>Виконано</b> або <b>Пропустити</b> — щоб тримати все під
+          контролем.
+        </>,
+      ]}
+      onClick={onClick}
+      dragHandle={dragHandle}
+      notAvailiable={Boolean(notAvailiable)}
+    />
+  );
+}
 
 export function ClientsShortcutCard({ onClick, dragHandle }: ShortcutProps) {
   return (

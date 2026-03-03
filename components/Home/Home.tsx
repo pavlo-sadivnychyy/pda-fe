@@ -22,6 +22,7 @@ import {
   QuotesShortcutCard,
   ReсcuringInvoicesShortcutCard,
   ServicesShortcutCard,
+  TaxCalendarShortcutCard,
 } from "./components/FinanceShortcutsCards";
 import { InvoicesShortcutCard } from "@/components/Home/components/FinanceShortcutsCards";
 
@@ -158,6 +159,11 @@ export default function HomePage() {
               loading={activity.isLoading || activity.isFetching}
               onOpenHistory={() => router.push("/activity")}
               onOpenEntity={openEntity}
+            />
+
+            <TaxCalendarShortcutCard
+              onClick={() => router.push("/tax-calendar")}
+              notAvailiable={currentPlanFromApi === "FREE"}
             />
 
             <AnalyticsShortcutCard
