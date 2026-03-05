@@ -539,7 +539,7 @@ export default function AisdrStyleLanding() {
                       maxWidth: 760,
                     }}
                   >
-                    Інвойси, акти й комерційні — в одному місці.
+                    Інвойси, акти та комерційні пропозиції — в одному сервісі.
                   </Typography>
                 </MotionBox>
 
