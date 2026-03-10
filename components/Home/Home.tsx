@@ -19,6 +19,7 @@ import {
   ActsShortcutCard,
   AnalyticsShortcutCard,
   ClientsShortcutCard,
+  ExpensePlannerShortcutCard,
   QuotesShortcutCard,
   ReсcuringInvoicesShortcutCard,
   ServicesShortcutCard,
@@ -136,6 +137,10 @@ export default function HomePage() {
               isLoading={today.isLoading}
               isFetching={today.isFetching}
               onOpenTodo={() => router.push("/todo")}
+            />
+
+            <ExpensePlannerShortcutCard
+              onClick={() => router.push("/planner")}
             />
 
             <InvoiceDeadlinesCard
