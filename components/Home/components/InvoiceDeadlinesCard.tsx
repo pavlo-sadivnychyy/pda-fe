@@ -423,8 +423,7 @@ export function InvoiceDeadlinesCard({
                   Недоступно на поточному плані
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  Оновіть підписку, щоб бачити інвойси з дедлайнами та надсилати
-                  нагадування клієнтам.
+                  Оновіть підписку, щоб користуватись цією функцією.
                 </Typography>
               </Box>
             </Box>
