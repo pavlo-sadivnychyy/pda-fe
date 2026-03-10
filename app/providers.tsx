@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import "dayjs/locale/uk";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,7 +10,10 @@ import { setClerkGetToken } from "@/libs/clerkToken";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { ukUA } from "@clerk/localizations";
+import { ukUA as clukUA } from "@clerk/localizations";
+import { ukUA } from "@mui/x-date-pickers/locales";
+import dayjs from "dayjs";
+dayjs.locale("uk");
 
 const theme = createTheme({
   palette: {
@@ -40,19 +44,24 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>
       <ClerkProvider
-        localization={ukUA}
+        localization={clukUA}
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
         afterSignInUrl="/dashboard"
         afterSignUpUrl="/dashboard"
       >
-        {/* ✅ Bridge має монтуватись якнайраніше */}
         <ClerkTokenBridge />
 
         <QueryClientProvider client={queryClient}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <LocalizationProvider
+              dateAdapter={AdapterDayjs}
+              adapterLocale="uk"
+              localeText={
+                ukUA.components.MuiLocalizationProvider.defaultProps.localeText
+              }
+            >
               {children}
             </LocalizationProvider>
           </ThemeProvider>

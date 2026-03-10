@@ -21,6 +21,7 @@ import InsightsIcon from "@mui/icons-material/Insights";
 import LockIcon from "@mui/icons-material/Lock";
 import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
 
 type ShortcutProps = {
   onClick: () => void;
@@ -286,6 +287,33 @@ export function InvoicesShortcutCard({ onClick, dragHandle }: ShortcutProps) {
           скасовано), генеруй PDF або відправляй клієнту в один клік — без
           ручної рутини. Також можеш створювати міжнародні інвойси для роботи з
           клієнтами з-за кордону.
+        </>,
+      ]}
+      onClick={onClick}
+      dragHandle={dragHandle}
+    />
+  );
+}
+
+export function ExpensePlannerShortcutCard({
+  onClick,
+  dragHandle,
+}: ShortcutProps) {
+  return (
+    <ShortcutCard
+      dataOnb="card-expense-planner"
+      icon={<SavingsOutlinedIcon sx={{ color: "#7c3aed" }} />}
+      iconBg="#f5f3ff"
+      title="Планувальник витрат"
+      subtitle="Місячний бюджет та історія"
+      desc={[
+        <>
+          Плануй витрати на місяць, фіксуй фактичні суми та дивись, де ти
+          виходиш за межі бюджету.
+        </>,
+        <>
+          Переглядай <b>історію по минулих місяцях</b>, аналізуй категорії,
+          регулярні витрати та динаміку на графіках.
         </>,
       ]}
       onClick={onClick}
