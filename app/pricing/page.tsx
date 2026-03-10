@@ -62,7 +62,6 @@ const MUTED = "#64748b";
 const BG = "#f3f4f6";
 const BORDER = "#e5e7eb";
 
-const glassShadow = "0 24px 60px rgba(15, 23, 42, 0.12)";
 const softShadow = "0 24px 60px rgba(15, 23, 42, 0.08)";
 
 const MotionPaper = motion(Paper);

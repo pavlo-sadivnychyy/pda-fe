@@ -39,7 +39,7 @@ function endOfDay(d: Date) {
 
 export function TaxCalendarPage() {
   const qc = useQueryClient();
-  const { organizationId, planId, isOrgLoading, isUserLoading, orgData } =
+  const { organizationId, planId, isOrgLoading, isUserLoading } =
     useOrganizationContext();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
